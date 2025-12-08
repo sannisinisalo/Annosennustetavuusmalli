@@ -6,8 +6,9 @@ Ensimmäinen koodiyritys maskipakan luomiseen.
 - aloitetaan yhdellä potilaalla
 - tämän jälkeen voidaan siirtyä käsittelemään kaikkia potilaita
 
-Koodissa määritetään jokaiselle ROI:lle numero, jolla annosennustettavuusmalli 
-tunnistaa ne sekä koostetaan CT pakka, johon on lisätty kaikki ROI:t.
+Koodissa määritetään jokaiselle ROI:lle (Region Of Intrest) numero, jolla 
+annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on 
+lisätty kaikki ROI:t.
 """
 
 import os
@@ -31,6 +32,20 @@ file2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\struct\RS_SKAALATTU.
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on 
 # DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa
 def Load_CT(path): 
+    """
+    Loading the CT-images and arranging them by the InstanceUID metadata.
+
+    Parameters
+    ----------
+    path : str
+        The path of the original CT-images.
+
+    Returns
+    -------
+    slices : list 
+        Arranged CT-images.
+
+    """
     # Tuotetaan lista CT-kuvista, f silmukkamuuttuja, johon .dcm tiedostot tallentuvat 
     slices = [
         pydicom.dcmread(os.path.join(path, f)) 
@@ -53,7 +68,26 @@ def Load_CT(path):
 
 # Normalisoidaan ROI-maskin akselit muotoon (Z, Y, X), jotta ne ovat samassa muodossa CT kuvien kanssa
 def Normalize_axes(mask, ct_slices): 
-    
+    """
+    Normalizes the axes of the ROI mask array tho match the CT-images axes (Z, Y, X).
+
+    Parameters
+    ----------
+    mask : numpy.ndarray
+        The 3D array representing the mask.
+    ct_slices : list 
+        A list of the loaded CT images in DICOM form
+
+    Returns
+    -------
+    mask_normalized : numpy.ndarray
+        The mask array with axes reordered to (Z, Y, X).
+
+    message : str
+        A text message describing whether the mask was already correctly aligned
+        or how the axes were transposed.
+
+    """
     num_slices = len(ct_slices) # Siivujen lukumäärä Z
     rows = int(ct_slices[0].Rows) # Rivien määrä eli kuvan korkeus eli Y
     cols = int(ct_slices[0].Columns) # Sarakkeiden määrä eli kuvan leveys eli X
@@ -87,6 +121,22 @@ def Normalize_axes(mask, ct_slices):
 
 # ROI nimien määritys ja numeroiden määrääminen
 def ROI_names(roi_name):
+    """
+    Maps a ROI name to a predefined number that are powers of 2.
+
+    Parameters
+    ----------
+    roi_name : str
+        Name of the ROI.
+
+    Returns
+    -------
+    int
+        A number representing the ROI class if a match is found.
+    None
+        If the ROI is not recognized or should be excluded.
+
+    """
     # Muuttaa ROI:n nimen pieniksi kirjaimiksi sekä poistaa turhat välilyönnit nimen edestä ja lopusta 
     roi = roi_name.lower().strip()
     
@@ -157,7 +207,26 @@ def ROI_names(roi_name):
 
 # Asetetaan ROI:t CT-kuvien päälle
 def Overlay_ROI(rt_path, ct_path):
-    
+    """
+    overlays the ROIs on top of the CT-images.
+
+    Parameters
+    ----------
+    rt_path : str
+        Path to the RT Structure Set (RTSTRUCT) DICOM file.
+    ct_path : str
+        Path to the directory containing the CT DICOM series.
+
+    Returns
+    -------
+    sum_mask : numpy.ndarray
+        A 3D integer array of shape (Z, Y, X) where each voxel contains:
+        - a power-of-two label value representing the ROIs covering it
+        - `-1` if no ROI covers that voxel
+    ct_slices : list
+        A list of the loaded CT images in DICOM form
+
+    """
     # Ladataan CT-kuvat käyttäen aikaisemmin määriteltyä Load_CT funktiota 
     ct_slices = Load_CT(ct_path) 
     num_slices = len(ct_slices) 
@@ -228,6 +297,25 @@ ROI_INTENSITY_MAP = {
 # Funktio, jolla annetaan ROI:lle intensiteettien painokertoimet
 # Taustan arvoksi asetetaan 0, jolloin tausta näkyy mustana
 def apply_intensity_weights(bitmask, roi_map, background_value=0):
+    """
+    Converts the bitmask-based ROI volume into an intensity-weighted volume.
+
+    Parameters
+    ----------
+    bitmask : numpy.ndarray
+        A 3D array where ROIs are encoded using bitwise flags.
+    roi_map : dict
+        Dictionary mapping ROI bit values to intensity values.
+    background_value : int, optional
+        Intensity value assigned to background voxels (default is 0).
+
+    Returns
+    -------
+    output : numpy.ndarray
+        A 3D NumPy array where each voxel contains the summed intensity value 
+        based on all matching ROI bits.
+
+    """
     # Kopioidaan maski sellaisenaan NumPy-taulukoksi
     mask = np.array(bitmask, copy=True)
 
@@ -261,6 +349,23 @@ def apply_intensity_weights(bitmask, roi_map, background_value=0):
 
 # Tallennetaan maski DICOM-pakkana
 def save_mask_as_dicom_series(mask, ct_slices, output_folder):
+    """
+    Saves the mask as a DICOM series using CT slice metadata.
+
+    Parameters
+    ----------
+    mask : numpy.ndarray
+        A 3D array (Z, Y, X) containing the mask data to be saved.
+    ct_slices : list
+        A list of the loaded CT images in DICOM form.
+    output_folder : str
+        Path to the folder where the DICOM mask series will be saved.
+
+    Returns
+    -------
+    None.
+
+    """
     # Luodaan output-kansio, jos sitä ei vielä ole
     os.makedirs(output_folder, exist_ok=True)
     
