@@ -21,12 +21,6 @@ import re
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-# Kansio, jossa downsamplatut CT-kuvat
-file = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct"
-
-#Kansio, jossa muokattu RS tiedosto
-file2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\struct\RS_SKAALATTU.dcm"
-
 
 
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on 
@@ -392,6 +386,13 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 
 
 # PÄÄOHJELMA
+
+# Kansio, jossa downsamplatut CT-kuvat
+file = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct"
+
+#Kansio, jossa muokattu RS tiedosto
+file2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\struct\RS_SKAALATTU.dcm"
+
 # Luodaan maski
 mask, ct_slices = Overlay_ROI(file2, file)
 
