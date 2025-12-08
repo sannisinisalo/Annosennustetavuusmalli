@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Dec  1 09:46:21 2025
-
-@author: User01
-"""
-
-# -*- coding: utf-8 -*-
-"""
 Luotu Ma 24.11.2025 klo 10:17:17
 
 Ensimmäinen koodiyritys maskipakan luomiseen. 
