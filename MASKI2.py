@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Luotu Ma 24.11.2025 klo 10:17:17
+Luotu Ti 16.12.2025 klo 9:24:17
 
-Ensimmäinen koodiyritys maskipakan luomiseen. 
-- aloitetaan yhdellä potilaalla
-- tämän jälkeen voidaan siirtyä käsittelemään kaikkia potilaita
+Toinen koodiyritys maskipakan luomiseen. 
+Ensimmäisestä versiosta poistettu intensitetti maskin luominen
 
 Koodissa määritetään jokaiselle ROI:lle (Region Of Intrest) numero, jolla 
 annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on 
@@ -271,77 +270,6 @@ def Overlay_ROI(rt_path, ct_path):
 
 
 
-# Luodaan haluttuja ROI:ta vastaavalle arvolle intensiteetti, jolla väritys määräytyy
-ROI_INTENSITY_MAP = {
-    0: 0,      
-    1: 1,    
-    2: 2,    
-    4: 4,    
-    8: 8,    
-    16: 16,   
-    32: 32,   
-    64: 64,  
-    128: 128, 
-    256: 256, 
-    512: 512, 
-    1024: 1024  
-}
-
-
-
-# Funktio, jolla annetaan ROI:lle intensiteettien painokertoimet
-# Taustan arvoksi asetetaan 0, jolloin tausta näkyy mustana
-def apply_intensity_weights(bitmask, roi_map, background_value=0):
-    """
-    Converts the bitmask-based ROI volume into an intensity-weighted volume.
-
-    Parameters
-    ----------
-    bitmask : numpy.ndarray
-        A 3D array where ROIs are encoded using bitwise flags.
-    roi_map : dict
-        Dictionary mapping ROI bit values to intensity values.
-    background_value : int, optional
-        Intensity value assigned to background voxels (default is 0).
-
-    Returns
-    -------
-    output : numpy.ndarray
-        A 3D NumPy array where each voxel contains the summed intensity value 
-        based on all matching ROI bits.
-
-    """
-    # Kopioidaan maski sellaisenaan NumPy-taulukoksi
-    mask = np.array(bitmask, copy=True)
-
-    # Määritellään taustan arvoksi -1 
-    background_mask = (mask == -1)
-
-    # Määritellään body:n arvoksi 0, mikä toteutuu silloin, kun background_mask=false
-    body_mask = (mask == 0) & (~background_mask)  
-
-    # Alustetaan output luomalla tyhjä taulukko samassa muodossa kuin maksi
-    output = np.zeros(mask.shape, dtype=np.int16)
-
-    # Käsitellään erikseen body:n arvo 0 ja asetetaan alueelle sen intensiteetti
-    if 0 in roi_map:
-        output[body_mask] = roi_map[0]
-
-    # Käsitellään loput ROI:t ns. bittilogiikalla ohittaen arvon 0, joka käsiteltiin jo yllä 
-    for roi_bit, intensity in roi_map.items():
-        if roi_bit == 0:
-            continue
-        hits = (mask & roi_bit) != 0
-        output[hits] += intensity
-
-    # Asetetaan kaikille taustan pikseleille ennalta määritetty arvo, eli 0
-    output[background_mask] = background_value
-
-    # Palauttaa uuden tualukon, jossa kullekin pikselille on laskettu kokonaisintensiteetti
-    return output
-
-
-
 # Tallennetaan maski DICOM-pakkana
 def save_mask_as_dicom_series(mask, ct_slices, output_folder):
     """
@@ -401,12 +329,9 @@ mask, ct_slices = Overlay_ROI(file2, file)
 print(type(mask))
 print(mask.shape)   
 
-# Muunnetaan maski intensiteettikuvaksi
-gray = apply_intensity_weights(mask, ROI_INTENSITY_MAP)
-
 # Kansio, johon maskin kuvat tallennetaan 
 out = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
 
 # Tallentaa intensiteettikuvat uuteen DICOM-sarjaan
-save_mask_as_dicom_series(gray, ct_slices, out)
+save_mask_as_dicom_series(mask, ct_slices, out)
 
