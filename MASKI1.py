@@ -411,3 +411,15 @@ out = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
 save_mask_as_dicom_series(mask, ct_slices, out)
 
 
+
+# TESTAUSTA
+
+unique_vals = np.unique(mask)
+print("Uniikit arvot maskissa:")
+print(unique_vals)
+
+z, y, x = 50, 200, 200  # säädä tarvittaessa
+
+val = mask[z, y, x]
+print(f"Voxel-arvo: {val}")
+print(f"Binaarina: {bin(val)}")
