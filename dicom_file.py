@@ -28,7 +28,7 @@ for tiedosto in os.listdir(kansio):
         elif "InstanceNumber" in ds:
             z = int(ds.InstanceNumber)
         else:
-            z = 0  # fallback, jos mikään ei löydy
+            z = 0
 
         dicom_lista.append((z, tiedosto, ds))
 

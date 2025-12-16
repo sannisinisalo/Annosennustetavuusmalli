@@ -11,6 +11,7 @@ annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on
 lisätty kaikki ROI:t.
 """
 
+
 import os
 import glob
 import numpy as np
@@ -272,18 +273,18 @@ def Overlay_ROI(rt_path, ct_path):
 
 # Luodaan haluttuja ROI:ta vastaavalle arvolle intensiteetti, jolla väritys määräytyy
 ROI_INTENSITY_MAP = {
-    0: 800,      
-    1: 3000,    
-    2: 2800,    
-    4: 2600,    
-    8: 2400,    
-    16: 2200,   
-    32: 2000,   
-    64: 1800,  
-    128: 1600, 
-    256: 1400, 
-    512: 1200, 
-    1024: 1000  
+    0: 0,      
+    1: 1,    
+    2: 2,    
+    4: 4,    
+    8: 8,    
+    16: 16,   
+    32: 32,   
+    64: 64,  
+    128: 128, 
+    256: 256, 
+    512: 512, 
+    1024: 1024  
 }
 
 
