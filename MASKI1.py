@@ -408,14 +408,6 @@ gray = apply_intensity_weights(mask, ROI_INTENSITY_MAP)
 out = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
 
 # Tallentaa intensiteettikuvat uuteen DICOM-sarjaan
-save_mask_as_dicom_series(gray, ct_slices, out)
-
-
-
-
-
-
-
-
+save_mask_as_dicom_series(mask, ct_slices, out)
 
 
