@@ -134,9 +134,9 @@ def overlay_roi_on_ct(rt_path, ct_path, roi_name, flip_ud=False, flip_lr=False):
 # Pääohjelma, tämä ajetaan vain, jos tämä ohjelma ajetaan sellaisenaan. Jos kooodi importoitu toiseen ohjelmaan, tätä ei ajeta 
 if __name__ == "__main__": 
     overlay_roi_on_ct(
-        rt_path=r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\struct\RS_SKAALATTU.dcm",
-        ct_path=r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct",
-        roi_name="Keuhko dex",
+        rt_path=r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient2_VN0\struct\RS.1.2.246.352.221.5081513604484729159.13153969492833577387.dcm",
+        ct_path=r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient2_VN0\vanha ct",
+        roi_name="Keuhko sin",
         flip_ud=False,  # Jos CT tai maski ylösalaisin, vaihda True
         flip_lr=False   # Jos CT tai maski pelikuvana, vaihda True
     )

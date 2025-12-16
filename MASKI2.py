@@ -350,9 +350,20 @@ patients = sorted(patients, key=Patient_sort)
 for patient in patients:
     print(f"Käsitellään {patient}...")
 
-    ct_path = os.path.join(patient_dir, patient, "ct")
-    rs_path = os.path.join(patient_dir, patient, "struct", "RS_SKAALATTU.dcm")
+    ct_path = os.path.join(patient_dir, patient, "vanha ct")
     out_path = os.path.join(patient_dir, patient, "maski")
+
+    # Etsitään RS-tiedosto potilaan struct-kansiosta
+    struct_dir = os.path.join(patient_dir, patient, "struct")
+    rs_files = [f for f in os.listdir(struct_dir) if f.startswith("RS")]
+    
+    if not rs_files:
+        print(f"RS-tiedostoa ei löytynyt potilaalta {patient}")
+        continue  # hypätään tämän potilaan yli
+    
+    # Oletetaan, että halutaan ensimmäinen RS-tiedosto, jos niitä on useampi
+    rs_path = os.path.join(struct_dir, rs_files[0])
+
 
     # Luodaan maski
     mask, ct_slices = Overlay_ROI(rs_path, ct_path)
