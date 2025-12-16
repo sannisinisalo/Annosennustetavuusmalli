@@ -3,7 +3,8 @@
 Luotu Ti 16.12.2025 klo 9:24:17
 
 Toinen koodiyritys maskipakan luomiseen. 
-Ensimmäisestä versiosta poistettu intensitetti maskin luominen
+Ensimmäisestä versiosta poistettu intensitetti maskin luominen ja koodi 
+muutettu lukemaan monta potilasta kerralla
 
 Koodissa määritetään jokaiselle ROI:lle (Region Of Intrest) numero, jolla 
 annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on 
@@ -319,7 +320,7 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 # Kansio, jossa downsamplatut CT-kuvat
 file = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct"
 
-#Kansio, jossa muokattu RS tiedosto
+# Kansio, jossa muokattu RS tiedosto
 file2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\struct\RS_SKAALATTU.dcm"
 
 # Luodaan maski
@@ -332,6 +333,6 @@ print(mask.shape)
 # Kansio, johon maskin kuvat tallennetaan 
 out = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
 
-# Tallentaa intensiteettikuvat uuteen DICOM-sarjaan
+# Tallentaa maski uuteen DICOM-sarjaan
 save_mask_as_dicom_series(mask, ct_slices, out)
 
