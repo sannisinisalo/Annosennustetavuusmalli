@@ -222,52 +222,57 @@ def Overlay_ROI(rt_path, ct_path):
         A list of the loaded CT images in DICOM form
 
     """
+
     # Ladataan CT-kuvat käyttäen aikaisemmin määriteltyä Load_CT funktiota 
     ct_slices = Load_CT(ct_path) 
     num_slices = len(ct_slices) 
     rows = int(ct_slices[0].Rows) 
     cols = int(ct_slices[0].Columns) 
-    
+        
+        
     # Muodostetaan numpy CT-kuvista pakka 
     # ct_vol = np.stack([s.pixel_array for s in ct_slices], axis=0) 
-
+    
     # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resampolata ROI:t CT:n koordinaatistoon
     rtstruct = RTStructBuilder.create_from(
         dicom_series_path=ct_path,
-        rt_struct_path=rt_path
-    )
-    
+        rt_struct_path=rt_path)
+        
     # Luodaan ensin tyhjä summamaski 
     # Alustetaan tausta arvoksi ensin 0, tämä muutetaan myöhemmin arvoon -1
     sum_mask = np.zeros((num_slices, rows, cols), dtype=np.int32)
-    
+        
     # Luodaan bool-taulukko, joka tosi, kun pikselissä vähintään yksi ROI
     any_mask = np.zeros((num_slices, rows, cols), dtype=bool)
-    
+        
     # Listataan kaikki saatavilla olevat ROI:t
     roi_list = rtstruct.get_roi_names()
-    
-    
+        
+        
     # Määritetään ROI listan halutuille ROI:lle ROI_names funktiossa määritetyt luvut (2:n potenssi)
     for roi_name in roi_list:
         roi_value = ROI_names(roi_name)
         if roi_value is None:
             continue
-        
+            
         mask = rtstruct.get_roi_mask_by_name(roi_name)
-        
+            
         mask, txt = Normalize_axes(mask, ct_slices)
         # print(f"{roi_name}: {txt}")
-        
+            
         any_mask |= mask.astype(bool)
-        
+            
         sum_mask |= (mask.astype(np.int32) * roi_value)
-        
+            
     #Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
     sum_mask[~any_mask] = -1
-
+    
     # Palautetaan summamaski (, CT-volyymi, ja CT-lista)
     return sum_mask, ct_slices
+    
+
+        
+
 
 
 
@@ -355,7 +360,7 @@ for patient in patients:
 
     # Etsitään RS-tiedosto potilaan struct-kansiosta
     struct_dir = os.path.join(patient_dir, patient, "struct")
-    rs_files = [f for f in os.listdir(struct_dir) if f.startswith("RS")]
+    rs_files = [f for f in os.listdir(struct_dir) if f.startswith("RS.")]
     
     if not rs_files:
         print(f"RS-tiedostoa ei löytynyt potilaalta {patient}")
