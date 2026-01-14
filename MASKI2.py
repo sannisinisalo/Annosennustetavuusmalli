@@ -21,6 +21,7 @@ import re
 
 
 
+
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on 
 # DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa
 def Load_CT(path): 
@@ -309,6 +310,11 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
         new_ds.RescaleSlope = 1
 
         out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
+        new_ds.PixelRepresentation = 1
+        new_ds.BitsAllocated = 16
+        new_ds.BitsStored = 16
+        new_ds.HighBit = 15
+
         new_ds.save_as(out_path)
 
 

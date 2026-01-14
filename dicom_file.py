@@ -8,8 +8,9 @@ Created on Tue Nov 18 09:07:58 2025
 import os
 import pydicom
 import matplotlib.pyplot as plt
+import numpy as np
 
-kansio = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient60_VN0\maski"
+kansio = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
 # tallennusk = r"C:\Users\User01\GRADU\tiedostot\MASKI1_tuloksia"
 
 dicom_lista = []
