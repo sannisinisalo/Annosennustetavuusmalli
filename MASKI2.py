@@ -228,10 +228,6 @@ def Overlay_ROI(rt_path, ct_path):
     num_slices = len(ct_slices) 
     rows = int(ct_slices[0].Rows) 
     cols = int(ct_slices[0].Columns) 
-        
-        
-    # Muodostetaan numpy CT-kuvista pakka 
-    # ct_vol = np.stack([s.pixel_array for s in ct_slices], axis=0) 
     
     # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resampolata ROI:t CT:n koordinaatistoon
     rtstruct = RTStructBuilder.create_from(
@@ -254,8 +250,12 @@ def Overlay_ROI(rt_path, ct_path):
         roi_value = ROI_names(roi_name)
         if roi_value is None:
             continue
-            
-        mask = rtstruct.get_roi_mask_by_name(roi_name)
+        
+        try:
+            mask = rtstruct.get_roi_mask_by_name(roi_name)
+        except AttributeError:
+            print(f"ROI '{roi_name}' ohitettu (ei ContourSequenceä)")
+            continue
             
         mask, txt = Normalize_axes(mask, ct_slices)
         # print(f"{roi_name}: {txt}")
@@ -267,13 +267,9 @@ def Overlay_ROI(rt_path, ct_path):
     #Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
     sum_mask[~any_mask] = -1
     
-    # Palautetaan summamaski (, CT-volyymi, ja CT-lista)
+    # Palautetaan summamaski ja CT-lista
     return sum_mask, ct_slices
     
-
-        
-
-
 
 
 # Tallennetaan maski DICOM-pakkana
