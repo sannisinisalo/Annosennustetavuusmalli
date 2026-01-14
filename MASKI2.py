@@ -3,8 +3,9 @@
 Luotu Ti 16.12.2025 klo 9:24:17
 
 Toinen koodiyritys maskipakan luomiseen. 
-Ensimmäisestä versiosta poistettu intensitetti maskin luominen ja koodi 
-muutettu lukemaan monta potilasta kerralla
+Ensimmäisestä versiosta poistettu 
+- intensitettimaskin luominen, koska se hävitti tiedon päällekkäisistä ROI:sta
+- koodi muutettu lukemaan monta potilasta kerralla yhdestä kansiosta
 
 Koodissa määritetään jokaiselle ROI:lle (Region Of Intrest) numero, jolla 
 annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on 
@@ -13,14 +14,10 @@ lisätty kaikki ROI:t.
 
 
 import os
-import glob
 import numpy as np
-import cv2
 import pydicom
 from rt_utils import RTStructBuilder
 import re
-import matplotlib.pyplot as plt
-from pathlib import Path
 
 
 
