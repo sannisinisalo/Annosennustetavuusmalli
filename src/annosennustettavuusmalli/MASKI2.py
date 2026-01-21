@@ -21,10 +21,9 @@ import re
 
 
 
-
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on 
 # DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa
-def Load_CT(path): 
+def load_CT(path): 
     """
     Loading the CT-images and arranging them by the InstanceUID metadata.
 
@@ -60,7 +59,7 @@ def Load_CT(path):
 
 
 # Normalisoidaan ROI-maskin akselit muotoon (Z, Y, X), jotta ne ovat samassa muodossa CT kuvien kanssa
-def Normalize_axes(mask, ct_slices): 
+def normalize_axes(mask, ct_slices): 
     """
     Normalizes the axes of the ROI mask array tho match the CT-images axes (Z, Y, X).
 
@@ -199,7 +198,7 @@ def ROI_names(roi_name):
 
 
 # Asetetaan ROI:t CT-kuvien päälle
-def Overlay_ROI(rt_path, ct_path):
+def overlay_ROI(rt_path, ct_path):
     """
     overlays the ROIs on top of the CT-images.
 
@@ -222,7 +221,7 @@ def Overlay_ROI(rt_path, ct_path):
     """
 
     # Ladataan CT-kuvat käyttäen aikaisemmin määriteltyä Load_CT funktiota 
-    ct_slices = Load_CT(ct_path) 
+    ct_slices = load_CT(ct_path) 
     num_slices = len(ct_slices) 
     rows = int(ct_slices[0].Rows) 
     cols = int(ct_slices[0].Columns) 
@@ -255,7 +254,7 @@ def Overlay_ROI(rt_path, ct_path):
             print(f"ROI '{roi_name}' ohitettu (ei ContourSequenceä)")
             continue
             
-        mask, txt = Normalize_axes(mask, ct_slices)
+        mask, txt = normalize_axes(mask, ct_slices)
         # print(f"{roi_name}: {txt}")
             
         any_mask |= mask.astype(bool)
@@ -319,8 +318,29 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 
 
 
-# PÄÄOHJELMA
+# Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
+def Patient_sort(name):
+    """
+    Function that sorts patients by number, not by letter 
 
+    Parameters
+    ----------
+    name : str
+        The name of the patient folder.
+
+    Returns
+    -------
+    int
+        The numeric value extracted from the folder name, or 0 if none found.
+            
+    """
+    # Eristetään numero nimestä
+    m = re.search(r'(\d+)', name)
+    return int(m.group(1)) if m else 0
+
+
+
+# PÄÄOHJELMA
 
 if __name__ == "__main__":
 
@@ -329,26 +349,6 @@ if __name__ == "__main__":
 
     # Etsitään kaikki potilaskansiot, jotka alkavat "Patient"
     patients = [d for d in os.listdir(patient_dir) if d.startswith("Patient")]
-
-    # Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
-    def Patient_sort(name):
-        """
-        Function that sorts patients by number, not by letter 
-
-        Parameters
-        ----------
-        name : str
-            The name of the patient folder.
-
-        Returns
-        -------
-        int
-            The numeric value extracted from the folder name, or 0 if none found.
-            
-        """
-        # Eristetään numero nimestä
-        m = re.search(r'(\d+)', name)
-        return int(m.group(1)) if m else 0
 
     # Luodaan maski
     patients = sorted(patients, key=Patient_sort)
@@ -373,7 +373,7 @@ if __name__ == "__main__":
 
 
         # Luodaan maski
-        mask, ct_slices = Overlay_ROI(rs_path, ct_path)
+        mask, ct_slices = overlay_ROI(rs_path, ct_path)
 
         # Tulostetaan maskin tyyppi ja muoto
         print(type(mask), mask.shape)
@@ -382,3 +382,4 @@ if __name__ == "__main__":
         save_mask_as_dicom_series(mask, ct_slices, out_path)
         
         print(f"Maski tallennettu")
+
