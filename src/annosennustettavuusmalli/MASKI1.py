@@ -388,25 +388,26 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 
 # PÄÄOHJELMA
 
-# Kansio, jossa downsamplatut CT-kuvat
-file = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct"
+if __name__ == "__main__":
+    # Kansio, jossa downsamplatut CT-kuvat
+    file = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct"
 
-#Kansio, jossa muokattu RS tiedosto
-file2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\struct\RS_SKAALATTU.dcm"
+    #Kansio, jossa muokattu RS tiedosto
+    file2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\struct\RS_SKAALATTU.dcm"
 
-# Luodaan maski
-mask, ct_slices = Overlay_ROI(file2, file)
+    # Luodaan maski
+    mask, ct_slices = Overlay_ROI(file2, file)
 
-# Tulostetaan maskin tyyppi ja muoto
-print(type(mask))
-print(mask.shape)   
+    # Tulostetaan maskin tyyppi ja muoto
+    print(type(mask))
+    print(mask.shape)   
 
-# Muunnetaan maski intensiteettikuvaksi
-gray = apply_intensity_weights(mask, ROI_INTENSITY_MAP)
+    # Muunnetaan maski intensiteettikuvaksi
+    gray = apply_intensity_weights(mask, ROI_INTENSITY_MAP)
 
-# Kansio, johon maskin kuvat tallennetaan 
-out = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
+    # Kansio, johon maskin kuvat tallennetaan 
+    out = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
 
-# Tallentaa intensiteettikuvat uuteen DICOM-sarjaan
-save_mask_as_dicom_series(gray, ct_slices, out)
+    # Tallentaa intensiteettikuvat uuteen DICOM-sarjaan
+    save_mask_as_dicom_series(gray, ct_slices, out)
 

@@ -321,61 +321,64 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 
 # PÄÄOHJELMA
 
-# Kansio, jossa jokaisen potilaan kansio
-patient_dir = r"C:\Users\User01\GRADU\Aineisto\VN0ds"
 
-# Etsitään kaikki potilaskansiot, jotka alkavat "Patient"
-patients = [d for d in os.listdir(patient_dir) if d.startswith("Patient")]
+if __name__ == "__main__":
 
-# Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
-def Patient_sort(name):
-    """
-    Function that sorts patients by number, not by letter 
+    # Kansio, jossa jokaisen potilaan kansio
+    patient_dir = r"C:\Users\User01\GRADU\Aineisto\VN0ds"
 
-    Parameters
-    ----------
-    name : str
-        The name of the patient folder.
+    # Etsitään kaikki potilaskansiot, jotka alkavat "Patient"
+    patients = [d for d in os.listdir(patient_dir) if d.startswith("Patient")]
 
-    Returns
-    -------
-    int
-        The numeric value extracted from the folder name, or 0 if none found.
-        
-    """
-    # Eristetään numero nimestä
-    m = re.search(r'(\d+)', name)
-    return int(m.group(1)) if m else 0
+    # Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
+    def Patient_sort(name):
+        """
+        Function that sorts patients by number, not by letter 
 
-# Luodaan maski
-patients = sorted(patients, key=Patient_sort)
+        Parameters
+        ----------
+        name : str
+            The name of the patient folder.
 
-# Käydään kaikki potilaat läpi
-for patient in patients:
-    print(f"Käsitellään {patient}...")
-
-    ct_path = os.path.join(patient_dir, patient, "vanha ct")
-    out_path = os.path.join(patient_dir, patient, "maski")
-
-    # Etsitään RS-tiedosto potilaan struct-kansiosta
-    struct_dir = os.path.join(patient_dir, patient, "struct")
-    rs_files = [f for f in os.listdir(struct_dir) if f.startswith("RS.")]
-    
-    if not rs_files:
-        print(f"RS-tiedostoa ei löytynyt potilaalta {patient}")
-        continue  # hypätään tämän potilaan yli
-    
-    # Oletetaan, että halutaan ensimmäinen RS-tiedosto, jos niitä on useampi
-    rs_path = os.path.join(struct_dir, rs_files[0])
-
+        Returns
+        -------
+        int
+            The numeric value extracted from the folder name, or 0 if none found.
+            
+        """
+        # Eristetään numero nimestä
+        m = re.search(r'(\d+)', name)
+        return int(m.group(1)) if m else 0
 
     # Luodaan maski
-    mask, ct_slices = Overlay_ROI(rs_path, ct_path)
+    patients = sorted(patients, key=Patient_sort)
 
-    # Tulostetaan maskin tyyppi ja muoto
-    print(type(mask), mask.shape)
+    # Käydään kaikki potilaat läpi
+    for patient in patients:
+        print(f"Käsitellään {patient}...")
 
-    # Tallennetaan maski DICOM-sarjana
-    save_mask_as_dicom_series(mask, ct_slices, out_path)
-    
-    print(f"Maski tallennettu")
+        ct_path = os.path.join(patient_dir, patient, "vanha ct")
+        out_path = os.path.join(patient_dir, patient, "maski")
+
+        # Etsitään RS-tiedosto potilaan struct-kansiosta
+        struct_dir = os.path.join(patient_dir, patient, "struct")
+        rs_files = [f for f in os.listdir(struct_dir) if f.startswith("RS.")]
+        
+        if not rs_files:
+            print(f"RS-tiedostoa ei löytynyt potilaalta {patient}")
+            continue  # hypätään tämän potilaan yli
+        
+        # Oletetaan, että halutaan ensimmäinen RS-tiedosto, jos niitä on useampi
+        rs_path = os.path.join(struct_dir, rs_files[0])
+
+
+        # Luodaan maski
+        mask, ct_slices = Overlay_ROI(rs_path, ct_path)
+
+        # Tulostetaan maskin tyyppi ja muoto
+        print(type(mask), mask.shape)
+
+        # Tallennetaan maski DICOM-sarjana
+        save_mask_as_dicom_series(mask, ct_slices, out_path)
+        
+        print(f"Maski tallennettu")

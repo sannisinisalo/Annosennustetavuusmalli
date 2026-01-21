@@ -49,7 +49,7 @@ pip install -e ".[dev]"
 
 **Käyttöesimerkki:**
 
-### Muiden tarvittavien tiedostojen koon pienentäminen (`src/?/`)
+#### Muiden tarvittavien tiedostojen koon pienentäminen (`src/?/`)
 
 **Käyttöesimerkki:**
 
