@@ -1,31 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-Luotu Ma 24.11.2025 klo 10:17:17
+Luotu Ti 16.12.2025 klo 9:24:17
 
-Ensimmäinen koodiyritys maskipakan luomiseen. 
-- aloitetaan yhdellä potilaalla
-- tämän jälkeen voidaan siirtyä käsittelemään kaikkia potilaita
+Toinen koodiyritys maskipakan luomiseen. 
+Ensimmäisestä versiosta poistettu 
+- intensitettimaskin luominen, koska se hävitti tiedon päällekkäisistä ROI:sta
+- koodi muutettu lukemaan monta potilasta kerralla yhdestä kansiosta
 
 Koodissa määritetään jokaiselle ROI:lle (Region Of Intrest) numero, jolla 
 annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on 
 lisätty kaikki ROI:t.
 """
 
+
 import os
-import glob
 import numpy as np
-import cv2
 import pydicom
 from rt_utils import RTStructBuilder
 import re
-import matplotlib.pyplot as plt
-from pathlib import Path
 
-# Kansio, jossa downsamplatut CT-kuvat
-file = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct"
-
-#Kansio, jossa muokattu RS tiedosto
-file2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\struct\RS_SKAALATTU.dcm"
 
 
 
@@ -227,124 +220,54 @@ def Overlay_ROI(rt_path, ct_path):
         A list of the loaded CT images in DICOM form
 
     """
+
     # Ladataan CT-kuvat käyttäen aikaisemmin määriteltyä Load_CT funktiota 
     ct_slices = Load_CT(ct_path) 
     num_slices = len(ct_slices) 
     rows = int(ct_slices[0].Rows) 
     cols = int(ct_slices[0].Columns) 
     
-    # Muodostetaan numpy CT-kuvista pakka 
-    # ct_vol = np.stack([s.pixel_array for s in ct_slices], axis=0) 
-
     # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resampolata ROI:t CT:n koordinaatistoon
     rtstruct = RTStructBuilder.create_from(
         dicom_series_path=ct_path,
-        rt_struct_path=rt_path
-    )
-    
+        rt_struct_path=rt_path)
+        
     # Luodaan ensin tyhjä summamaski 
     # Alustetaan tausta arvoksi ensin 0, tämä muutetaan myöhemmin arvoon -1
     sum_mask = np.zeros((num_slices, rows, cols), dtype=np.int32)
-    
+        
     # Luodaan bool-taulukko, joka tosi, kun pikselissä vähintään yksi ROI
     any_mask = np.zeros((num_slices, rows, cols), dtype=bool)
-    
+        
     # Listataan kaikki saatavilla olevat ROI:t
     roi_list = rtstruct.get_roi_names()
-    
-    
+        
+        
     # Määritetään ROI listan halutuille ROI:lle ROI_names funktiossa määritetyt luvut (2:n potenssi)
     for roi_name in roi_list:
         roi_value = ROI_names(roi_name)
         if roi_value is None:
             continue
         
-        mask = rtstruct.get_roi_mask_by_name(roi_name)
-        
+        try:
+            mask = rtstruct.get_roi_mask_by_name(roi_name)
+        except AttributeError:
+            print(f"ROI '{roi_name}' ohitettu (ei ContourSequenceä)")
+            continue
+            
         mask, txt = Normalize_axes(mask, ct_slices)
         # print(f"{roi_name}: {txt}")
-        
+            
         any_mask |= mask.astype(bool)
-        
+            
         sum_mask |= (mask.astype(np.int32) * roi_value)
-        
+            
     #Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
     sum_mask[~any_mask] = -1
-
-    # Palautetaan summamaski (, CT-volyymi, ja CT-lista)
+    
+    # Palautetaan summamaski ja CT-lista
     return sum_mask, ct_slices
-
-
-
-# Luodaan haluttuja ROI:ta vastaavalle arvolle intensiteetti, jolla väritys määräytyy
-ROI_INTENSITY_MAP = {
-    0: 800,      
-    1: 3000,    
-    2: 2800,    
-    4: 2600,    
-    8: 2400,    
-    16: 2200,   
-    32: 2000,   
-    64: 1800,  
-    128: 1600, 
-    256: 1400, 
-    512: 1200, 
-    1024: 1000  
-}
-
-
-
-# Funktio, jolla annetaan ROI:lle intensiteettien painokertoimet
-# Taustan arvoksi asetetaan 0, jolloin tausta näkyy mustana
-def apply_intensity_weights(bitmask, roi_map, background_value=0):
-    """
-    Converts the bitmask-based ROI volume into an intensity-weighted volume.
-
-    Parameters
-    ----------
-    bitmask : numpy.ndarray
-        A 3D array where ROIs are encoded using bitwise flags.
-    roi_map : dict
-        Dictionary mapping ROI bit values to intensity values.
-    background_value : int, optional
-        Intensity value assigned to background voxels (default is 0).
-
-    Returns
-    -------
-    output : numpy.ndarray
-        A 3D NumPy array where each voxel contains the summed intensity value 
-        based on all matching ROI bits.
-
-    """
-    # Kopioidaan maski sellaisenaan NumPy-taulukoksi
-    mask = np.array(bitmask, copy=True)
-
-    # Määritellään taustan arvoksi -1 
-    background_mask = (mask == -1)
-
-    # Määritellään body:n arvoksi 0, mikä toteutuu silloin, kun background_mask=false
-    body_mask = (mask == 0) & (~background_mask)  
-
-    # Alustetaan output luomalla tyhjä taulukko samassa muodossa kuin maksi
-    output = np.zeros(mask.shape, dtype=np.int16)
-
-    # Käsitellään erikseen body:n arvo 0 ja asetetaan alueelle sen intensiteetti
-    if 0 in roi_map:
-        output[body_mask] = roi_map[0]
-
-    # Käsitellään loput ROI:t ns. bittilogiikalla ohittaen arvon 0, joka käsiteltiin jo yllä 
-    for roi_bit, intensity in roi_map.items():
-        if roi_bit == 0:
-            continue
-        hits = (mask & roi_bit) != 0
-        output[hits] += intensity
-
-    # Asetetaan kaikille taustan pikseleille ennalta määritetty arvo, eli 0
-    output[background_mask] = background_value
-
-    # Palauttaa uuden tualukon, jossa kullekin pikselille on laskettu kokonaisintensiteetti
-    return output
-
+    
 
 
 # Tallennetaan maski DICOM-pakkana
@@ -387,33 +310,75 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
         new_ds.RescaleSlope = 1
 
         out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
+        new_ds.PixelRepresentation = 1
+        new_ds.BitsAllocated = 16
+        new_ds.BitsStored = 16
+        new_ds.HighBit = 15
+
         new_ds.save_as(out_path)
 
 
 
 # PÄÄOHJELMA
-# Luodaan maski
-mask, ct_slices = Overlay_ROI(file2, file)
-
-# Tulostetaan maskin tyyppi ja muoto
-print(type(mask))
-print(mask.shape)   
-
-# Muunnetaan maski intensiteettikuvaksi
-gray = apply_intensity_weights(mask, ROI_INTENSITY_MAP)
-
-# Kansio, johon maskin kuvat tallennetaan 
-out = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
-
-# Tallentaa intensiteettikuvat uuteen DICOM-sarjaan
-save_mask_as_dicom_series(gray, ct_slices, out)
 
 
+if __name__ == "__main__":
+
+    # Kansio, jossa jokaisen potilaan kansio
+    patient_dir = r"C:\Users\User01\GRADU\Aineisto\VN0ds"
+
+    # Etsitään kaikki potilaskansiot, jotka alkavat "Patient"
+    patients = [d for d in os.listdir(patient_dir) if d.startswith("Patient")]
+
+    # Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
+    def Patient_sort(name):
+        """
+        Function that sorts patients by number, not by letter 
+
+        Parameters
+        ----------
+        name : str
+            The name of the patient folder.
+
+        Returns
+        -------
+        int
+            The numeric value extracted from the folder name, or 0 if none found.
+            
+        """
+        # Eristetään numero nimestä
+        m = re.search(r'(\d+)', name)
+        return int(m.group(1)) if m else 0
+
+    # Luodaan maski
+    patients = sorted(patients, key=Patient_sort)
+
+    # Käydään kaikki potilaat läpi
+    for patient in patients:
+        print(f"Käsitellään {patient}...")
+
+        ct_path = os.path.join(patient_dir, patient, "vanha ct")
+        out_path = os.path.join(patient_dir, patient, "maski")
+
+        # Etsitään RS-tiedosto potilaan struct-kansiosta
+        struct_dir = os.path.join(patient_dir, patient, "struct")
+        rs_files = [f for f in os.listdir(struct_dir) if f.startswith("RS.")]
+        
+        if not rs_files:
+            print(f"RS-tiedostoa ei löytynyt potilaalta {patient}")
+            continue  # hypätään tämän potilaan yli
+        
+        # Oletetaan, että halutaan ensimmäinen RS-tiedosto, jos niitä on useampi
+        rs_path = os.path.join(struct_dir, rs_files[0])
 
 
+        # Luodaan maski
+        mask, ct_slices = Overlay_ROI(rs_path, ct_path)
 
+        # Tulostetaan maskin tyyppi ja muoto
+        print(type(mask), mask.shape)
 
-
-
-
-
+        # Tallennetaan maski DICOM-sarjana
+        save_mask_as_dicom_series(mask, ct_slices, out_path)
+        
+        print(f"Maski tallennettu")

@@ -10,7 +10,7 @@ import pydicom
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-polku = Path(r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\struct\RS_SKAALATTU.dcm")
+polku = Path(r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient2_VN0\struct\RS.1.2.246.352.221.5081513604484729159.13153969492833577387.dcm")
 ds = pydicom.dcmread(polku)
 print("Onko ROIContourSequence:", hasattr(ds, "ROIContourSequence"))
 

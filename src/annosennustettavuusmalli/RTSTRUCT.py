@@ -166,6 +166,7 @@ def process_all_patients(base_dir):
             output_rt = os.path.join(patient_rs_folder, "RS_SKAALATTU.dcm")
             # Jos tiedosto on jo olemassa, ohita
             if os.path.exists(output_rt):
+                
                 print(f"[INFO] RS_SKAALATTU.dcm löytyy jo, ohitetaan: {output_rt}")
                 continue
 
