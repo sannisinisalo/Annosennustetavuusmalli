@@ -25,11 +25,8 @@ import torch
 
 
 def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))->tuple([tio.SubjectsDataset, tio.SubjectsDataset, tio.SubjectsDataset]):
-    print("Using path:", path)
     all_items = glob.glob(path, recursive=True)
-    print("Glob result:", all_items)
     study_folders = [s for s in all_items if os.path.isdir(s)]
-    print("Study folders:", study_folders)
     unique_subjects = [os.path.basename(s) for s in study_folders]
     unique_subjects = np.unique(unique_subjects)
     train_subjects_list = []
@@ -51,16 +48,12 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
             r = re.compile(subject)
             subject_folders = [s for s in study_folders if r.search(s)]
         
-            r_ct = re.compile('ct')
-            r_mask = re.compile('maski')
-            r_dose = re.compile('dose')
-    
-            ct_path = [s for s in subject_folders if r_ct.search(s)]
-            mask_path = [s for s in subject_folders if r_mask.search(s)]
-            dose_path = [s for s in subject_folders if r_dose.search(s)]
-     
+            ct_path = [os.path.join(folder, 'ct') for folder in subject_folders if os.path.exists(os.path.join(folder, 'ct'))]
+            mask_path = [os.path.join(folder, 'maski') for folder in subject_folders if os.path.exists(os.path.join(folder, 'maski'))]
+            dose_path = [os.path.join(folder, 'dose') for folder in subject_folders if os.path.exists(os.path.join(folder, 'dose'))]
+        
             # Dose is saved as large integers and needs to be rescaled back to get dose in Gy
-            ds_dose = dcmread(dose_path[0]+os.listdir(dose_path[0])[0])
+            ds_dose = dcmread(dose_path[0], os.listdir(dose_path[0])[0])
             num_samples = int(ds_dose.NumberOfFrames)
             dose_multiplier = float(ds_dose.DoseGridScaling)
 
