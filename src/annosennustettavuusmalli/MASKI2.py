@@ -226,7 +226,7 @@ def overlay_ROI(rt_path, ct_path):
     rows = int(ct_slices[0].Rows) 
     cols = int(ct_slices[0].Columns) 
     
-    # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resampolata ROI:t CT:n koordinaatistoon
+    # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resamplata ROI:t CT:n koordinaatistoon
     rtstruct = RTStructBuilder.create_from(
         dicom_series_path=ct_path,
         rt_struct_path=rt_path)
