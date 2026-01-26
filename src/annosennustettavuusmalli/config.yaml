@@ -12,10 +12,10 @@ structures:
   Thyroid: 10
 
 data_paths:
-  left_data: "datasets/uudet/Breast_L_ds/**/"
-  left_ax_data: "datasets/uudet/BreastAx_L_ds/**/"
-  right_data: "datasets/uudet/Breast_R_ds/**/"
-  right_ax_data: "datasets/uudet/BreastAx_R_ds/**/"
+  VN0_data: "C:/Users/User01/GRADU/Aineisto/VN0ds/*/"
+  VN+_data: "C:/Users/User01/GRADU/Aineisto/VN+ds/*/"
+  ON0_data: "C:/Users/User01/GRADU/Aineisto/ON0ds/*/"
+  ON+_data: "C:/Users/User01/GRADU/Aineisto/ON+ds/*/"
 
 train_loader_config:
   samples_per_volume: 1

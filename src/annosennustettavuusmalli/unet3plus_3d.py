@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from typing import List
-from .basic_blocks import ConvBlock, ResNetBlock
+from basic_blocks import ConvBlock, ResNetBlock
 from collections import namedtuple
 
 

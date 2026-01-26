@@ -19,59 +19,39 @@ import numpy as np
 import fnmatch
 import torch
 import torch.nn as nn
-import torchviz
 from pydicom import dcmread
-from torchinfo import summary
 from matplotlib import pyplot as plt
 import pickle
 import mlflow
 import random
 import math
 import yaml
-import GPUtil
 from pathlib import Path
 
-import random_sample_hyperparameters
-import flatten_dict
-import generate_datasets
-import init_weights_kaiming
-import evaluate_dataset 
-import evaluate_dose_metrics
-from models.unet3plus_3d import UNet3plus_3d
+from funktiot.generate_datasets import generate_datasets
+from funktiot import random_sample_hyperparameters, flatten_dict, evaluate_dataset, evaluate_dose_metrics
+from funktiot.init_weights import init_weights_kaiming
+from unet3plus_3d import UNet3plus_3d
 
-MULTIGPU = False # True not implemented yet
 
-# This selects the first available GPU that has load and memory usage under 5%
-if MULTIGPU:
-    pass # under construction
-else:
-    try:
-        available_devices = GPUtil.getFirstAvailable(maxLoad = 0.05, maxMemory = 0.02)
-        os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"]=str(available_devices[0])
-        use_cuda = torch.cuda.is_available()
-        device = torch.device("cuda" if use_cuda else "cpu")
-    except RuntimeError:
-        device = "cpu"
-        print("All GPUs in use. Use 'nvidia-smi' command in command prompt for more information.\n"\
-              "You can kill GPU processes with 'kill [PID]' command (only your own processes pls).\n"\
-              "If you are absolutely sure that this is false, set CUDA_VISIBLE_DEVICES manually.")
-   
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
             
             
 HYPERPARAMETERS = 'manual_search' # default, manual_search or random_search
 DATA = 'left_data'
 
-BASE_DIR = Path(r"C:\Users\User01\GRADU\GitHub-koodit\Annosennustetavuusmalli\src\annosennustettavuusmalli\config.yaml").parent
-config_file = BASE_DIR / "config" / "config.yaml"
+BASE_DIR = BASE_DIR = Path(__file__).parent
+config_file = BASE_DIR / "config.yaml"
 
 with open(config_file, "r") as f:
-    config = yaml.safe_load(f)
+    config = yaml.load(f, Loader=yaml.FullLoader)
 
 if HYPERPARAMETERS == 'default':
     hp_config = [config['default']]
 elif HYPERPARAMETERS == 'random_search':
-    hp_config = [random_sample_hyperparameters(config['random_search']) for _ in range(config['random_search']['random_samples'])]
+    hp_config = [random_sample_hyperparameters(config['random_search']) 
+                 for _ in range(config['random_search']['random_samples'])]
 elif HYPERPARAMETERS == 'manual_search':
     hp_config = config['manual_search']
 mlflow.set_experiment(hp_config[0]['experiment_name'])
