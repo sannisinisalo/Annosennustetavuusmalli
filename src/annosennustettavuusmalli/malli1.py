@@ -39,7 +39,7 @@ print(f"Using device: {device}")
             
             
 HYPERPARAMETERS = 'manual_search' # default, manual_search or random_search
-DATA = 'left_data'
+DATA = 'VN0_data'
 
 BASE_DIR = BASE_DIR = Path(__file__).parent
 config_file = BASE_DIR / "config.yaml"
@@ -55,7 +55,6 @@ elif HYPERPARAMETERS == 'random_search':
 elif HYPERPARAMETERS == 'manual_search':
     hp_config = config['manual_search']
 mlflow.set_experiment(hp_config[0]['experiment_name'])
-
 
 
 # Looping through all defined hyperparamter combinations
