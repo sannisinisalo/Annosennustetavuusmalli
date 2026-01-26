@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Nov 24 09:20:58 2025
+Luotu Ma 24.11.2025
 
-@author: User01
+Koodi, joka listaa kaikki kyseisen potilaan ROI-alueet.
 """
 
 import os

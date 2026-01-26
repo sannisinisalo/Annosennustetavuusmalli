@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Nov 18 09:07:58 2025
+Luotu Ti 18.11.2025
 
-@author: User01
+Koodi, jolla DICOM-muotoisia kuvia voidaan tarkastella.
+Koodissa myös vaihtoehtona tallentaa kuvat PNG-muodossa haluttuun kansioon.
 """
 
 import os
