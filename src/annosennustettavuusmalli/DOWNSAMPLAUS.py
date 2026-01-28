@@ -161,7 +161,7 @@ def downsample_dicom_folder(dataset):
 
 
 print("PROCESSING...")
-downsample_dicom_folder('LAX')
+downsample_dicom_folder('L')
 print("DONE")
 
 # n_L = 279
