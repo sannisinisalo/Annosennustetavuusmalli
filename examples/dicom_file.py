@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Luotu Ti 18.11.2025
+Tekijä: Sanni Sinisalo
 
 Koodi, jolla DICOM-muotoisia kuvia voidaan tarkastella.
 Koodissa myös vaihtoehtona tallentaa kuvat PNG-muodossa haluttuun kansioon.

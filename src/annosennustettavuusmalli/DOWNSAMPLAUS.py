@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Luotu Ti 27.1.2026
+Perustuu Akseli Leinon alkuperäiseen koodiin.
+Muokkaaja: Sanni Sinisalo
 
 Tiedostojen koon pienentämiseen käytetty koodi
 """
@@ -18,12 +20,7 @@ from scipy.ndimage import zoom
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-"""
-Discard reasons:
-Left
-ANON1832: No dose, rtstruct, ct, or mask
-ANON1845, ANON1861, ANON0090, ANON0091, ANON1792, ANON0132: Missing critical structures (PTV, heart, lungs or contra breast)
-"""
+
 
 BASEDIR = Path("C:\\Users\\User01\\GRADU\\Aineisto\\")
 

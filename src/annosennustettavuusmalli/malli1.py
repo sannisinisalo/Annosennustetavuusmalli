@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 Luotu Ma 26.1.2026
-
 Perustuu Akseli Leinon alkuperäiseen koodiin.
+Muokkaaja: Sanni Sinisalo
 
 Ensimmäinen testi Akselin annosennustettavuusmallin ajamiseen. 
 Koodiin tehdyt muokkaukset:
-    - Jupyter notebookille ominaiset osat muutettu toimiviksi spyderissä 
-    - 
+    - Jupyter notebookille ominaiset osat muutettu python-toimiviksi Spyderissä
+    - Tiedostopolut muutettu toimiviksi
 """
 
 import torchio as tio

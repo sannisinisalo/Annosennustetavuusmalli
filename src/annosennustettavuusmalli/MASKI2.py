@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Luotu Ti 16.12.2025 klo 9:24:17
+Tekijä: Sanni Sinisalo
 
 Toinen koodiyritys maskipakan luomiseen. 
 Ensimmäisestä versiosta poistettu 

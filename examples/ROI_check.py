@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Luotu Ma 24.11.2025
+Tekijä: Sanni Sinisalo
 
 Koodi, joka listaa kaikki kyseisen potilaan ROI-alueet.
 """
