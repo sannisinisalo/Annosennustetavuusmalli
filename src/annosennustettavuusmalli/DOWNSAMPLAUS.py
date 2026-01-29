@@ -194,4 +194,5 @@ if __name__ == "__main__":
                 except Exception as e:
                     warnings.warn(f"{patient_name}: RS-tiedoston kopiointi epäonnistui: {e}")
 
+
     print("DONE")
