@@ -4,14 +4,6 @@ Tämä python paketti sisältää tekoälypohjaisen annossennustettavuusmalln ka
 
 Mallin koodia muokataan tarvittaessa, jotta se saadaan toimimaan. Malli koulutetaan Novan potilasdatalla. Rakennemaskin muodostamisen koodi on kehitetty Gradun aikana, koska Novalla ei ollut (vielä) käytössä ohjelmistoa, jolla KYS:issä rakennemaski luotiin.
 
-## Licensing
-
-This repository contains code written by:
-- Akseli Leino (MIT License)
-- Sanni Sinisalo (MIT License)
-
-Some files are based on or derived from Akseli Leinon's original work.
-All code is licensed under the MIT License unless otherwise stated.
 
 
 ## Asennusohjeet
@@ -73,7 +65,14 @@ pip install -e ".[dev]"
 
 
 ## Lisenssi
-Tämä projekti on lisensoitu MIT-lisenssillä. Katso lisätietoja `LICENSE`-tiedostosta.
+Tämä projekti on sisältää koodia, joka on kirjoitettu alla listattujen henkilöäiden toimesta MIT- lisenssillä
+- Sanni Sinisalo
+- Akseli Leino 
+
+Akseli Leino on tehnyt tai hänen tekemä koodi on pohjana osalle repositoriossa oleville koodeille. 
+Erillisten koodien alussa on tieto kuka koodin on alunperin tehnyt ja mahdollisesti kenen toimesta sitä on muokattu. 
+
+Katso lisätietoja `LICENSE`-tiedostosta.
 
 ## Tekijä
 Sanni Sinisalo
