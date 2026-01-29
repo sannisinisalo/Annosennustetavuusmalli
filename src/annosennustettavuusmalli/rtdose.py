@@ -99,10 +99,21 @@ if __name__ == "__main__":
             print("  ✓ Dose ladattu")
     
             # --- REFERENSSI ---
-            reference = sitk.Image(ct_img.GetSize(), sitk.sitkFloat32)
-            reference.SetSpacing(ct_img.GetSpacing())
-            reference.SetOrigin(ct_img.GetOrigin())
-            reference.SetDirection(ct_img.GetDirection())
+            dose_size = dose_img.GetSize()       # (X, Y, Z)
+            dose_spacing = dose_img.GetSpacing() # (sx, sy, sz)
+            dose_origin = dose_img.GetOrigin()
+            dose_direction = dose_img.GetDirection()
+            
+            ct_size = ct_img.GetSize()           # (X, Y, Z)
+            ct_spacing = ct_img.GetSpacing()
+            ct_origin = ct_img.GetOrigin()
+            ct_direction = ct_img.GetDirection()
+            
+            # Luo referenssikuva X/Y = CT, Z = dose
+            reference = sitk.Image([ct_size[0], ct_size[1], dose_size[2]], sitk.sitkFloat32)
+            reference.SetSpacing([ct_spacing[0], ct_spacing[1], dose_spacing[2]])
+            reference.SetOrigin([ct_origin[0], ct_origin[1], dose_origin[2]])
+            reference.SetDirection(dose_direction)
     
             # --- RESAMPLAA DOSE ---
             resampler = sitk.ResampleImageFilter()
