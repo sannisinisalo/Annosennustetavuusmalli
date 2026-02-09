@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Luotu Ma 26.1.2026
-Perustuu Akseli Leinon alkuperäiseen koodiin.
+Tekijä: Akseli Leino
 Muokkaaja: Sanni Sinisalo
 
 Ensimmäinen testi Akselin annosennustettavuusmallin ajamiseen. 
@@ -27,6 +27,7 @@ import random
 import math
 import yaml
 from pathlib import Path
+from tqdm import tqdm
 
 from funktiot.generate_datasets import generate_datasets
 from funktiot import random_sample_hyperparameters, flatten_dict, evaluate_dataset, evaluate_dose_metrics
@@ -67,6 +68,10 @@ for hp_config_iter in hp_config:
     # configurations are reduced epochs. So if reduce_epochs = 4, training for 10 full epochs is 40 epochs in yaml.
     train_set, val_set, test_set = generate_datasets(config['data_paths'][DATA], 
                                                      reduce_samples = 1)
+
+    print("train_set:", train_set)
+    print("val_set:", val_set)
+    print("test_set:", test_set)
 
     # Probability map probabilities are defined in custom_transforms -> ProbabilityMapTransform
     training_sampler = tio.sampler.WeightedSampler(hp_config_iter['patch_size'], probability_map='probability_map')

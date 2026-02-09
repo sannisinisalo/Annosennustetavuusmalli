@@ -25,8 +25,9 @@ import torch
 
 
 def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))->tuple([tio.SubjectsDataset, tio.SubjectsDataset, tio.SubjectsDataset]):
+    print(">>> ENTERED generate_datasets <<<")
     all_items = glob.glob(path, recursive=True)
-    study_folders = [s for s in all_items if os.path.isdir(s)]
+    study_folders = [s for s in all_items if os.path.isdir(s)]    
     unique_subjects = [os.path.basename(s) for s in study_folders]
     unique_subjects = np.unique(unique_subjects)
     train_subjects_list = []
@@ -44,20 +45,44 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
     
     for j, set in enumerate([train_names, val_names, test_names]):
         for i, subject in enumerate(set):
-        
+            print("Processing subject:", subject)
+            print("STEP 1 reached")
+            print("PATH:", path)
+            print("Exists:", os.path.exists(path))
+            print("Dir contents:", os.listdir(path) if os.path.exists(path) else "NO PATH")
+            
             r = re.compile(subject)
             subject_folders = [s for s in study_folders if r.search(s)]
         
             ct_path = [os.path.join(folder, 'ct') for folder in subject_folders if os.path.exists(os.path.join(folder, 'ct'))]
             mask_path = [os.path.join(folder, 'maski') for folder in subject_folders if os.path.exists(os.path.join(folder, 'maski'))]
-            dose_path = [os.path.join(folder, 'dose') for folder in subject_folders if os.path.exists(os.path.join(folder, 'dose'))]
+            dose_path = [os.path.join(folder, 'doseds') for folder in subject_folders if os.path.exists(os.path.join(folder, 'doseds'))]
+        
+            if not ct_path or not mask_path or not dose_path:
+                print("Missing data for subject:", subject)
+                print("ct:", ct_path)
+                print("mask:", mask_path)
+                print("dose:", dose_path)
+                continue    
         
             # Dose is saved as large integers and needs to be rescaled back to get dose in Gy
-            ds_dose = dcmread(dose_path[0], os.listdir(dose_path[0])[0])
+            dose_dir = dose_path[0]
+            dose_files = os.listdir(dose_dir)
+            
+            assert len(dose_files) == 1, f"Expected 1 dose file, found {len(dose_files)} in {dose_dir}"
+            
+            dose_file = os.path.join(dose_dir, dose_files[0])
+            ds_dose = dcmread(dose_file)
             num_samples = int(ds_dose.NumberOfFrames)
             dose_multiplier = float(ds_dose.DoseGridScaling)
 
-            ds_ct = dcmread(ct_path[0]+os.listdir(ct_path[0])[0])
+            ct_dir = ct_path[0]
+            ct_files = os.listdir(ct_dir)
+            
+            assert len(ct_files) > 0, f"No CT files found in {ct_dir}"
+            
+            ct_file = os.path.join(ct_dir, ct_files[0])
+            ds_ct = dcmread(ct_file)
             pixel_spacing = float(list(ds_ct.PixelSpacing)[0])
 
             ct_data = tio.ScalarImage(ct_path)
