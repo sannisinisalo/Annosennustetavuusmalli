@@ -1,3 +1,7 @@
+"""
+Tekijä: Akseli Leino
+"""
+
 def flatten_dict(d, parent_key = '', sep = '.'):
     items = []
     for k, v in d.items():

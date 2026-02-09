@@ -5,7 +5,10 @@ from basic_blocks import ConvBlock, ResNetBlock
 from collections import namedtuple
 
 
-""" This module creates a input for decoder node from other nodes using skip connections.
+""" 
+Tekijä: Akseli Leino
+
+This module creates a input for decoder node from other nodes using skip connections.
 Module is meant to receive encoder and decoder nodes as on input.
 There is no skip connection for depth = depth_max, as the final encoder is converted directly to decoder.
 Module then pools or upsamples the nodes depending on the current depth.

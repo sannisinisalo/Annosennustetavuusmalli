@@ -2,6 +2,9 @@ import torch
 import torchio as tio
 import torch.nn as nn
 
+"""
+Tekijä: Akseli Leino
+"""
 
 def evaluate_dataset(model, dataset, config, device):
     """Uses given model and dataset to evaluate metrics defined in config.

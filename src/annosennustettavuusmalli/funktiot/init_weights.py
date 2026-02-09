@@ -1,5 +1,9 @@
 import torch
 
+"""
+Tekijä: Akseli Leino
+"""
+
 def init_weights_kaiming(m):
     """Initializes convolutional kernels with kaiming initialization as suggested by Kaiming He et al.
     """

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+Tekijä: Sanni Sinisalo
+
 Automatisoitu RS-skaalaus kaikille potilaille, pääkansiot löydetään automaattisesti
 """
 

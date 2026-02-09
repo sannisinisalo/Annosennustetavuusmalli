@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jan 28 10:27:14 2026
+Luotu Ke 28.1.2026
+Tekijä: Sanni Sinisalo
 
-@author: User01
+Koodi RTDose tiedoston visualisoimiseen.
 """
 
 import pydicom

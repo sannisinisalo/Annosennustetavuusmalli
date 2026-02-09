@@ -8,6 +8,9 @@ from .integer_mask_to_binary import integer_mask_to_binary
 import torch
 from scipy.ndimage import distance_transform_edt
 
+"""
+Tekijä: Akseli Leino
+"""
 
 class ProbabilityMapTransform(tio.transforms.Transform):
     """Custom transform that creates probability map that can be used for weighted sampling.

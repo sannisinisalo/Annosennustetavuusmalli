@@ -2,6 +2,10 @@ import numpy as np
 import torch
 import copy
 
+"""
+Tekijä: Akseli Leino
+"""
+
 def integer_mask_to_binary(arr, num_bits):
     """Input mask is coded as binary turned to 10-base to preserve overlaps. This function turns the 10-base information back to binary.
 

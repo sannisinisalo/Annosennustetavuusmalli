@@ -3,8 +3,7 @@
 Luotu Ti 11.11.2025
 Tekijä: Sanni Sinisalo
 
-Koodi, joka piirtää CT-kuvien päälle yhden kohdassa roi_name="" määritetyn 
-ROI:n. 
+Koodi, joka piirtää CT-kuvien päälle yhden kohdassa roi_name="" määritetyn ROI:n. 
 """
 
 import numpy as np

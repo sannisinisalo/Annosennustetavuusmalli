@@ -4,6 +4,10 @@ from collections import defaultdict
 import numpy as np
 from .integer_mask_to_binary import integer_mask_to_binary
 
+"""
+Tekijä: Akseli Leino
+"""
+
 def evaluate_dose_metrics(model, dataset, patch_size, structure_config, device, average=True, verbose=False, subject_ids=False):
     model.eval()
     metrics = {structure: [] for structure in structure_config}

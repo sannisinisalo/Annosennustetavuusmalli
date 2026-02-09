@@ -2,7 +2,10 @@ import torch
 import torch.nn as nn
 from typing import List
 
-""" This is a very standard convolution block module that creates a n-sized stack of CNN-BN-ReLU layers
+""" 
+Tekijä: Akseli Leino
+
+This is a very standard convolution block module that creates a n-sized stack of CNN-BN-ReLU layers
 These are used at encoder, decoder, and output nodes, and skip connections.
 """
 class ConvBlock(nn.Module):

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Luotu Ma 24.11.2025 klo 10:17:17
+Tekijä: Sanni Sinisalo
 
 Ensimmäinen koodiyritys maskipakan luomiseen. 
 - aloitetaan yhdellä potilaalla

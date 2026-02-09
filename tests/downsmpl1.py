@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+Tekijä: Sanni Sinisalo
+
 Downsample DICOM data where source folders are Patient* and contain CT slices, RD (RTDOSE), RP (RTPLAN), RS (RTSTRUCT).
 - CT and RD are downsampled by factor 2 in-plane (Rows/Columns halved; PixelSpacing doubled).
 - RP and RS are copied unchanged.

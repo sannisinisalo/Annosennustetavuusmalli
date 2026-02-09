@@ -1,6 +1,10 @@
 import random
 import copy
 
+"""
+Tekijä: Akseli Leino
+"""
+
 def random_sample_hyperparameters(config):
     sampled_config = {}
     for key, values in copy.deepcopy(config).items():
