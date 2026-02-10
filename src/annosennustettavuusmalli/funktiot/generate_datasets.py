@@ -58,9 +58,7 @@ def generate_datasets(path: str, reduce_samples: float, split: tuple = (0.7, 0.1
             ct_files = sorted(glob.glob(os.path.join(ct_dir, '*')))
             mask_files = sorted(glob.glob(os.path.join(mask_dir, '*')))
             dose_files = sorted(glob.glob(os.path.join(dose_dir, '*')))
-            
-            print(len(mask_files))
-            print(tio.ScalarImage(mask_dir).spatial_shape)
+    
 
             # Tarkista, että tiedostoja löytyy
             if len(ct_files) == 0 or len(mask_files) == 0 or len(dose_files) == 0:
@@ -100,6 +98,7 @@ def generate_datasets(path: str, reduce_samples: float, split: tuple = (0.7, 0.1
                 distance_to_PTV=mask_data,      # placeholder
                 probability_map=mask_data        # placeholder
             )
+            
 
             if j == 0:
                 train_subjects_list.append(new_subject)
@@ -110,6 +109,8 @@ def generate_datasets(path: str, reduce_samples: float, split: tuple = (0.7, 0.1
 
     # --- Transforms ---
     rescale_ct = tio.RescaleIntensity(out_min_max=(0, 4), in_min_max=(-1024, 3072), include=['ct'])
+    resample_to_ct = tio.Resample(target='ct')
+
     rand_affine = tio.transforms.RandomAffine(
         degrees=(0, 0, 10),
         translation=(30, 70, 0),
@@ -122,9 +123,11 @@ def generate_datasets(path: str, reduce_samples: float, split: tuple = (0.7, 0.1
     create_distance_to_PTV = CreateDistanceToPTV()
     create_probability_map = ProbabilityMapTransform()
 
+    
     train_transforms = tio.Compose((
         rescale_dose,
         rescale_ct,
+        resample_to_ct, 
         rescale_pixels,
         create_final_mask,
         create_probability_map,
@@ -135,6 +138,7 @@ def generate_datasets(path: str, reduce_samples: float, split: tuple = (0.7, 0.1
     transforms = tio.Compose((
         rescale_dose,
         rescale_ct,
+        resample_to_ct, 
         rescale_pixels,
         create_final_mask,
         create_probability_map,
@@ -148,6 +152,7 @@ def generate_datasets(path: str, reduce_samples: float, split: tuple = (0.7, 0.1
     print("train_set:", train_set)
     print("val_set:", val_set)
     print("test_set:", test_set)
+    print("Loaded", len(train_set), "training subjects")
 
     return train_set, val_set, test_set
 

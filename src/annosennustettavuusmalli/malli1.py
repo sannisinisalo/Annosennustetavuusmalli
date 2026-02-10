@@ -76,11 +76,12 @@ for hp_config_iter in hp_config:
         max_length = config['train_loader_config']['max_length'],
         samples_per_volume = config['train_loader_config']['samples_per_volume'],
         sampler = training_sampler,
-        num_workers = 0)
+        num_workers = 0,
+        verbose = True)
     train_loader = torch.utils.data.DataLoader(train_queue, 
                                                batch_size = hp_config_iter['batch_size'],
                                                num_workers = 0) # num_workers must be 0. (due to TorchIO queue implementation(?))
-    
+    print("Starting to fetch first batch...")
     batch = next(iter(train_loader))
     print(batch)
     
