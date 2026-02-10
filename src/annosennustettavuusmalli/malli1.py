@@ -69,10 +69,6 @@ for hp_config_iter in hp_config:
     train_set, val_set, test_set = generate_datasets(config['data_paths'][DATA], 
                                                      reduce_samples = 1)
 
-    print("train_set:", train_set)
-    print("val_set:", val_set)
-    print("test_set:", test_set)
-
     # Probability map probabilities are defined in custom_transforms -> ProbabilityMapTransform
     training_sampler = tio.sampler.WeightedSampler(hp_config_iter['patch_size'], probability_map='probability_map')
     train_queue = tio.Queue(

@@ -290,32 +290,50 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 
     """
     # Luodaan output-kansio, jos sitä ei vielä ole
+    # Luodaan output-kansio
     os.makedirs(output_folder, exist_ok=True)
-    
-    # Käydään läpi jokainen maskin ja CT-kuvien leike ja yhdistetään ne
+
+    # Generoidaan uusi SeriesInstanceUID maskisarjalle
+    series_uid = pydicom.uid.generate_uid()
+
+    # Käydään läpi kaikki slicet
     for idx, (slice_img, ct) in enumerate(zip(mask, ct_slices)):
         new_ds = ct.copy()
 
-        # Päivitetään pikselidata
+        # Pixel data
         new_ds.PixelData = slice_img.astype(np.int16).tobytes()
         new_ds.Rows, new_ds.Columns = slice_img.shape
 
-        # Päivitä metadata
+        # Metadata maskille
         new_ds.SeriesDescription = "ROI MASK"
-        new_ds.SeriesInstanceUID = pydicom.uid.generate_uid()
+        new_ds.SeriesInstanceUID = series_uid       # sama kaikille slicille
         new_ds.SOPInstanceUID = pydicom.uid.generate_uid()
+        new_ds.InstanceNumber = idx + 1             # oikea järjestys
 
-        # Päivitetään skaalausasetukset
+        # Päivitetään ImagePositionPatient Z-koordinaatti
+        new_ds.ImagePositionPatient = list(ct.ImagePositionPatient)
+        new_ds.ImagePositionPatient[2] = ct.ImagePositionPatient[2]
+
+        # Säilytetään geometria
+        if hasattr(ct, 'SliceThickness'):
+            new_ds.SliceThickness = ct.SliceThickness
+        if hasattr(ct, 'PixelSpacing'):
+            new_ds.PixelSpacing = ct.PixelSpacing
+
+        # Skaalausasetukset
         new_ds.RescaleIntercept = 0
         new_ds.RescaleSlope = 1
 
-        out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
+        # DICOM-tyyppiasetukset
         new_ds.PixelRepresentation = 1
         new_ds.BitsAllocated = 16
         new_ds.BitsStored = 16
         new_ds.HighBit = 15
 
+        # Tallennus
+        out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
         new_ds.save_as(out_path)
+        
 
 
 
