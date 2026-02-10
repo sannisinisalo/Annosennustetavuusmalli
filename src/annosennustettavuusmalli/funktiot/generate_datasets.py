@@ -50,10 +50,10 @@ def generate_datasets(path: str, reduce_samples: float, split: tuple = (0.7, 0.1
     for j, folders in enumerate([train_folders, val_folders, test_folders]):
         for folder in folders:
             subject_name = os.path.basename(os.path.normpath(folder))
-            print("Processing subject folder:", subject_name)
+            # print("Processing subject folder:", subject_name)
 
             ct_path = os.path.join(folder, 'ct')
-            mask_path = os.path.join(folder, 'maski')
+            mask_path = os.path.join(folder, 'maskids')
             dose_path = os.path.join(folder, 'doseds')
 
             if not (os.path.exists(ct_path) and os.path.exists(mask_path) and os.path.exists(dose_path)):
@@ -82,7 +82,8 @@ def generate_datasets(path: str, reduce_samples: float, split: tuple = (0.7, 0.1
 
             # --- TorchIO data ---
             ct_data = tio.ScalarImage(ct_path)
-            mask_data = tio.ScalarImage(mask_path)
+            mask_files = sorted([os.path.join(mask_path[0], f) for f in os.listdir(mask_path[0]) if f.endswith('.dcm')])
+            mask_data = tio.ScalarImage(mask_files)
             dose_data = tio.ScalarImage(dose_path)
 
             new_subject = tio.Subject(

@@ -80,12 +80,18 @@ for hp_config_iter in hp_config:
         max_length = config['train_loader_config']['max_length'],
         samples_per_volume = config['train_loader_config']['samples_per_volume'],
         sampler = training_sampler,
-        num_workers = config['train_loader_config']['num_workers'])
+        num_workers = 0)
     train_loader = torch.utils.data.DataLoader(train_queue, 
                                                batch_size = hp_config_iter['batch_size'],
                                                num_workers = 0) # num_workers must be 0. (due to TorchIO queue implementation(?))
     
+    batch = next(iter(train_loader))
+    print(batch)
+    
     random.seed() # Seed was set when splitting sets. Without seed reset, the mlflow naming always starts from the same name.
+    
+    if mlflow.active_run() is not None:
+        mlflow.end_run()    
     mlflow.start_run()
     
     # Initialize model
