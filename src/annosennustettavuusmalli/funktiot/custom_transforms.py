@@ -10,6 +10,7 @@ from scipy.ndimage import distance_transform_edt
 
 """
 Tekijä: Akseli Leino
+Muokkaaja: Sanni Sinisalo
 """
 
 class ProbabilityMapTransform(tio.transforms.Transform):
@@ -111,7 +112,7 @@ class CreateInputMask(tio.transforms.Transform):
         mask = subject['mask'][tio.DATA]
         rounded_mask = torch.round(mask).to(dtype=torch.int)
         binary_mask = integer_mask_to_binary(rounded_mask, num_bits=11)
-        final_mask = torch.zeros(mask.shape)
+        final_mask = torch.zeros(mask.shape, dtype=torch.int16)
 
         # NOTE: THIS IS THE PRIORITY ORDER YOU WANT FOR YOUR OARs, LAST ONE WILL BE USED ON TOP OF EVERYTHING ELSE IN CASE OF OVERLAPPING
         # Current order is so that important one have high priority, PTV almost highest, and brachial plexus and LAD on top of everything

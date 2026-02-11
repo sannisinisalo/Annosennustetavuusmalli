@@ -9,25 +9,25 @@ Koodiin tehdyt muokkaukset:
     - Jupyter notebookille ominaiset osat muutettu python-toimiviksi Spyderissä
     - Tiedostopolut muutettu toimiviksi
 """
-
-import torchio as tio
+import math
 import glob
+import fnmatch
+from pydicom import dcmread
 import re
 import os
-from collections import defaultdict
-import numpy as np
-import fnmatch
+import pickle
+from tqdm import tqdm
+
 import torch
 import torch.nn as nn
-from pydicom import dcmread
+from collections import defaultdict
 from matplotlib import pyplot as plt
-import pickle
+import numpy as np
 import mlflow
 import random
-import math
+import torchio as tio
 import yaml
 from pathlib import Path
-from tqdm import tqdm
 
 from funktiot.generate_datasets import generate_datasets
 from funktiot import random_sample_hyperparameters, flatten_dict, evaluate_dataset, evaluate_dose_metrics
@@ -68,6 +68,18 @@ for hp_config_iter in hp_config:
     # configurations are reduced epochs. So if reduce_epochs = 4, training for 10 full epochs is 40 epochs in yaml.
     train_set, val_set, test_set = generate_datasets(config['data_paths'][DATA], 
                                                      reduce_samples = 1)
+
+    # Testaa yksi subject ilman Queuea
+    test_subject = train_set[0]
+    
+    print("CT shape:", test_subject.ct.shape)
+    print("Mask shape:", test_subject.mask.shape)
+    print("Dose shape:", test_subject.dose.shape)
+    
+    print("Mask unique values:", np.unique(test_subject.mask.data))
+    print("Probability map unique values:", np.unique(test_subject.probability_map.data))
+    
+    print(np.unique(test_subject['probability_map'][tio.DATA]))
 
     # Probability map probabilities are defined in custom_transforms -> ProbabilityMapTransform
     training_sampler = tio.sampler.WeightedSampler(hp_config_iter['patch_size'], probability_map='probability_map')
