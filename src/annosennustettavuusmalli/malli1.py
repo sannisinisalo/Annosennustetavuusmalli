@@ -33,7 +33,8 @@ from funktiot.generate_datasets import generate_datasets
 from funktiot import random_sample_hyperparameters, flatten_dict, evaluate_dataset, evaluate_dose_metrics
 from funktiot.init_weights import init_weights_kaiming
 from unet3plus_3d import UNet3plus_3d
-
+from funktiot.custom_transforms import DoseScalingTransform, PixelSizingTransform, CreateInputMask, CreateDistanceToPTV, ProbabilityMapTransform
+import torchio as tio
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -66,7 +67,7 @@ for hp_config_iter in hp_config:
     # !!!NOTE!!! reduce_samples means that epoch samples is reduced by a factor of defined number. This means that full epoch is really
     # epochs*n. This can be set to 1 so epoch = full epoch. This can be used to increase number of checkpoints. Note also that .yaml
     # configurations are reduced epochs. So if reduce_epochs = 4, training for 10 full epochs is 40 epochs in yaml.
-    train_set, val_set, test_set = generate_datasets(config['data_paths'][DATA], 
+    train_set, val_set, test_set, train_transforms, transforms = generate_datasets(config['data_paths'][DATA], 
                                                      reduce_samples = 1)
 
     # Testaa yksi subject ilman Queuea
@@ -79,7 +80,60 @@ for hp_config_iter in hp_config:
     print("Mask unique values:", np.unique(test_subject.mask.data))
     print("Probability map unique values:", np.unique(test_subject.probability_map.data))
     
-    print(np.unique(test_subject['probability_map'][tio.DATA]))
+   # ================== DEBUG: PATCH SAMPLING ==================
+    print("\n=== DEBUG PATCH SAMPLING ===")
+    
+    # Ota ensimmäinen subject testiin
+    subject = train_set[0]
+    
+    print("Original CT shape:", subject['ct'].shape)
+    print("Original Mask shape:", subject['mask'].shape)
+    print("Original Dose shape:", subject['dose'].shape)
+    print("Requested patch_size:", hp_config_iter['patch_size'])
+    
+    # --- Luo manuaalinen transform compose debugia varten ---
+    
+    
+    debug_transforms = tio.Compose((
+        DoseScalingTransform(),
+        tio.RescaleIntensity(out_min_max=(0, 4), in_min_max=(-1024, 3072), include=['ct']),
+        CreateInputMask(),
+        ProbabilityMapTransform(),
+        CreateDistanceToPTV()
+    ))
+    
+    # Sovelletaan transformit manuaalisesti
+    transformed_subject = debug_transforms(subject)
+    
+    # Tarkistetaan ProbabilityMap
+    prob_map = transformed_subject['probability_map'][tio.DATA]
+    print("Probability map stats after transform:")
+    print(" - min:", prob_map.min().item())
+    print(" - max:", prob_map.max().item())
+    print(" - unique values (first 20):", np.unique(prob_map.cpu().numpy())[:20])
+    
+    # Tarkistetaan patchin mahdollisuus
+    sampler = tio.sampler.WeightedSampler(hp_config_iter['patch_size'], probability_map='probability_map')
+    patch_iter = sampler(transformed_subject)
+    
+    patch_count = 0
+    for patch in patch_iter:
+        patch_count += 1
+        print(f"\nPatch {patch_count}:")
+        print(" - CT shape:", patch['ct'].shape)
+        print(" - Mask unique values:", np.unique(patch['mask'][tio.DATA]))
+        print(" - Probability map unique values:", np.unique(patch['probability_map'][tio.DATA]))
+        if patch_count >= 5:
+            break
+    
+    if patch_count == 0:
+        print("\nWARNING: No patches could be sampled!")
+        print("Possible reasons:")
+        print(" - patch_size is too large for the volume dimensions")
+        print(" - probability_map is all zeros")
+        print(" - sampler cannot find valid voxels based on probability_map")
+    # ================== END DEBUG ==================
+
 
     # Probability map probabilities are defined in custom_transforms -> ProbabilityMapTransform
     training_sampler = tio.sampler.WeightedSampler(hp_config_iter['patch_size'], probability_map='probability_map')

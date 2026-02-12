@@ -120,4 +120,4 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
     val_set = tio.SubjectsDataset(val_subjects_list, transform = transforms)    
     test_set = tio.SubjectsDataset(test_subjects_list, transform = transforms)
     
-    return train_set, val_set, test_set
+    return train_set, val_set, test_set, train_transforms, transforms
