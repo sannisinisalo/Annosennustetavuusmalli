@@ -15,8 +15,8 @@ patients = [d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_
 for patient in patients:
     patient_path = os.path.join(base_path, patient)
     
-    ct_path = os.path.join(patient_path, "ct")
-    mask_path = os.path.join(patient_path, "maskids")
+    ct_path = os.path.join(patient_path, "ct_resampled")
+    mask_path = os.path.join(patient_path, "maskids_resampled")
     dose_path = os.path.join(patient_path, "doseds")
     
     # Lue dose (yksi 3D-kuva)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Luotu Ti 27.1.2026
-Perustuu Akseli Leinon alkuperäiseen koodiin.
+Tekijä: Akseli Leino
 Muokkaaja: Sanni Sinisalo
 
 Tiedostojen koon pienentämiseen käytetty koodi

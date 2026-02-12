@@ -1,13 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Luotu Ma 26.1.2026
 Tekijä: Akseli Leino
 Muokkaaja. Sanni Sinisalo
-
-Ensimmäinen testi Akselin annosennustettavuusmallin ajamiseen. 
-Koodiin tehdyt muokkaukset:
-    - Muutettu lukemaan oikeita tiedostopolkuja
-    - 
 """
 
 import torchio as tio
