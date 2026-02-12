@@ -5,11 +5,17 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "matplotlib>=3.10.8",
+    "mlflow>=3.9.0",
     "numpy>=2.4.2",
     "pydicom>=3.0.1",
+    "pyyaml>=6.0.3",
     "rt-utils>=1.2.7",
     "scipy>=1.17.0",
     "simpleitk>=2.5.3",
+    "torch>=2.10.0",
+    "torchio>=0.21.3",
+    "tqdm>=4.67.3",
 ]
 
 [tool.uv.workspace]
