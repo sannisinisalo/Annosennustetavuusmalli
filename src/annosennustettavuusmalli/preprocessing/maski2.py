@@ -13,7 +13,6 @@ annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on
 lisätty kaikki ROI:t.
 """
 
-
 import os
 import re
 from pathlib import Path
@@ -37,7 +36,7 @@ BASEDIR = Path(vn0_path_clean).parent
 
 
 
-# CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on 
+# CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on
 # DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa
 def load_CT(path):
     """
@@ -67,10 +66,10 @@ def load_CT(path):
     
     # Järjestetään listan tiedostot InstanceNumberin mukaan ensin nousevaan järjestykseen, jonka jälkeen
     # listan järjestys käännetään päinvastaiseksi
-    slices.sort(key=lambda x: int(x.InstanceNumber)) 
-    slices = slices[::-1] 
-    
-    return slices 
+    slices.sort(key=lambda x: int(x.InstanceNumber))
+    slices = slices[::-1]
+
+    return slices
 
 
 # Normalisoidaan ROI-maskin akselit muotoon (Z, Y, X), jotta ne ovat samassa muodossa CT kuvien kanssa
@@ -143,7 +142,7 @@ def ROI_names(roi_name):
         If the ROI is not recognized or should be excluded.
 
     """
-    # Muuttaa ROI:n nimen pieniksi kirjaimiksi sekä poistaa turhat välilyönnit nimen edestä ja lopusta 
+    # Muuttaa ROI:n nimen pieniksi kirjaimiksi sekä poistaa turhat välilyönnit nimen edestä ja lopusta
     roi = roi_name.lower().strip()
     
     # Määritellään jokainen mallin haluama ROI ja sen nimet sekä sitä vastaavan lukuarvon 
@@ -179,22 +178,21 @@ def ROI_names(roi_name):
     
     if "humerus head_l" in roi or "olkanivel sin" in roi:
         return 64
-    
+
     if "plexus" in roi or "brachial plexus" in roi or "brachial_plexus" in roi:
         return 128
-    
+
     if "esophagus" in roi or "ruokatorvi" in roi:
         return 256
-    
+
     if "trachea" in roi or "tracea" in roi:
         return 512
-    
+
     if "thyroid" in roi or "kilpirauhanen" in roi:
         return 1024
-    
+
     # Jos ROI ei vastaa mitään mainittua, ROI:lle ei anneta numeroa, vaan arvo None
     return None
-
 
 
 # Asetetaan ROI:t CT-kuvien päälle
@@ -220,53 +218,51 @@ def overlay_ROI(rt_path, ct_path):
 
     """
 
-    # Ladataan CT-kuvat käyttäen aikaisemmin määriteltyä Load_CT funktiota 
+    # Ladataan CT-kuvat käyttäen aikaisemmin määriteltyä Load_CT funktiota
     ct_slices = load_CT(ct_path)
     num_slices = len(ct_slices)
     rows = int(ct_slices[0].Rows)
     cols = int(ct_slices[0].Columns)
-    
+
     # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resamplata ROI:t CT:n koordinaatistoon
     rtstruct = RTStructBuilder.create_from(
         dicom_series_path=ct_path, rt_struct_path=rt_path
-        )
-        
+    )
+
     # Luodaan ensin tyhjä summamaski
     # Alustetaan tausta arvoksi ensin 0, tämä muutetaan myöhemmin arvoon -1
     sum_mask = np.zeros((num_slices, rows, cols), dtype=np.int32)
-        
+
     # Luodaan bool-taulukko, joka tosi, kun pikselissä vähintään yksi ROI
     any_mask = np.zeros((num_slices, rows, cols), dtype=bool)
-        
+
     # Listataan kaikki saatavilla olevat ROI:t
     roi_list = rtstruct.get_roi_names()
-        
-        
+
     # Määritetään ROI listan halutuille ROI:lle ROI_names funktiossa määritetyt luvut (2:n potenssi)
     for roi_name in roi_list:
         roi_value = ROI_names(roi_name)
         if roi_value is None:
             continue
-        
+
         try:
             mask = rtstruct.get_roi_mask_by_name(roi_name)
         except AttributeError:
             print(f"ROI '{roi_name}' ohitettu (ei ContourSequenceä)")
             continue
-            
+
         mask, txt = normalize_axes(mask, ct_slices)
         # print(f"{roi_name}: {txt}")
-            
+
         any_mask |= mask.astype(bool)
-            
-        sum_mask |= (mask.astype(np.int32) * roi_value)
-            
-    #Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
+
+        sum_mask |= mask.astype(np.int32) * roi_value
+
+    # Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
     sum_mask[~any_mask] = -1
-    
+
     # Palautetaan summamaski ja CT-lista
     return sum_mask, ct_slices
-    
 
 
 # Tallennetaan maski DICOM-pakkana
@@ -305,9 +301,9 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 
         # Metadata maskille
         new_ds.SeriesDescription = "ROI MASK"
-        new_ds.SeriesInstanceUID = series_uid # sama kaikille slicille
+        new_ds.SeriesInstanceUID = series_uid  # sama kaikille slicille
         new_ds.SOPInstanceUID = pydicom.uid.generate_uid()
-        new_ds.InstanceNumber = idx + 1 # oikea järjestys
+        new_ds.InstanceNumber = idx + 1  # oikea järjestys
 
         # Päivitetään ImagePositionPatient Z-koordinaatti
         new_ds.ImagePositionPatient = list(ct.ImagePositionPatient)
@@ -315,7 +311,9 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 
         # Säilytetään geometria
         if hasattr(ct, "SliceThickness"):
+        if hasattr(ct, "SliceThickness"):
             new_ds.SliceThickness = ct.SliceThickness
+        if hasattr(ct, "PixelSpacing"):
         if hasattr(ct, "PixelSpacing"):
             new_ds.PixelSpacing = ct.PixelSpacing
 
@@ -332,8 +330,6 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
         # Tallennus
         out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
         new_ds.save_as(out_path)
-        
-
 
 
 # Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
@@ -350,18 +346,16 @@ def patient_sort(name):
     -------
     int
         The numeric value extracted from the folder name, or 0 if none found.
-            
+
     """
     # Eristetään numero nimestä
     m = re.search(r"(\d+)", name)
     return int(m.group(1)) if m else 0
 
 
-
 # PÄÄOHJELMA
 
 if __name__ == "__main__":
-
     # Kansio, jossa jokaisen potilaan kansio
     patient_dir = BASEDIR / "VN0ds"
 
@@ -381,11 +375,11 @@ if __name__ == "__main__":
         # Etsitään RS-tiedosto potilaan struct-kansiosta
         struct_dir = patient_dir / patient / "struct"
         rs_files = [f for f in os.listdir(struct_dir) if f.startswith("RS.")]
-        
+
         if not rs_files:
             print(f"RS-tiedostoa ei löytynyt potilaalta {patient}")
             continue  # hypätään tämän potilaan yli
-        
+
         # Oletetaan, että halutaan ensimmäinen RS-tiedosto, jos niitä on useampi
         rs_path = struct_dir / rs_files[0]
 
