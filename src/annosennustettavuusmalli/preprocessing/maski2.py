@@ -14,15 +14,13 @@ lisätty kaikki ROI:t.
 """
 
 import os
-import re
-from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 import pydicom
 from rt_utils import RTStructBuilder  # type: ignore
 
 from ..config import BASEDIR
+from .data import AllPatients, Patient
 
 
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on
@@ -319,62 +317,21 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
         new_ds.save_as(out_path)
 
 
-@dataclass
-class Patient:
-    dir: Path
+def create_mask(patient: Patient) -> tuple:
+    ct_path = patient.ct_path
+    out_path = patient.mask_destination
 
-    @property
-    def ct_path(self) -> Path:
-        return self.dir / "vanha ct"
+    struct_dir = patient.struct_path
+    rs_files = list(struct_dir.glob("RS.*.dcm"))
 
-    @property
-    def out_path(self) -> Path:
-        return self.dir / "maski"
+    if not rs_files:
+        print(f"RS-tiedostoa ei löytynyt potilaalta {patient.dir}. Skippataan.")
+        return None, None, out_path
 
-    @property
-    def struct_path(self) -> Path:
-        return self.dir / "struct"
+    rs_path = rs_files[0]
 
-    def create_mask(self):
-        ct_path = self.ct_path
-        out_path = self.out_path
-
-        struct_dir = self.struct_path
-        rs_files = list(struct_dir.glob("RS.*.dcm"))
-
-        if not rs_files:
-            print(f"RS-tiedostoa ei löytynyt potilaalta {self.dir}. Skippataan.")
-            return
-
-        rs_path = rs_files[0]
-
-        mask, ct_slices = overlay_ROI(rs_path, ct_path)
-        return mask, ct_slices, out_path
-
-    def save_mask(self, mask, ct_slices, out_path) -> None:
-        save_mask_as_dicom_series(mask, ct_slices, out_path)
-
-
-# Järjestetään potilaat numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
-def get_patient_number(patient: Patient) -> int:
-    """
-    Get the numeric value from the patient folder name for sorting purposes.
-
-    Parameters
-    ----------
-    patient : Patient
-        The patient object.
-
-    Returns
-    -------
-    int
-        The numeric value extracted from the patient folder name, or 0 if none found.
-
-    """
-    patient_path = patient.dir
-    # Eristetään numero nimestä
-    m = re.search(r"(\d+)", patient_path.name)
-    return int(m.group(1)) if m else 0
+    mask, ct_slices = overlay_ROI(rs_path, ct_path)
+    return mask, ct_slices, out_path
 
 
 # PÄÄOHJELMA
@@ -398,23 +355,20 @@ if __name__ == "__main__":
     patient_dir = BASEDIR / args.input_root
 
     # Etsitään kaikki potilaskansiot, jotka alkavat "Patient"
-    patients = [Patient(dir=p) for p in patient_dir.glob("Patient*")]
+    patients = AllPatients(data_root=patient_dir)
     # patients = [d for d in os.listdir(patient_dir) if d.startswith("Patient")]
 
-    # Luodaan maski
-    patients = sorted(patients, key=get_patient_number)
-
     # Käydään kaikki potilaat läpi
-    for patient in patients:
+    for patient in patients.sorted_by_number():
         print(f"Käsitellään {patient.dir}...")
 
         # Luodaan maski
-        mask, ct_slices, out_path = patient.create_mask()
+        mask, ct_slices, out_path = create_mask(patient=patient)
 
         # Tulostetaan maskin tyyppi ja muoto
         print(type(mask), mask.shape)
 
         # Tallennetaan maski DICOM-sarjana
-        patient.save_mask(mask, ct_slices, out_path)
+        save_mask_as_dicom_series(mask, ct_slices, out_path)
 
         print("Maski tallennettu")
