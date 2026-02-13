@@ -19,8 +19,7 @@ from pydicom import dcmread
 from pydicom.multival import MultiValue
 from scipy.ndimage import zoom  # type: ignore
 
-# Base directory for your datasets
-BASEDIR = Path("C:\\Users\\User01\\GRADU\\Aineisto\\")
+from ..config import BASEDIR
 
 
 def _ensure_dir(path: str | Path) -> None:

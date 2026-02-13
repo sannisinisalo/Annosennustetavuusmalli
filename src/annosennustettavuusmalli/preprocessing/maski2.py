@@ -20,6 +20,8 @@ import numpy as np
 import pydicom
 from rt_utils import RTStructBuilder  # type: ignore
 
+from ..config import BASEDIR
+
 
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on
 # DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa
@@ -340,7 +342,8 @@ def Patient_sort(name):
 
 if __name__ == "__main__":
     # Kansio, jossa jokaisen potilaan kansio
-    patient_dir = r"C:\Users\User01\GRADU\Aineisto\VN0ds"
+
+    patient_dir = BASEDIR / "VN0ds"
 
     # Etsitään kaikki potilaskansiot, jotka alkavat "Patient"
     patients = [d for d in os.listdir(patient_dir) if d.startswith("Patient")]
@@ -352,11 +355,11 @@ if __name__ == "__main__":
     for patient in patients:
         print(f"Käsitellään {patient}...")
 
-        ct_path = os.path.join(patient_dir, patient, "vanha ct")
-        out_path = os.path.join(patient_dir, patient, "maski")
+        ct_path = patient_dir / patient / "vanha ct"
+        out_path = patient_dir / patient / "maski"
 
         # Etsitään RS-tiedosto potilaan struct-kansiosta
-        struct_dir = os.path.join(patient_dir, patient, "struct")
+        struct_dir = patient_dir / patient / "struct"
         rs_files = [f for f in os.listdir(struct_dir) if f.startswith("RS.")]
 
         if not rs_files:
@@ -364,7 +367,7 @@ if __name__ == "__main__":
             continue  # hypätään tämän potilaan yli
 
         # Oletetaan, että halutaan ensimmäinen RS-tiedosto, jos niitä on useampi
-        rs_path = os.path.join(struct_dir, rs_files[0])
+        rs_path = struct_dir / rs_files[0]
 
         # Luodaan maski
         mask, ct_slices = overlay_ROI(rs_path, ct_path)
