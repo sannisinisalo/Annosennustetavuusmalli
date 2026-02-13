@@ -356,9 +356,9 @@ class Patient:
 
 
 # Järjestetään potilaat numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
-def patient_sort(patient: Patient) -> int:
+def get_patient_number(patient: Patient) -> int:
     """
-    Function that sorts patients by number, not by letter
+    Get the numeric value from the patient folder name for sorting purposes.
 
     Parameters
     ----------
@@ -402,7 +402,7 @@ if __name__ == "__main__":
     # patients = [d for d in os.listdir(patient_dir) if d.startswith("Patient")]
 
     # Luodaan maski
-    patients = sorted(patients, key=patient_sort)
+    patients = sorted(patients, key=get_patient_number)
 
     # Käydään kaikki potilaat läpi
     for patient in patients:
