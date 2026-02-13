@@ -114,7 +114,7 @@ def normalize_axes(mask, ct_slices):
 
 
 # ROI nimien määritys ja numeroiden määrääminen
-def ROI_names(roi_name):
+def map_roi_name_to_label(roi_name) -> int | None:
     """
     Maps a ROI name to a predefined number that are powers of 2.
 
@@ -228,9 +228,9 @@ def overlay_ROI(rt_path, ct_path):
     # Listataan kaikki saatavilla olevat ROI:t
     roi_list = rtstruct.get_roi_names()
 
-    # Määritetään ROI listan halutuille ROI:lle ROI_names funktiossa määritetyt luvut (2:n potenssi)
+    # Määritetään ROI listan halutuille ROI:lle map_roi_name_to_label funktiossa määritetyt luvut (2:n potenssi)
     for roi_name in roi_list:
-        roi_value = ROI_names(roi_name)
+        roi_value = map_roi_name_to_label(roi_name)
         if roi_value is None:
             continue
 
@@ -382,19 +382,20 @@ def patient_sort(patient: Patient) -> int:
 if __name__ == "__main__":
     import argparse
 
+    # komennon argumentit
+    # kysytään input-root, joka on polku kansioon, jossa on potilaskansiot (esim. "VN0")
     parser = argparse.ArgumentParser(description="Create ROI masks for patients.")
     parser.add_argument(
-        "--ct-data-root",
+        "-i",
+        "--input-root",
         type=str,
         default="VN0",
         help="Path to the directory containing patient folders.",
     )
 
-    # Kansio, jossa jokaisen potilaan kansio
-
     args = parser.parse_args()
 
-    patient_dir = BASEDIR / args.ct_data_root
+    patient_dir = BASEDIR / args.input_root
 
     # Etsitään kaikki potilaskansiot, jotka alkavat "Patient"
     patients = [Patient(dir=p) for p in patient_dir.glob("Patient*")]
