@@ -197,7 +197,7 @@ for hp_config_iter in hp_config:
         Loop for one training epoch
         """
         for i, batch in enumerate(train_loader):
-            batch_losses = defaultdict(int)
+            batch_losses: dict[str, int] = defaultdict(int)
 
             # TorchIO uses double by default, so these must be cast to float.
             input_ct = batch["ct"][tio.DATA].float()
