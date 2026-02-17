@@ -13,6 +13,13 @@ from pathlib import Path
 from typing import List
 
 import numpy as np
+from maski2 import (
+    BASEDIR,
+    load_CT,
+    overlay_ROI,
+    patient_sort,
+    save_mask_as_dicom_series,
+)
 from pydicom import dcmread
 from pydicom.multival import MultiValue
 from scipy.ndimage import zoom  # type: ignore
@@ -66,6 +73,18 @@ if __name__ == "__main__":
     dataset = "L"
 
     # Map dataset to source and destination paths
+    if dataset == "L":
+        SOURCE_PATH = BASEDIR / "VN0"
+        DESTINATION_PATH = BASEDIR / "VN0ds"
+    elif dataset == "R":
+        SOURCE_PATH = BASEDIR / "ON0"
+        DESTINATION_PATH = BASEDIR / "ON0ds"
+    elif dataset == "LAX":
+        SOURCE_PATH = BASEDIR / "VN+"
+        DESTINATION_PATH = BASEDIR / "VN+ds"
+    elif dataset == "RAX":
+        SOURCE_PATH = BASEDIR / "ON+"
+        DESTINATION_PATH = BASEDIR / "ON+ds"
     if dataset == "L":
         SOURCE_PATH = BASEDIR / "VN0"
         DESTINATION_PATH = BASEDIR / "VN0ds"

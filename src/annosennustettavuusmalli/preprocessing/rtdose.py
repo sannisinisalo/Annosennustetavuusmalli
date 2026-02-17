@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Luotu To 29.1.2026
+Luotu To 29.1.2026
 
 Tekijä: Sanni Sinisalo
 
@@ -26,6 +27,7 @@ def find_dose_file(folder):
     for f in os.listdir(folder):
         if f.startswith("RD") and f.endswith(".dcm"):
             return folder / f
+            return folder / f
     return None
 
 
@@ -38,8 +40,11 @@ def find_ct_files(folder):
         if f.endswith(".dcm") and not f.startswith("RD"):
             try:
                 ds = pydicom.dcmread(folder / f, stop_before_pixels=True)
+                ds = pydicom.dcmread(folder / f, stop_before_pixels=True)
                 if ds.Modality == "CT":
                     ct_files.append(folder / f)
+            except Exception:
+                ct_files.append(folder / f)
             except Exception:
                 pass
     return ct_files
@@ -80,11 +85,11 @@ if __name__ == "__main__":
         ct_files = find_ct_files(patient_in)
 
         if dose_path is None:
-            print("  ✗ Dose-tiedostoa ei löytynyt → ohitetaan")
+            print(" Dose-tiedostoa ei löytynyt → ohitetaan")
             continue
 
         if len(ct_files) == 0:
-            print("  ✗ CT-viipaleita ei löytynyt → ohitetaan")
+            print(" CT-viipaleita ei löytynyt → ohitetaan")
             continue
 
         try:
@@ -156,4 +161,4 @@ if __name__ == "__main__":
             print("  ✓ Tallennettu onnistuneesti")
 
         except Exception as e:
-            print(f"  ✗ Virhe potilaalla {patient}: {e}")
+            print(f" Virhe potilaalla {patient}: {e}")
