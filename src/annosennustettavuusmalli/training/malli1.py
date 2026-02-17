@@ -29,11 +29,11 @@ import torchio as tio
 import yaml
 from pathlib import Path
 
-from funktiot.generate_datasets import generate_datasets
-from funktiot import random_sample_hyperparameters, flatten_dict, evaluate_dataset, evaluate_dose_metrics
-from funktiot.init_weights import init_weights_kaiming
+from utils.generate_datasets import generate_datasets
+from utils import random_sample_hyperparameters, flatten_dict, evaluate_dataset, evaluate_dose_metrics
+from utils.init_weights import init_weights_kaiming
 from unet3plus_3d import UNet3plus_3d
-from funktiot.custom_transforms import DoseScalingTransform, PixelSizingTransform, CreateInputMask, CreateDistanceToPTV, ProbabilityMapTransform
+from utils.custom_transforms import DoseScalingTransform, PixelSizingTransform, CreateInputMask, CreateDistanceToPTV, ProbabilityMapTransform
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

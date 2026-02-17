@@ -65,12 +65,12 @@ pip install -e ".[dev]"
 
 
 ## Lisenssi
-Tämä projekti on sisältää koodia, joka on kirjoitettu alla listattujen henkilöäiden toimesta MIT- lisenssillä
+Tämä projekti on sisältää koodia, joka on kirjoitettu alla listattujen henkilöiden toimesta MIT- lisenssillä
 - Sanni Sinisalo
 - Akseli Leino 
 
-Akseli Leino on tehnyt tai hänen tekemä koodi on pohjana osalle repositoriossa oleville koodeille. 
-Erillisten koodien alussa on tieto kuka koodin on alunperin tehnyt ja mahdollisesti kenen toimesta sitä on muokattu. 
+Akseli Leino on tehnyt tai hänen tekemä koodi on ollut pohjana osalle repositoriossa oleville koodeille. 
+Erillisten koodien alussa on tieto kuka koodin on alunperin tehnyt ja mahdollisesti kenen toimesta sitä on muokattu.
 
 Katso lisätietoja `LICENSE`-tiedostosta.
 
