@@ -12,10 +12,11 @@ import re
 import SimpleITK as sitk
 import pydicom
 import numpy as np
+from downsamplaus import BASEDIR
 
 
-INPUT_ROOT = r"C:\Users\User01\GRADU\Aineisto\VN0"
-OUTPUT_ROOT = r"C:\Users\User01\GRADU\Aineisto\VN0ds"
+INPUT_ROOT = BASEDIR / "VN0"
+OUTPUT_ROOT = BASEDIR / "VN0ds"
 
 
 def patient_number(name):
@@ -78,17 +79,17 @@ if __name__ == "__main__":
         ct_files = find_ct_files(patient_in)
     
         if dose_path is None:
-            print("  ✗ Dose-tiedostoa ei löytynyt → ohitetaan")
+            print(" Dose-tiedostoa ei löytynyt → ohitetaan")
             continue
     
         if len(ct_files) == 0:
-            print("  ✗ CT-viipaleita ei löytynyt → ohitetaan")
+            print(" CT-viipaleita ei löytynyt → ohitetaan")
             continue
     
         try:
             # --- LUE CT ---
             ct_img = load_ct_series_from_files(ct_files)
-            print(f"  ✓ CT ladattu ({ct_img.GetSize()[2]} viipaletta)")
+            print(f" CT ladattu ({ct_img.GetSize()[2]} viipaletta)")
     
             # --- LUE DOSE ---
             ds = pydicom.dcmread(dose_path)
@@ -96,7 +97,7 @@ if __name__ == "__main__":
     
             dose_img = sitk.ReadImage(dose_path, sitk.sitkFloat32)
             dose_img = dose_img * dose_scaling
-            print("  ✓ Dose ladattu")
+            print(" Dose ladattu")
     
             # --- REFERENSSI ---
             dose_size = dose_img.GetSize()       # (X, Y, Z)
@@ -122,7 +123,7 @@ if __name__ == "__main__":
             resampler.SetDefaultPixelValue(0.0)
     
             dose_resampled = resampler.Execute(dose_img)
-            print("  ✓ Resamplaus valmis")
+            print(" Resamplaus valmis")
     
             # --- TALLENNUS ---
             dose_array = sitk.GetArrayFromImage(dose_resampled)
@@ -150,7 +151,7 @@ if __name__ == "__main__":
             print(dose_check.shape)
             print(dose_check.min(), dose_check.max())
     
-            print("  ✓ Tallennettu onnistuneesti")
+            print(" Tallennettu onnistuneesti")
     
         except Exception as e:
-            print(f"  ✗ Virhe potilaalla {patient}: {e}")
+            print(f" Virhe potilaalla {patient}: {e}")
