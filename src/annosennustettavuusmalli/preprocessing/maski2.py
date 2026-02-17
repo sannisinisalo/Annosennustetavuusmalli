@@ -337,7 +337,7 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 
 
 # Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
-def Patient_sort(name):
+def patient_sort(name):
     """
     Function that sorts patients by number, not by letter
 
@@ -369,7 +369,7 @@ if __name__ == "__main__":
     patients = [d for d in os.listdir(patient_dir) if d.startswith("Patient")]
 
     # Luodaan maski
-    patients = sorted(patients, key=Patient_sort)
+    patients = sorted(patients, key=patient_sort)
 
     # Käydään kaikki potilaat läpi
     for patient in patients:
