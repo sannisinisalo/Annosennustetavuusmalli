@@ -41,24 +41,37 @@ pip install -e ".[dev]"
 
 ## Käyttöohjeet
 
-### Moduulit
+### Aineiston esikäsittely
 
-#### Rakennemaskin luominen (`src/maski2/`)
+- Muodostetaan rakennemaski, muutetaan RTDose tiedoston koko vastaamaan CT-kuvia ja downsamplataan jokainen tiedosto nopeuttamaan mallin koulutusta.
+- Rakennemaskien luonti ja RTDose tiedostojen koiden muuttamnen eivät ole riippuvaisia toisitaan eli niiden ajamisen järjestyksellä ei ole väliä. 
+
+#### Rakennemaskin luominen (`src/annosennustettavuusmalli/preprocessing/maski2/`)
+
+**Käyttöesimerkki:**
+
+#### RTDose tiedoston koon muuttaminen (`src/annosennustettavuusmalli/preprocessing/rtdose/`)
 
 **Käyttöesimerkki:**
 
-#### Maskin koon pienentäminen (`src/?/`)
+#### Kaikkien tarvittavien tiedostojen downsamplaaminen (`src/annosennustettavuusmalli/preprocessing/downsamplaus/`)
 
 **Käyttöesimerkki:**
 
-#### Muiden tarvittavien tiedostojen koon pienentäminen (`src/?/`)
-
+### Mallin kouluttaminen
+ 
+- 
 **Käyttöesimerkki:**
+
+### Apuskriptit
 
 #### DICOM-kuvatiedostojen visualisoiminen  (`examples/dicom_file/`)
 
 **Käyttöesimerkki:**
 
+#### RTDose tiedostojen visualisoiminen  (`examples/dose_file/`)
+
+**Käyttöesimerkki:**
 
 
 
