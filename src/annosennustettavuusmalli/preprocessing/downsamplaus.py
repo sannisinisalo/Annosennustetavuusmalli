@@ -10,6 +10,8 @@ Tiedostojen koon pienentämiseen käytetty koodi
 import glob
 import os
 import re
+import os
+import re
 import warnings
 from pathlib import Path
 from typing import List
@@ -23,10 +25,12 @@ from ..config import BASEDIR
 
 
 def _ensure_dir(path: str | Path) -> None:
+def _ensure_dir(path: str | Path) -> None:
     """Create directory if it does not exist."""
     os.makedirs(path, exist_ok=True)
 
 
+def _find_patient_folders(source_root: str | Path) -> List[str]:
 def _find_patient_folders(source_root: str | Path) -> List[str]:
     """Find all patient folders starting with 'Patient' and sort numerically."""
     candidates = [
@@ -38,6 +42,8 @@ def _find_patient_folders(source_root: str | Path) -> List[str]:
 
     def patient_sort_key(path):
         name = os.path.basename(path)
+        m = re.search(r"(\d+)", name)
+        return int(m.group(1)) if m else float("inf")
         m = re.search(r"(\d+)", name)
         return int(m.group(1)) if m else float("inf")
 
@@ -69,6 +75,18 @@ if __name__ == "__main__":
     dataset = "L"
 
     # Map dataset to source and destination paths
+    if dataset == "L":
+        SOURCE_PATH = BASEDIR / "VN0"
+        DESTINATION_PATH = BASEDIR / "VN0ds"
+    elif dataset == "R":
+        SOURCE_PATH = BASEDIR / "ON0"
+        DESTINATION_PATH = BASEDIR / "ON0ds"
+    elif dataset == "LAX":
+        SOURCE_PATH = BASEDIR / "VN+"
+        DESTINATION_PATH = BASEDIR / "VN+ds"
+    elif dataset == "RAX":
+        SOURCE_PATH = BASEDIR / "ON+"
+        DESTINATION_PATH = BASEDIR / "ON+ds"
     if dataset == "L":
         SOURCE_PATH = BASEDIR / "VN0"
         DESTINATION_PATH = BASEDIR / "VN0ds"

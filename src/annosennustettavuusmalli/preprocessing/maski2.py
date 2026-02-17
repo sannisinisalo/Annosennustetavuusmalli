@@ -5,9 +5,13 @@ Tekijä: Sanni Sinisalo
 
 Toinen koodiyritys maskipakan luomiseen.
 Ensimmäisestä versiosta poistettu
+Toinen koodiyritys maskipakan luomiseen.
+Ensimmäisestä versiosta poistettu
 - intensitettimaskin luominen, koska se hävitti tiedon päällekkäisistä ROI:sta
 - koodi muutettu lukemaan monta potilasta kerralla yhdestä kansiosta
 
+Koodissa määritetään jokaiselle ROI:lle (Region Of Intrest) numero, jolla
+annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on
 Koodissa määritetään jokaiselle ROI:lle (Region Of Intrest) numero, jolla
 annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on
 lisätty kaikki ROI:t.
@@ -28,6 +32,7 @@ from ..config import BASEDIR
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on
 # DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa
 def load_CT(path):
+def load_CT(path):
     """
     Loading the CT-images and arranging them by the InstanceUID metadata.
 
@@ -39,9 +44,11 @@ def load_CT(path):
     Returns
     -------
     slices : list
+    slices : list
         Arranged CT-images.
 
     """
+    # Tuotetaan lista CT-kuvista, f silmukkamuuttuja, johon .dcm tiedostot tallentuvat
     # Tuotetaan lista CT-kuvista, f silmukkamuuttuja, johon .dcm tiedostot tallentuvat
     slices = [
         pydicom.dcmread(os.path.join(path, f))
@@ -63,6 +70,7 @@ def load_CT(path):
 
 # Normalisoidaan ROI-maskin akselit muotoon (Z, Y, X), jotta ne ovat samassa muodossa CT kuvien kanssa
 def normalize_axes(mask, ct_slices):
+def normalize_axes(mask, ct_slices):
     """
     Normalizes the axes of the ROI mask array tho match the CT-images axes (Z, Y, X).
 
@@ -70,6 +78,7 @@ def normalize_axes(mask, ct_slices):
     ----------
     mask : numpy.ndarray
         The 3D array representing the mask.
+    ct_slices : list
     ct_slices : list
         A list of the loaded CT images in DICOM form
 
@@ -86,6 +95,9 @@ def normalize_axes(mask, ct_slices):
     num_slices = len(ct_slices)  # Siivujen lukumäärä Z
     rows = int(ct_slices[0].Rows)  # Rivien määrä eli kuvan korkeus eli Y
     cols = int(ct_slices[0].Columns)  # Sarakkeiden määrä eli kuvan leveys eli X
+    num_slices = len(ct_slices)  # Siivujen lukumäärä Z
+    rows = int(ct_slices[0].Rows)  # Rivien määrä eli kuvan korkeus eli Y
+    cols = int(ct_slices[0].Columns)  # Sarakkeiden määrä eli kuvan leveys eli X
 
     # Maskin alkuperäiset akselit
     shape = mask.shape
@@ -95,6 +107,7 @@ def normalize_axes(mask, ct_slices):
     if shape == (num_slices, rows, cols):
         return mask, txt
 
+    # Jos akselit vaativat korjausta, etsitään permutaatio, joka tuottaa (num_slices, rows, cols) ja
     # Jos akselit vaativat korjausta, etsitään permutaatio, joka tuottaa (num_slices, rows, cols) ja
     # käännetään akselit sen mukaan haluttuun järjestykseen.
     for perm in [
@@ -109,6 +122,7 @@ def normalize_axes(mask, ct_slices):
             trial = np.transpose(mask, axes=perm)
 
             # Tarkistetaan vielä tuottiko muutos halutun lopputuloksen
+            if trial.shape == (num_slices, rows, cols):
             if trial.shape == (num_slices, rows, cols):
                 return trial, f"Maskin akselit korjattu transpoosilla{perm} -> (Z,Y,X)"
 
@@ -147,6 +161,7 @@ def map_roi_name_to_label(roi_name) -> int | None:
     if "body" in roi:
         return 0
 
+    if "ptv iho" in roi or "ptv-iho" in roi:
     if "ptv iho" in roi or "ptv-iho" in roi:
         return 1
 
@@ -300,7 +315,9 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
 
         # Säilytetään geometria
         if hasattr(ct, "SliceThickness"):
+        if hasattr(ct, "SliceThickness"):
             new_ds.SliceThickness = ct.SliceThickness
+        if hasattr(ct, "PixelSpacing"):
         if hasattr(ct, "PixelSpacing"):
             new_ds.PixelSpacing = ct.PixelSpacing
 

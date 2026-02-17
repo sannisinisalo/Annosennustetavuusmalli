@@ -124,6 +124,7 @@ for hp_config_iter in hp_config:
 
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     mlflow.log_metrics({"total_params": total_params})
+    mlflow.log_metrics({"total_params": total_params})
     flattened_dict = flatten_dict(hp_config_iter)
     mlflow.log_params(
         {
@@ -148,6 +149,8 @@ for hp_config_iter in hp_config:
     )
 
     # Initialize primary loss and secondary loss (metric) functions
+    primary_loss = getattr(nn, hp_config_iter["primary_loss"])()
+    secondary_loss = getattr(nn, hp_config_iter["secondary_loss"])()
     primary_loss = getattr(nn, hp_config_iter["primary_loss"])()
     secondary_loss = getattr(nn, hp_config_iter["secondary_loss"])()
 
@@ -231,6 +234,7 @@ for hp_config_iter in hp_config:
             )
             accumulated_loss.backward()
 
+            if (i + 1) % hp_config_iter["gradient_accumulation"] == 0:
             if (i + 1) % hp_config_iter["gradient_accumulation"] == 0:
                 optimizer.step()
                 optimizer.zero_grad()
