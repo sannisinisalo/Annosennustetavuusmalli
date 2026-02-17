@@ -375,11 +375,11 @@ if __name__ == "__main__":
     for patient in patients:
         print(f"Käsitellään {patient}...")
 
-        ct_path = os.path.join(patient_dir, patient, "vanha ct")
-        out_path = os.path.join(patient_dir, patient, "maski")
+        ct_path = patient_dir / patient / "vanha ct"
+        out_path = patient_dir / patient / "maski"
 
         # Etsitään RS-tiedosto potilaan struct-kansiosta
-        struct_dir = os.path.join(patient_dir, patient, "struct")
+        struct_dir = patient_dir / patient / "struct"
         rs_files = [f for f in os.listdir(struct_dir) if f.startswith("RS.")]
         
         if not rs_files:
@@ -387,7 +387,7 @@ if __name__ == "__main__":
             continue  # hypätään tämän potilaan yli
         
         # Oletetaan, että halutaan ensimmäinen RS-tiedosto, jos niitä on useampi
-        rs_path = os.path.join(struct_dir, rs_files[0])
+        rs_path = struct_dir / rs_files[0]
 
 
         # Luodaan maski
