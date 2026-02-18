@@ -24,14 +24,12 @@ import yaml  # type:ignore
 from matplotlib import pyplot as plt
 
 from ..models.unet3plus_3d import UNet3plus_3d
-from ..utils import (
-    evaluate_dataset,
-    evaluate_dose_metrics,
-    flatten_dict,
-    random_sample_hyperparameters,
-)
+from ..utils.evaluate_dataset import evaluate_dataset
+from ..utils.evaluate_dose_metrics import evaluate_dose_metrics
+from ..utils.flatten_dict import flatten_dict
 from ..utils.generate_datasets import generate_datasets
 from ..utils.init_weights import init_weights_kaiming
+from ..utils.random_sample_hyperparameters import random_sample_hyperparameters
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -235,7 +233,6 @@ for hp_config_iter in hp_config:
             accumulated_loss.backward()
 
             if (i + 1) % hp_config_iter["gradient_accumulation"] == 0:
-            if (i + 1) % hp_config_iter["gradient_accumulation"] == 0:
                 optimizer.step()
                 optimizer.zero_grad()
                 seq_scheduler.step()
@@ -252,9 +249,9 @@ for hp_config_iter in hp_config:
                     f"EPOCH {epoch} | "
                     f"sample {(i + 1) * hp_config_iter['batch_size']}/{epoch_size * hp_config_iter['batch_size']} | "
                     f"batch {i + 1}/{epoch_size} | "
-                    f"deepsup_loss: {running_losses['deepsup_loss'] / i:.3f} | "
-                    f"primary_metric {running_losses['primary_metric'] / i:.3f} | "
-                    f"secondary_metric: {running_losses['secondary_metric'] / i:.3f} | "
+                    f"deepsup_loss: {running_losses['deepsup_loss'] / (i + 1):.3f} | "
+                    f"primary_metric {running_losses['primary_metric'] / (i + 1):.3f} | "
+                    f"secondary_metric: {running_losses['secondary_metric'] / (i + 1):.3f} | "
                     f"LR: {seq_scheduler.get_last_lr()[0]:.6f}",
                     end="\r",
                 )

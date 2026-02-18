@@ -32,7 +32,6 @@ from ..config import BASEDIR
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on
 # DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa
 def load_CT(path):
-def load_CT(path):
     """
     Loading the CT-images and arranging them by the InstanceUID metadata.
 
@@ -69,7 +68,6 @@ def load_CT(path):
 
 
 # Normalisoidaan ROI-maskin akselit muotoon (Z, Y, X), jotta ne ovat samassa muodossa CT kuvien kanssa
-def normalize_axes(mask, ct_slices):
 def normalize_axes(mask, ct_slices):
     """
     Normalizes the axes of the ROI mask array tho match the CT-images axes (Z, Y, X).
@@ -123,7 +121,6 @@ def normalize_axes(mask, ct_slices):
 
             # Tarkistetaan vielä tuottiko muutos halutun lopputuloksen
             if trial.shape == (num_slices, rows, cols):
-            if trial.shape == (num_slices, rows, cols):
                 return trial, f"Maskin akselit korjattu transpoosilla{perm} -> (Z,Y,X)"
 
 
@@ -161,7 +158,6 @@ def map_roi_name_to_label(roi_name) -> int | None:
     if "body" in roi:
         return 0
 
-    if "ptv iho" in roi or "ptv-iho" in roi:
     if "ptv iho" in roi or "ptv-iho" in roi:
         return 1
 
@@ -315,9 +311,7 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
 
         # Säilytetään geometria
         if hasattr(ct, "SliceThickness"):
-        if hasattr(ct, "SliceThickness"):
             new_ds.SliceThickness = ct.SliceThickness
-        if hasattr(ct, "PixelSpacing"):
         if hasattr(ct, "PixelSpacing"):
             new_ds.PixelSpacing = ct.PixelSpacing
 

@@ -10,8 +10,6 @@ Tiedostojen koon pienentämiseen käytetty koodi
 import glob
 import os
 import re
-import os
-import re
 import warnings
 from pathlib import Path
 from typing import List
@@ -25,12 +23,10 @@ from ..config import BASEDIR
 
 
 def _ensure_dir(path: str | Path) -> None:
-def _ensure_dir(path: str | Path) -> None:
     """Create directory if it does not exist."""
     os.makedirs(path, exist_ok=True)
 
 
-def _find_patient_folders(source_root: str | Path) -> List[str]:
 def _find_patient_folders(source_root: str | Path) -> List[str]:
     """Find all patient folders starting with 'Patient' and sort numerically."""
     candidates = [
