@@ -73,7 +73,7 @@ for hp_config_iter in hp_config:
     # !!!NOTE!!! reduce_samples means that epoch samples is reduced by a factor of defined number. This means that full epoch is really
     # epochs*n. This can be set to 1 so epoch = full epoch. This can be used to increase number of checkpoints. Note also that .yaml
     # configurations are reduced epochs. So if reduce_epochs = 4, training for 10 full epochs is 40 epochs in yaml.
-    train_set, val_set, test_set, train_transforms, transforms = generate_datasets(
+    train_set, val_set, test_set = generate_datasets(
         config["data_paths"][DATA], reduce_samples = 1
         )
 
