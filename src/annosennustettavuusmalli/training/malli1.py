@@ -38,8 +38,8 @@ print(f"Using device: {device}")
 HYPERPARAMETERS = "manual_search"  # default, manual_search or random_search
 DATA = "VN0_data"
 
-BASE_DIR = BASE_DIR = Path(__file__).parent
-config_file = BASE_DIR / "config.yaml"
+BASE_DIR = Path(__file__).parent
+config_file = BASE_DIR.parent / "config.yaml"
 
 with open(config_file, "r") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
