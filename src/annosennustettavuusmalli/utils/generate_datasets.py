@@ -4,24 +4,23 @@ Tekijä: Akseli Leino
 Muokkaaja. Sanni Sinisalo
 """
 
-import torchio as tio
-import glob
 import re
-import os
-import numpy as np
-import random
-from pydicom import dcmread
-from .custom_transforms import DoseScalingTransform, PixelSizingTransform, FlipRightTransform, CreateInputMask, CreateDistanceToPTV, ProbabilityMapTransform
 import math
 import pickle
 from scipy.ndimage import zoom
+import numpy as np
+
+import glob
+import os
+import torchio as tio
+import random
+from pydicom import dcmread
+from .custom_transforms import DoseScalingTransform, PixelSizingTransform, CreateInputMask, CreateDistanceToPTV, ProbabilityMapTransform
 import torch
-import copy
 
 
 def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))->tuple([tio.SubjectsDataset, tio.SubjectsDataset, tio.SubjectsDataset]):
-    all_items = glob.glob(path, recursive=True)
-    study_folders = glob.glob(path)  # nämä ovat jo potilaskansiot
+    study_folders = glob.glob(path)  
     unique_subjects = [os.path.basename(os.path.normpath(s)) for s in study_folders]
     train_subjects_list = []
     val_subjects_list = []
@@ -38,6 +37,7 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
     
     for j, subject_set in enumerate([train_names, val_names, test_names]):
         for subject in subject_set:
+            
             subject_path = [s for s in study_folders if subject in s][0]
             
             ct_path = os.path.join(subject_path, 'ct')
@@ -67,9 +67,9 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
                 dose_multiplier = dose_multiplier,
                 num_samples = int(num_samples/reduce_samples),
                 pixel_spacing = pixel_spacing,
-                distance_to_PTV = tio.ScalarImage(tensor=torch.zeros_like(mask_data.data)), # Muutettu, jotta maski sai järkeviä arvoja
+                distance_to_PTV = tio.ScalarImage(tensor=torch.zeros_like(mask_data.data)), # MUUTETTU, JOTTA MASKI SAISI JÄRKEVIÄ ARVOJA
                 probability_map = tio.ScalarImage(tensor=torch.zeros_like(mask_data.data))
-                ) # Muutetttu, jotta maski sai järkeviä arvoja 
+                ) # MUUTETTU, JOTTA MASKI SAISI JÄRKEVIÄ ARVOJA
             
             if j == 0:
                 train_subjects_list.append(new_subject)
@@ -78,7 +78,7 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
             elif j == 2:
                 test_subjects_list.append(new_subject)
     
-    print("Mask dtype:", new_subject['mask'][tio.DATA].dtype) # Debuglisäys
+    print("Mask dtype:", new_subject['mask'][tio.DATA].dtype) # DEBULISÄYS
     
     #rescale_mask = tio.RescaleIntensity(out_min_max=(-0.2, 1), in_min_max = (-1, 10), include = ['mask'])
     rescale_ct = tio.RescaleIntensity(out_min_max=(0, 4), in_min_max = (-1024, 3072), include = ['ct'])
@@ -92,7 +92,7 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
     # The order of the transforms is important! Padding of the size transformations are made with the assumption that data is already scaled. Thus, rescale transforms must be befor rescale pixels.
     # Also, create_final_mask must be AFTER resizing pixels, as it creates 'original_mask', which is not at the moment handled by PixelSizingTransform.
     
-    resample = tio.Resample('ct') # Lisätty, jotta dose:lla sama pixel_spacing kuin CT:llä
+    resample = tio.Resample('ct') # LISÄTTY, JOTTA DOSELLE SAI SMAN pixel_spacing KUIN CT:LLÄ JA MASKEILLA
     train_transforms = tio.Compose((
         resample,
         rescale_dose, 
