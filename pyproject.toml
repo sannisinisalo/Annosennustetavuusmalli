@@ -30,4 +30,5 @@ annosennustetavuusmalli = { workspace = true }
 [dependency-groups]
 dev = [
     "annosennustetavuusmalli",
+    "pytest>=8.0.0",
 ]

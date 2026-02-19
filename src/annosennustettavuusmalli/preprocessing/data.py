@@ -87,5 +87,4 @@ class AllPatients:
 
     def sorted_by_number(self) -> list[Patient]:
         """Järjestää potilaat numerojärjestykseen, muuten tulisi aakkosjärjestyksessä."""
-        patient_numbers = {p: p.number for p in self.patients}
-        return sorted(self.patients, key=lambda p: patient_numbers[p])
+        return sorted(self.patients, key=lambda p: p.number)
