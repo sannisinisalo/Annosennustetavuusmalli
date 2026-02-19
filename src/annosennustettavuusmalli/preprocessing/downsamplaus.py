@@ -13,13 +13,6 @@ from pathlib import Path
 from typing import List
 
 import numpy as np
-from maski2 import (
-    BASEDIR,
-    load_CT,
-    overlay_ROI,
-    patient_sort,
-    save_mask_as_dicom_series,
-)
 from pydicom import dcmread
 from pydicom.multival import MultiValue
 from scipy.ndimage import zoom  # type: ignore
