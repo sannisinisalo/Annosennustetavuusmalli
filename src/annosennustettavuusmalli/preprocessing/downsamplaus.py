@@ -85,18 +85,6 @@ if __name__ == "__main__":
     elif dataset == "RAX":
         SOURCE_PATH = BASEDIR / "ON+"
         DESTINATION_PATH = BASEDIR / "ON+ds"
-    if dataset == "L":
-        SOURCE_PATH = BASEDIR / "VN0"
-        DESTINATION_PATH = BASEDIR / "VN0ds"
-    elif dataset == "R":
-        SOURCE_PATH = BASEDIR / "ON0"
-        DESTINATION_PATH = BASEDIR / "ON0ds"
-    elif dataset == "LAX":
-        SOURCE_PATH = BASEDIR / "VN+"
-        DESTINATION_PATH = BASEDIR / "VN+ds"
-    elif dataset == "RAX":
-        SOURCE_PATH = BASEDIR / "ON+"
-        DESTINATION_PATH = BASEDIR / "ON+ds"
     else:
         raise ValueError("Tuntematon dataset-parametri. Käytä: 'L', 'R', 'LAX', 'RAX'.")
 

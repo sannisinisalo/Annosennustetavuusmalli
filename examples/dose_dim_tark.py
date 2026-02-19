@@ -1,0 +1,107 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Feb 18 12:11:29 2026
+
+@author: User01
+"""
+
+import pydicom
+import numpy as np
+import pandas as pd
+
+
+# -------------------------------------------------
+# 1. Lue RTDose ja palauta fyysinen annos (Gy)
+# -------------------------------------------------
+def load_rtdose(filepath):
+    ds = pydicom.dcmread(filepath)
+
+    if ds.Modality != "RTDOSE":
+        raise ValueError("Tiedosto ei ole RTDose.")
+
+    dose_grid_scaling = float(ds.DoseGridScaling)
+    dose_array = ds.pixel_array.astype(np.float32) * dose_grid_scaling
+
+    return dose_array, ds
+
+
+# -------------------------------------------------
+# 2. Poimi tärkeä metadata
+# -------------------------------------------------
+def extract_rtdose_metadata(ds):
+
+    metadata = {
+        "Modality": ds.Modality,
+        "DoseUnits": ds.DoseUnits,
+        "Rows": ds.Rows,
+        "Columns": ds.Columns,
+        "NumberOfFrames": getattr(ds, "NumberOfFrames", None),
+        "PixelSpacing": ds.PixelSpacing,
+        "SliceThickness": getattr(ds, "SliceThickness", None),
+        "GridFrameOffsetVector (len)": len(ds.GridFrameOffsetVector),
+        "ImagePositionPatient": ds.ImagePositionPatient,
+        "ImageOrientationPatient": ds.ImageOrientationPatient
+    }
+
+    return metadata
+
+
+# -------------------------------------------------
+# 3. Annosstatistiikka
+# -------------------------------------------------
+def dose_statistics(dose):
+
+    stats = {
+        "Min (Gy)": np.min(dose),
+        "Max (Gy)": np.max(dose),
+        "Mean (Gy)": np.mean(dose),
+        "Median (Gy)": np.median(dose),
+        "Std (Gy)": np.std(dose)
+    }
+
+    return stats
+
+
+# -------------------------------------------------
+# 4. Erotusanalyysi
+# -------------------------------------------------
+def dose_difference_analysis(dose1, dose2):
+
+    if dose1.shape != dose2.shape:
+        raise ValueError("Dose-gridien dimensiot eivät täsmää.")
+
+    diff = dose1 - dose2
+
+    stats = {
+        "Mean difference (Gy)": np.mean(diff),
+        "Max absolute difference (Gy)": np.max(np.abs(diff)),
+        "RMSE (Gy)": np.sqrt(np.mean(diff**2))
+    }
+
+    return stats
+
+
+# -------------------------------------------------
+# 5. PÄÄOHJELMA
+# -------------------------------------------------
+file1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\dose\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
+file2 = r"C:\Users\User01\GRADU\ANON0075\ANON0075 alkup\2017-01__Studies\Anon^0075_ANON0075_RTDOSE_2017-01-14_112335_AI.DVH.Dose.2.beams_AI.DVH.Dose.2.beams_n1__00000\2.16.840.1.114362.1.12289667.23994421178.698228408.758.6695.dcm"
+
+dose1, ds1 = load_rtdose(file1)
+dose2, ds2 = load_rtdose(file2)
+
+print("=== METADATA RTDOSE 1 (Nova) ===")
+meta1 = extract_rtdose_metadata(ds1)
+print(pd.Series(meta1))
+
+print("\n=== METADATA RTDOSE 2 (KYS) ===")
+meta2 = extract_rtdose_metadata(ds2)
+print(pd.Series(meta2))
+
+print("\n=== ANNOSSTATISTIIKKA 1 (Nova) ===")
+print(pd.Series(dose_statistics(dose1)))
+
+print("\n=== ANNOSSTATISTIIKKA 2 (KYS) ===")
+print(pd.Series(dose_statistics(dose2)))
+
+
