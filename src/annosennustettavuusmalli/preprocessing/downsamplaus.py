@@ -40,8 +40,6 @@ def _find_patient_folders(source_root: str | Path) -> List[str]:
         name = os.path.basename(path)
         m = re.search(r"(\d+)", name)
         return int(m.group(1)) if m else float("inf")
-        m = re.search(r"(\d+)", name)
-        return int(m.group(1)) if m else float("inf")
 
     return sorted(patients, key=patient_sort_key)
 
@@ -71,18 +69,6 @@ if __name__ == "__main__":
     dataset = "L"
 
     # Map dataset to source and destination paths
-    if dataset == "L":
-        SOURCE_PATH = BASEDIR / "VN0"
-        DESTINATION_PATH = BASEDIR / "VN0ds"
-    elif dataset == "R":
-        SOURCE_PATH = BASEDIR / "ON0"
-        DESTINATION_PATH = BASEDIR / "ON0ds"
-    elif dataset == "LAX":
-        SOURCE_PATH = BASEDIR / "VN+"
-        DESTINATION_PATH = BASEDIR / "VN+ds"
-    elif dataset == "RAX":
-        SOURCE_PATH = BASEDIR / "ON+"
-        DESTINATION_PATH = BASEDIR / "ON+ds"
     if dataset == "L":
         SOURCE_PATH = BASEDIR / "VN0"
         DESTINATION_PATH = BASEDIR / "VN0ds"

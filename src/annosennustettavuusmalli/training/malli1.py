@@ -68,6 +68,7 @@ for hp_config_iter in hp_config:
         config["data_paths"][DATA], reduce_samples=1
     )
 
+    # ------ DEBUG ------
     # Testaa yksi subject ilman Queuea
     test_subject = train_set[0]
 
@@ -79,7 +80,7 @@ for hp_config_iter in hp_config:
     print(
         "Probability map unique values:", np.unique(test_subject.probability_map.data)
     )
-
+    # ------ DEBUG ------
     # Probability map probabilities are defined in custom_transforms -> ProbabilityMapTransform
     training_sampler = tio.sampler.WeightedSampler(
         hp_config_iter["patch_size"], probability_map="probability_map"
@@ -95,12 +96,13 @@ for hp_config_iter in hp_config:
     train_loader = torch.utils.data.DataLoader(
         train_queue, batch_size=hp_config_iter["batch_size"], num_workers=0
     )  # num_workers must be 0. (due to TorchIO queue implementation(?))
+    # ------ DEBUG ------
     print("Starting to fetch first batch...")
     batch = next(iter(train_loader))
     print(batch)
+    # ------ DEBUG ------
 
     random.seed()  # Seed was set when splitting sets. Without seed reset, the mlflow naming always starts from the same name.
-
     if mlflow.active_run() is not None:
         mlflow.end_run()
     mlflow.start_run()

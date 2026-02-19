@@ -61,7 +61,7 @@ def generate_datasets(
             pixel_spacing = float(list(ds_ct.PixelSpacing)[0])
 
             ct_data = tio.ScalarImage(ct_path)
-            mask_data = tio.LabelMap(mask_path)
+            mask_data = tio.ScalarImage(mask_path)
             dose_data = tio.ScalarImage(dose_path)
 
             new_subject = tio.Subject(
@@ -80,9 +80,6 @@ def generate_datasets(
                     tensor=torch.zeros_like(mask_data.data)
                 ),
             )  # mask_data is only a placeholder
-
-            # print("BEFORE transforms unique:", np.unique(new_subject['mask'][tio.DATA]))
-
             if j == 0:
                 train_subjects_list.append(new_subject)
             elif j == 1:
