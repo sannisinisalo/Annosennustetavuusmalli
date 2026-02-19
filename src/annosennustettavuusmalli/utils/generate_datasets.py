@@ -75,11 +75,12 @@ def generate_datasets(
                 pixel_spacing=pixel_spacing,
                 distance_to_PTV=tio.ScalarImage(
                     tensor=torch.zeros_like(mask_data.data)
-                ),  # mask_data is only a placeholder. This could be implemented better? The problem is that there needs to be a empty tensor that is shaped like other data of the subject, and it can't be loaded to memory.
+                ),  # MUUTETTU, JOTTA MASKI SAISI JÄRKEVIÄ ARVOJA
                 probability_map=tio.ScalarImage(
                     tensor=torch.zeros_like(mask_data.data)
                 ),
-            )  # mask_data is only a placeholder
+            )  # MUUTETTU, JOTTA MASKI SAISI JÄRKEVIÄ ARVOJA
+
             if j == 0:
                 train_subjects_list.append(new_subject)
             elif j == 1:
@@ -87,7 +88,8 @@ def generate_datasets(
             elif j == 2:
                 test_subjects_list.append(new_subject)
 
-    print("Mask dtype:", new_subject["mask"][tio.DATA].dtype)
+    print("Mask dtype:", new_subject["mask"][tio.DATA].dtype)  # DEBULISÄYS
+
     # rescale_mask = tio.RescaleIntensity(out_min_max=(-0.2, 1), in_min_max = (-1, 10), include = ['mask'])
     rescale_ct = tio.RescaleIntensity(
         out_min_max=(0, 4), in_min_max=(-1024, 3072), include=["ct"]
