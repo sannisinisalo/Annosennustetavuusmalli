@@ -82,7 +82,7 @@ class FlipRightTransform(tio.transforms.Transform):
     """This is custom transform to TorchIO that flips dose, mask, and CT data. Basically this enables combining left and right data to same dataset (i.e. right dataset is put through this to make it "left")"""
 
     def apply_transform(self, subject: tio.Subject) -> tio.Subject:
-        if subject["flip"] == True:
+        if subject["flip"]:
             # Data has dimensions (c, w, h, d), thus we want to flip the second (1) dimension.
             transformed_dose = subject["dose"][tio.DATA].flip(1)
             transformed_mask = subject["mask"][tio.DATA].flip(1)

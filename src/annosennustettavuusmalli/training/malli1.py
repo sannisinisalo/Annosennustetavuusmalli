@@ -18,20 +18,10 @@ from pathlib import Path
 
 import mlflow
 import numpy as np
-
-import random
-import time
-from collections import defaultdict
-from pathlib import Path
-
-import mlflow
-import numpy as np
 import torch
 import torch.nn as nn
 import torchio as tio
-import yaml  # type:ignore
-import torchio as tio
-import yaml  # type:ignore
+import yaml  # type:ignore  # type:ignore
 from matplotlib import pyplot as plt
 
 from ..models.unet3plus_3d import UNet3plus_3d
@@ -87,11 +77,9 @@ for hp_config_iter in hp_config:
     # Testaa yksi subject ilman Queuea
     test_subject = train_set[0]
 
-
     print("CT shape:", test_subject.ct.shape)
     print("Mask shape:", test_subject.mask.shape)
     print("Dose shape:", test_subject.dose.shape)
-
 
     print("Mask unique values:", np.unique(test_subject.mask.data))
     print(
@@ -117,16 +105,7 @@ for hp_config_iter in hp_config:
         num_workers=0,
         verbose=True,
     )
-    train_loader = torch.utils.data.DataLoader(
-        train_queue, batch_size=hp_config_iter["batch_size"], num_workers=0
-    )  # num_workers must be 0. (due to TorchIO queue implementation(?))
-        subjects_dataset=train_set,
-        max_length=config["train_loader_config"]["max_length"],
-        samples_per_volume=config["train_loader_config"]["samples_per_volume"],
-        sampler=training_sampler,
-        num_workers=0,
-        verbose=True,
-    )
+
     train_loader = torch.utils.data.DataLoader(
         train_queue, batch_size=hp_config_iter["batch_size"], num_workers=0
     )  # num_workers must be 0. (due to TorchIO queue implementation(?))
@@ -136,14 +115,12 @@ for hp_config_iter in hp_config:
 
     random.seed()  # Seed was set when splitting sets. Without seed reset, the mlflow naming always starts from the same name.
 
-
     random.seed()  # Seed was set when splitting sets. Without seed reset, the mlflow naming always starts from the same name.
 
     if mlflow.active_run() is not None:
         mlflow.end_run()
         mlflow.end_run()
     mlflow.start_run()
-
 
     # Initialize model
     model = UNet3plus_3d(
@@ -260,19 +237,12 @@ for hp_config_iter in hp_config:
     best_val_primary = 100000000000  # Arbitrarily large number that loss is (hopefully) never going to be exceed
     last_improved = 0
 
-
     """
     Training loop
     """
     for epoch in range(1, hp_config_iter["EPOCHS"] + 1):
-    for epoch in range(1, hp_config_iter["EPOCHS"] + 1):
         # This is for cosine annealing decay over time
-        if (
-            epoch > hp_config_iter["warmup_period"]
-            and (epoch - hp_config_iter["warmup_period"] + 1)
-            % hp_config_iter["warm_restart_every"]
-            == 0
-        ):
+
         if (
             epoch > hp_config_iter["warmup_period"]
             and (epoch - hp_config_iter["warmup_period"] + 1)
@@ -314,7 +284,6 @@ for hp_config_iter in hp_config:
             model.train()
             pred_train_dose = model(input_)
 
-
             for j in range(len(pred_train_dose)):
                 loss_multiplier = (
                     1 if j == 0 else 0.25
@@ -323,14 +292,6 @@ for hp_config_iter in hp_config:
                     1 if j == 0 else 0.25
                 )  # Weights for different deep supervision outputs
                 batch_loss = primary_loss(pred_train_dose[j], true_train_dose)
-                batch_losses["deepsup_loss"] += batch_loss * loss_multiplier
-
-            batch_losses["primary_metric"] = primary_loss(
-                pred_train_dose.main_output, true_train_dose
-            )
-            batch_losses["secondary_metric"] = secondary_loss(
-                pred_train_dose.main_output, true_train_dose
-            )
                 batch_losses["deepsup_loss"] += batch_loss * loss_multiplier
 
             batch_losses["primary_metric"] = primary_loss(
@@ -537,7 +498,6 @@ plt.figure()
 
 for image in train_loader:
     fig, axs = plt.subplots(8, 3)
-
 
     for j, (ax1, ax2, ax3) in enumerate(axs):
         ax1.imshow(image["mask"][tio.DATA].detach().numpy()[j, 0, :, :, 0])

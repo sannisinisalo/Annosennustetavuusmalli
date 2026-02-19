@@ -24,7 +24,7 @@ from .custom_transforms import (
 def generate_datasets(
     path: str, reduce_samples: float, split: tuple = (0.7, 0.1)
 ) -> tuple[tio.SubjectsDataset, tio.SubjectsDataset, tio.SubjectsDataset]:
-    all_items = glob.glob(path, recursive=True)
+    # all_items = glob.glob(path, recursive=True)
     study_folders = glob.glob(path)  # nämä ovat jo potilaskansiot
     unique_subjects = [os.path.basename(os.path.normpath(s)) for s in study_folders]
     train_subjects_list = []

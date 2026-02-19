@@ -31,7 +31,6 @@ from .data import AllPatients, Patient
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on
 # DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa
 def load_CT(path):
-def load_CT(path):
     """
     Loading the CT-images and arranging them by the InstanceUID metadata.
 
@@ -72,7 +71,6 @@ def load_CT(path):
 
 
 # Normalisoidaan ROI-maskin akselit muotoon (Z, Y, X), jotta ne ovat samassa muodossa CT kuvien kanssa
-def normalize_axes(mask, ct_slices):
 def normalize_axes(mask, ct_slices):
     """
     Normalizes the axes of the ROI mask array tho match the CT-images axes (Z, Y, X).
@@ -126,7 +124,6 @@ def normalize_axes(mask, ct_slices):
 
             # Tarkistetaan vielä tuottiko muutos halutun lopputuloksen
             if trial.shape == (num_slices, rows, cols):
-            if trial.shape == (num_slices, rows, cols):
                 return trial, f"Maskin akselit korjattu transpoosilla{perm} -> (Z,Y,X)"
 
 
@@ -166,7 +163,6 @@ def map_roi_name_to_label(roi_name) -> int | None:
         return 0
 
     if "ptv iho" in roi or "ptv-iho" in roi:
-    if "ptv iho" in roi or "ptv-iho" in roi:
         return 1
 
     if "heart" in roi or "sydän" in roi or "sydan" in roi:
@@ -188,25 +184,16 @@ def map_roi_name_to_label(roi_name) -> int | None:
         return 64
 
     if "plexus" in roi or "brachial plexus" in roi or "brachial_plexus" in roi:
-
-    if "plexus" in roi or "brachial plexus" in roi or "brachial_plexus" in roi:
         return 128
-
-    if "esophagus" in roi or "ruokatorvi" in roi:
 
     if "esophagus" in roi or "ruokatorvi" in roi:
         return 256
 
     if "trachea" in roi or "tracea" in roi:
-
-    if "trachea" in roi or "tracea" in roi:
         return 512
 
     if "thyroid" in roi or "kilpirauhanen" in roi:
-
-    if "thyroid" in roi or "kilpirauhanen" in roi:
         return 1024
-
 
     # Jos ROI ei vastaa mitään mainittua, ROI:lle ei anneta numeroa, vaan arvo None
     return None
@@ -253,17 +240,11 @@ def overlay_ROI(rt_path, ct_path):
     )
 
     # Luodaan ensin tyhjä summamaski
-        dicom_series_path=ct_path, rt_struct_path=rt_path
-    )
-
-    # Luodaan ensin tyhjä summamaski
     # Alustetaan tausta arvoksi ensin 0, tämä muutetaan myöhemmin arvoon -1
     sum_mask = np.zeros((num_slices, rows, cols), dtype=np.int32)
 
-
     # Luodaan bool-taulukko, joka tosi, kun pikselissä vähintään yksi ROI
     any_mask = np.zeros((num_slices, rows, cols), dtype=bool)
-
 
     # Listataan kaikki saatavilla olevat ROI:t
     roi_list = rtstruct.get_roi_names()
@@ -274,29 +255,25 @@ def overlay_ROI(rt_path, ct_path):
         if roi_value is None:
             continue
 
-
         try:
             mask = rtstruct.get_roi_mask_by_name(roi_name)
         except AttributeError:
             print(f"ROI '{roi_name}' ohitettu (ei ContourSequenceä)")
             continue
 
-
         mask, txt = normalize_axes(mask, ct_slices)
         # print(f"{roi_name}: {txt}")
-
 
         any_mask |= mask.astype(bool)
 
         sum_mask |= mask.astype(np.int32) * roi_value
 
-    # Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
+        # Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
 
         sum_mask |= mask.astype(np.int32) * roi_value
 
     # Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
     sum_mask[~any_mask] = -1
-
 
     # Palautetaan summamaski ja CT-lista
     return sum_mask, ct_slices
