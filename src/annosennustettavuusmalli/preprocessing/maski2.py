@@ -3,28 +3,43 @@
 Luotu Ti 16.12.2025 klo 9:24:17
 Tekijä: Sanni Sinisalo
 
-Toinen koodiyritys maskipakan luomiseen. 
-Ensimmäisestä versiosta poistettu 
+Toinen koodiyritys maskipakan luomiseen.
+Ensimmäisestä versiosta poistettu
 - intensitettimaskin luominen, koska se hävitti tiedon päällekkäisistä ROI:sta
 - koodi muutettu lukemaan monta potilasta kerralla yhdestä kansiosta
 
-Koodissa määritetään jokaiselle ROI:lle (Region Of Intrest) numero, jolla 
-annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on 
+Koodissa määritetään jokaiselle ROI:lle (Region Of Intrest) numero, jolla
+annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on
 lisätty kaikki ROI:t.
 """
 
 
 import os
+import re
+from pathlib import Path
 import numpy as np
 import pydicom
 from rt_utils import RTStructBuilder
-import re
+import yaml
+
+
+# Haetaan polku config.yaml tiedostosta
+CURRENT_DIR = Path(__file__).resolve().parent
+CONFIG_PATH = CURRENT_DIR.parent / "config.yaml"
+
+with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+    config = yaml.load(f, Loader=yaml.FullLoader)
+
+vn0_path = config["data_paths"]["VN0_data"]
+vn0_path_clean = vn0_path.rstrip("*/")
+
+BASEDIR = Path(vn0_path_clean).parent
 
 
 
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on 
 # DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa
-def load_CT(path): 
+def load_CT(path):
     """
     Loading the CT-images and arranging them by the InstanceUID metadata.
 
@@ -35,20 +50,20 @@ def load_CT(path):
 
     Returns
     -------
-    slices : list 
+    slices : list
         Arranged CT-images.
 
     """
-    # Tuotetaan lista CT-kuvista, f silmukkamuuttuja, johon .dcm tiedostot tallentuvat 
+    # Tuotetaan lista CT-kuvista, f silmukkamuuttuja, johon .dcm tiedostot tallentuvat
     slices = [
-        pydicom.dcmread(os.path.join(path, f)) 
-        for f in os.listdir(path) 
-        if f.endswith(".dcm") 
-    ] 
+        pydicom.dcmread(os.path.join(path, f))
+        for f in os.listdir(path)
+        if f.endswith(".dcm")
+    ]
     
     # Otetaan ensimmäisen kuvan UID ja jätetään listaan ne tiedostot, joiden UID matchaa esnimmäisen kanssa 
-    series_uid = slices[0].SeriesInstanceUID 
-    slices = [s for s in slices if s.SeriesInstanceUID == series_uid] 
+    series_uid = slices[0].SeriesInstanceUID
+    slices = [s for s in slices if s.SeriesInstanceUID == series_uid]
     
     # Järjestetään listan tiedostot InstanceNumberin mukaan ensin nousevaan järjestykseen, jonka jälkeen
     # listan järjestys käännetään päinvastaiseksi
@@ -58,9 +73,8 @@ def load_CT(path):
     return slices 
 
 
-
 # Normalisoidaan ROI-maskin akselit muotoon (Z, Y, X), jotta ne ovat samassa muodossa CT kuvien kanssa
-def normalize_axes(mask, ct_slices): 
+def normalize_axes(mask, ct_slices):
     """
     Normalizes the axes of the ROI mask array tho match the CT-images axes (Z, Y, X).
 
@@ -68,7 +82,7 @@ def normalize_axes(mask, ct_slices):
     ----------
     mask : numpy.ndarray
         The 3D array representing the mask.
-    ct_slices : list 
+    ct_slices : list
         A list of the loaded CT images in DICOM form
 
     Returns
@@ -81,19 +95,19 @@ def normalize_axes(mask, ct_slices):
         or how the axes were transposed.
 
     """
-    num_slices = len(ct_slices) # Siivujen lukumäärä Z
-    rows = int(ct_slices[0].Rows) # Rivien määrä eli kuvan korkeus eli Y
-    cols = int(ct_slices[0].Columns) # Sarakkeiden määrä eli kuvan leveys eli X
+    num_slices = len(ct_slices)  # Siivujen lukumäärä Z
+    rows = int(ct_slices[0].Rows)  # Rivien määrä eli kuvan korkeus eli Y
+    cols = int(ct_slices[0].Columns)  # Sarakkeiden määrä eli kuvan leveys eli X
 
     # Maskin alkuperäiset akselit
-    shape = mask.shape     
+    shape = mask.shape
  
     # Jos maskin akselit ovat suoraan oikeat eikä korjausta tarvita, tulostetaan teksti txt
     txt = "Maskin akselit: oletetaan (Z,Y,X)"
     if shape == (num_slices, rows, cols):
         return mask, txt
 
-    # Jos akselit vaativat korjausta, etsitään permutaatio, joka tuottaa (num_slices, rows, cols) ja 
+    # Jos akselit vaativat korjausta, etsitään permutaatio, joka tuottaa (num_slices, rows, cols) ja
     # käännetään akselit sen mukaan haluttuun järjestykseen.
     for perm in [
         (0, 1, 2),
@@ -104,12 +118,11 @@ def normalize_axes(mask, ct_slices):
         (2, 1, 0),
     ]:
         if len(shape) == 3:
-            trial = np.transpose(mask, axes=perm) 
+            trial = np.transpose(mask, axes=perm)
             
             # Tarkistetaan vielä tuottiko muutos halutun lopputuloksen
-            if trial.shape == (num_slices, rows, cols): 
+            if trial.shape == (num_slices, rows, cols):
                 return trial, f"Maskin akselit korjattu transpoosilla{perm} -> (Z,Y,X)"
-
 
 
 # ROI nimien määritys ja numeroiden määrääminen
@@ -134,63 +147,49 @@ def ROI_names(roi_name):
     roi = roi_name.lower().strip()
     
     # Määritellään jokainen mallin haluama ROI ja sen nimet sekä sitä vastaavan lukuarvon 
-    if("sydän vasen" in roi or
-       "sydan vasen" in roi):
+    if"sydän vasen" in roi or "sydan vasen" in roi:
         return None
     
-    if("#ptv" in roi):
+    if "#ptv" in roi:
         return None
     
-    if ("keuhko sin-ptv 40gy" in roi):
+    if "keuhko sin-ptv 40gy" in roi:
         return None
     
-    if ("body" in roi):
+    if "body" in roi:
         return 0
 
-    if ("ptv iho" in roi or
-        "ptv-iho" in roi):
+    if "ptv iho" in roi or "ptv-iho" in roi:
         return 1
     
-    if ("heart" in roi or
-        "sydän" in roi or
-        "sydan" in roi):
+    if "heart" in roi or "sydän" in roi or "sydan" in roi:
         return 2
     
-    if ("keuhko dex" in roi or 
-        "lung_l" in roi):
+    if "keuhko dex" in roi or "lung_l" in roi:
         return 4 
     
-    if ("keuhko sin" in roi or 
-        "lung_r" in roi):
+    if "keuhko sin" in roi or "lung_r" in roi:
         return 8  
     
-    if ("rinta dex" in roi or
-        "breast_r" in roi):
+    if "rinta dex" in roi or "breast_r" in roi:
         return 16
     
-    if ("lad" in roi or 
-        "a_lad" in roi):
+    if "lad" in roi or "a_lad" in roi:
         return 32
     
-    if ("humerus head_l" in roi or
-        "olkanivel sin" in roi):
+    if "humerus head_l" in roi or "olkanivel sin" in roi:
         return 64
     
-    if ("plexus" in roi or
-        "brachial plexus" in roi or
-        "brachial_plexus" in roi):
+    if "plexus" in roi or "brachial plexus" in roi or "brachial_plexus" in roi:
         return 128
     
-    if("esophagus" in roi or
-       "ruokatorvi" in roi):
+    if "esophagus" in roi or "ruokatorvi" in roi:
         return 256
     
-    if ("trachea" in roi or
-        "tracea" in roi):
+    if "trachea" in roi or "tracea" in roi:
         return 512
     
-    if ("thyroid" in roi or
-        "kilpirauhanen" in roi):
+    if "thyroid" in roi or "kilpirauhanen" in roi:
         return 1024
     
     # Jos ROI ei vastaa mitään mainittua, ROI:lle ei anneta numeroa, vaan arvo None
@@ -222,17 +221,17 @@ def overlay_ROI(rt_path, ct_path):
     """
 
     # Ladataan CT-kuvat käyttäen aikaisemmin määriteltyä Load_CT funktiota 
-    ct_slices = load_CT(ct_path) 
-    num_slices = len(ct_slices) 
-    rows = int(ct_slices[0].Rows) 
-    cols = int(ct_slices[0].Columns) 
+    ct_slices = load_CT(ct_path)
+    num_slices = len(ct_slices)
+    rows = int(ct_slices[0].Rows)
+    cols = int(ct_slices[0].Columns)
     
     # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resamplata ROI:t CT:n koordinaatistoon
     rtstruct = RTStructBuilder.create_from(
-        dicom_series_path=ct_path,
-        rt_struct_path=rt_path)
+        dicom_series_path=ct_path, rt_struct_path=rt_path
+        )
         
-    # Luodaan ensin tyhjä summamaski 
+    # Luodaan ensin tyhjä summamaski
     # Alustetaan tausta arvoksi ensin 0, tämä muutetaan myöhemmin arvoon -1
     sum_mask = np.zeros((num_slices, rows, cols), dtype=np.int32)
         
@@ -290,39 +289,57 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 
     """
     # Luodaan output-kansio, jos sitä ei vielä ole
+    # Luodaan output-kansio
     os.makedirs(output_folder, exist_ok=True)
-    
-    # Käydään läpi jokainen maskin ja CT-kuvien leike ja yhdistetään ne
+
+    # Generoidaan uusi SeriesInstanceUID maskisarjalle
+    series_uid = pydicom.uid.generate_uid()
+
+    # Käydään läpi kaikki slicet
     for idx, (slice_img, ct) in enumerate(zip(mask, ct_slices)):
         new_ds = ct.copy()
 
-        # Päivitetään pikselidata
+        # Pixel data
         new_ds.PixelData = slice_img.astype(np.int16).tobytes()
         new_ds.Rows, new_ds.Columns = slice_img.shape
 
-        # Päivitä metadata
+        # Metadata maskille
         new_ds.SeriesDescription = "ROI MASK"
-        new_ds.SeriesInstanceUID = pydicom.uid.generate_uid()
+        new_ds.SeriesInstanceUID = series_uid # sama kaikille slicille
         new_ds.SOPInstanceUID = pydicom.uid.generate_uid()
+        new_ds.InstanceNumber = idx + 1 # oikea järjestys
 
-        # Päivitetään skaalausasetukset
+        # Päivitetään ImagePositionPatient Z-koordinaatti
+        new_ds.ImagePositionPatient = list(ct.ImagePositionPatient)
+        new_ds.ImagePositionPatient[2] = ct.ImagePositionPatient[2]
+
+        # Säilytetään geometria
+        if hasattr(ct, "SliceThickness"):
+            new_ds.SliceThickness = ct.SliceThickness
+        if hasattr(ct, "PixelSpacing"):
+            new_ds.PixelSpacing = ct.PixelSpacing
+
+        # Skaalausasetukset
         new_ds.RescaleIntercept = 0
         new_ds.RescaleSlope = 1
 
-        out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
+        # DICOM-tyyppiasetukset
         new_ds.PixelRepresentation = 1
         new_ds.BitsAllocated = 16
         new_ds.BitsStored = 16
         new_ds.HighBit = 15
 
+        # Tallennus
+        out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
         new_ds.save_as(out_path)
+        
 
 
 
 # Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
-def Patient_sort(name):
+def patient_sort(name):
     """
-    Function that sorts patients by number, not by letter 
+    Function that sorts patients by number, not by letter
 
     Parameters
     ----------
@@ -336,7 +353,7 @@ def Patient_sort(name):
             
     """
     # Eristetään numero nimestä
-    m = re.search(r'(\d+)', name)
+    m = re.search(r"(\d+)", name)
     return int(m.group(1)) if m else 0
 
 
@@ -346,23 +363,23 @@ def Patient_sort(name):
 if __name__ == "__main__":
 
     # Kansio, jossa jokaisen potilaan kansio
-    patient_dir = r"C:\Users\User01\GRADU\Aineisto\VN0ds"
+    patient_dir = BASEDIR / "VN0ds"
 
     # Etsitään kaikki potilaskansiot, jotka alkavat "Patient"
     patients = [d for d in os.listdir(patient_dir) if d.startswith("Patient")]
 
     # Luodaan maski
-    patients = sorted(patients, key=Patient_sort)
+    patients = sorted(patients, key=patient_sort)
 
     # Käydään kaikki potilaat läpi
     for patient in patients:
         print(f"Käsitellään {patient}...")
 
-        ct_path = os.path.join(patient_dir, patient, "vanha ct")
-        out_path = os.path.join(patient_dir, patient, "maski")
+        ct_path = patient_dir / patient / "vanha ct"
+        out_path = patient_dir / patient / "maski"
 
         # Etsitään RS-tiedosto potilaan struct-kansiosta
-        struct_dir = os.path.join(patient_dir, patient, "struct")
+        struct_dir = patient_dir / patient / "struct"
         rs_files = [f for f in os.listdir(struct_dir) if f.startswith("RS.")]
         
         if not rs_files:
@@ -370,7 +387,7 @@ if __name__ == "__main__":
             continue  # hypätään tämän potilaan yli
         
         # Oletetaan, että halutaan ensimmäinen RS-tiedosto, jos niitä on useampi
-        rs_path = os.path.join(struct_dir, rs_files[0])
+        rs_path = struct_dir / rs_files[0]
 
 
         # Luodaan maski
@@ -382,5 +399,4 @@ if __name__ == "__main__":
         # Tallennetaan maski DICOM-sarjana
         save_mask_as_dicom_series(mask, ct_slices, out_path)
         
-        print(f"Maski tallennettu")
-
+        print("Maski tallennettu")

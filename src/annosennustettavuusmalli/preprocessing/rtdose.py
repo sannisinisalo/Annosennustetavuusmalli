@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Luotu To 29.1.2026 
+Luotu To 29.1.2026
 
 Tekijä: Sanni Sinisalo
 
@@ -12,10 +12,7 @@ import re
 import SimpleITK as sitk
 import pydicom
 import numpy as np
-
-
-INPUT_ROOT = r"C:\Users\User01\GRADU\Aineisto\VN0"
-OUTPUT_ROOT = r"C:\Users\User01\GRADU\Aineisto\VN0ds"
+from maski2 import BASEDIR
 
 
 def patient_number(name):
@@ -26,7 +23,7 @@ def patient_number(name):
 def find_dose_file(folder):
     for f in os.listdir(folder):
         if f.startswith("RD") and f.endswith(".dcm"):
-            return os.path.join(folder, f)
+            return folder / f
     return None
 
 
@@ -38,10 +35,10 @@ def find_ct_files(folder):
     for f in os.listdir(folder):
         if f.endswith(".dcm") and not f.startswith("RD"):
             try:
-                ds = pydicom.dcmread(os.path.join(folder, f), stop_before_pixels=True)
+                ds = pydicom.dcmread(folder / f, stop_before_pixels=True)
                 if ds.Modality == "CT":
-                    ct_files.append(os.path.join(folder, f))
-            except:
+                    ct_files.append(folder / f)
+            except Exception:
                 pass
     return ct_files
 
@@ -55,40 +52,43 @@ def load_ct_series_from_files(ct_files):
     return reader.Execute()
 
 
-# -------------------------
-# POTILAAT NUMEROJÄRJESTYKSESSÄ
-# -------------------------
-patients = [
-    p for p in os.listdir(INPUT_ROOT)
-    if os.path.isdir(os.path.join(INPUT_ROOT, p))
-]
-patients.sort(key=patient_number)
-total = len(patients)
-
 if __name__ == "__main__":
+    INPUT_ROOT = BASEDIR / "VN0"
+    OUTPUT_ROOT = BASEDIR / "VN0ds"
+    
+    # POTILAAT NUMEROJÄRJESTYKSESSÄ
+    patients = [
+        p 
+        for p in os.listdir(INPUT_ROOT)
+        if os.path.isdir(INPUT_ROOT / p) and p.lower().startswith("patient")
+    ]
+    patients.sort(key=patient_number)
+    total = len(patients)
+    
+    
     for idx, patient in enumerate(patients, start=1):
     
         print(f"\n[{idx}/{total}] Käsitellään potilas: {patient}")
     
-        patient_in = os.path.join(INPUT_ROOT, patient)
-        patient_out = os.path.join(OUTPUT_ROOT, patient, "dose")
+        patient_in = INPUT_ROOT / patient
+        patient_out = OUTPUT_ROOT / patient / "dose"
         os.makedirs(patient_out, exist_ok=True)
     
         dose_path = find_dose_file(patient_in)
         ct_files = find_ct_files(patient_in)
     
         if dose_path is None:
-            print("  ✗ Dose-tiedostoa ei löytynyt → ohitetaan")
+            print(" Dose-tiedostoa ei löytynyt → ohitetaan")
             continue
     
         if len(ct_files) == 0:
-            print("  ✗ CT-viipaleita ei löytynyt → ohitetaan")
+            print(" CT-viipaleita ei löytynyt → ohitetaan")
             continue
     
         try:
             # --- LUE CT ---
             ct_img = load_ct_series_from_files(ct_files)
-            print(f"  ✓ CT ladattu ({ct_img.GetSize()[2]} viipaletta)")
+            print(f" CT ladattu ({ct_img.GetSize()[2]} viipaletta)")
     
             # --- LUE DOSE ---
             ds = pydicom.dcmread(dose_path)
@@ -96,21 +96,23 @@ if __name__ == "__main__":
     
             dose_img = sitk.ReadImage(dose_path, sitk.sitkFloat32)
             dose_img = dose_img * dose_scaling
-            print("  ✓ Dose ladattu")
+            print(" Dose ladattu")
     
             # --- REFERENSSI ---
-            dose_size = dose_img.GetSize()       # (X, Y, Z)
+            dose_size = dose_img.GetSize()  # (X, Y, Z)
             dose_spacing = dose_img.GetSpacing() # (sx, sy, sz)
             dose_origin = dose_img.GetOrigin()
             dose_direction = dose_img.GetDirection()
             
-            ct_size = ct_img.GetSize()           # (X, Y, Z)
+            ct_size = ct_img.GetSize() # (X, Y, Z)
             ct_spacing = ct_img.GetSpacing()
             ct_origin = ct_img.GetOrigin()
             ct_direction = ct_img.GetDirection()
             
             # Luo referenssikuva X/Y = CT, Z = dose
-            reference = sitk.Image([ct_size[0], ct_size[1], dose_size[2]], sitk.sitkFloat32)
+            reference = sitk.Image(
+                [ct_size[0], ct_size[1], dose_size[2]], sitk.sitkFloat32
+                )
             reference.SetSpacing([ct_spacing[0], ct_spacing[1], dose_spacing[2]])
             reference.SetOrigin([ct_origin[0], ct_origin[1], dose_origin[2]])
             reference.SetDirection(dose_direction)
@@ -122,7 +124,7 @@ if __name__ == "__main__":
             resampler.SetDefaultPixelValue(0.0)
     
             dose_resampled = resampler.Execute(dose_img)
-            print("  ✓ Resamplaus valmis")
+            print(" Resamplaus valmis")
     
             # --- TALLENNUS ---
             dose_array = sitk.GetArrayFromImage(dose_resampled)
@@ -150,7 +152,7 @@ if __name__ == "__main__":
             print(dose_check.shape)
             print(dose_check.min(), dose_check.max())
     
-            print("  ✓ Tallennettu onnistuneesti")
+            print(" Tallennettu onnistuneesti")
     
         except Exception as e:
-            print(f"  ✗ Virhe potilaalla {patient}: {e}")
+            print(f" Virhe potilaalla {patient}: {e}")

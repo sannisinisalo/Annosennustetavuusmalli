@@ -41,36 +41,49 @@ pip install -e ".[dev]"
 
 ## Käyttöohjeet
 
-### Moduulit
+### Aineiston esikäsittely
 
-#### Rakennemaskin luominen (`src/maski2/`)
+- Muodostetaan rakennemaski, muutetaan RTDose tiedoston koko vastaamaan CT-kuvia ja downsamplataan jokainen tiedosto nopeuttamaan mallin koulutusta.
+- Rakennemaskien luonti ja RTDose tiedostojen koiden muuttamnen eivät ole riippuvaisia toisitaan eli niiden ajamisen järjestyksellä ei ole väliä. 
+
+#### Rakennemaskin luominen (`src/annosennustettavuusmalli/preprocessing/maski2/`)
+
+**Käyttöesimerkki:**
+
+#### RTDose tiedoston koon muuttaminen (`src/annosennustettavuusmalli/preprocessing/rtdose/`)
 
 **Käyttöesimerkki:**
 
-#### Maskin koon pienentäminen (`src/?/`)
+#### Kaikkien tarvittavien tiedostojen downsamplaaminen (`src/annosennustettavuusmalli/preprocessing/downsamplaus/`)
 
 **Käyttöesimerkki:**
 
-#### Muiden tarvittavien tiedostojen koon pienentäminen (`src/?/`)
-
+### Mallin kouluttaminen
+ 
+- 
 **Käyttöesimerkki:**
+
+### Apuskriptit
 
 #### DICOM-kuvatiedostojen visualisoiminen  (`examples/dicom_file/`)
 
 **Käyttöesimerkki:**
 
+#### RTDose tiedostojen visualisoiminen  (`examples/dose_file/`)
+
+**Käyttöesimerkki:**
 
 
 
 
 
 ## Lisenssi
-Tämä projekti on sisältää koodia, joka on kirjoitettu alla listattujen henkilöäiden toimesta MIT- lisenssillä
+Tämä projekti on sisältää koodia, joka on kirjoitettu alla listattujen henkilöiden toimesta MIT- lisenssillä
 - Sanni Sinisalo
 - Akseli Leino 
 
-Akseli Leino on tehnyt tai hänen tekemä koodi on pohjana osalle repositoriossa oleville koodeille. 
-Erillisten koodien alussa on tieto kuka koodin on alunperin tehnyt ja mahdollisesti kenen toimesta sitä on muokattu. 
+Akseli Leino on tehnyt tai hänen tekemä koodi on ollut pohjana osalle repositoriossa oleville koodeille. 
+Erillisten koodien alussa on tieto kuka koodin on alunperin tehnyt ja mahdollisesti kenen toimesta sitä on muokattu.
 
 Katso lisätietoja `LICENSE`-tiedostosta.
 

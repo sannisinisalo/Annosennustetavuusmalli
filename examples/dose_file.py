@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+
 Luotu Ke 28.1.2026
 Tekijä: Sanni Sinisalo
 
@@ -11,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # RT Dose -tiedoston polku
-dose_polku = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\doseds\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
+dose_polku = r"C:\Users\User01\GRADU\ANON0075\ANON0075 alkup\2017-01__Studies\ANON0075 downsample\dose\2.16.840.1.114362.1.12289667.23994421178.698228408.758.6695.dcm"
 
 ds = pydicom.dcmread(dose_polku)
 
