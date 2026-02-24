@@ -22,7 +22,9 @@ from luokat import AllPatients
 
 
 def ensure_dir(path: Path) -> None:
-    """Create directory if it does not exist."""
+    """
+    Create directory if it does not exist
+    """
     path.mkdir(parents=True, exist_ok=True)
 
 
@@ -66,7 +68,7 @@ for patient in all_patients.sorted_by_number():
         for d in folders.values():
             ensure_dir(d)
 
-        # --- CT downsample ---
+        # --- CT downsamplaus ---
         for f in patient.ct_files:
             try:
                 ds = dcmread(f)
@@ -81,7 +83,7 @@ for patient in all_patients.sorted_by_number():
             except Exception as e:
                 warnings.warn(f"{patient_name}: CT-tiedoston {f.name} käsittely epäonnistui: {e}")
 
-        # --- RD / Dose downsample ---
+        # --- Dose downsamplaus ---
         try:
             dose_file = patient.rtdose_file
             ds_dose = dcmread(dose_file)
@@ -103,7 +105,7 @@ for patient in all_patients.sorted_by_number():
             arr_dose_down = None
             ds_dose = None
 
-        # --- Maskit downsample ---
+        # --- Maskien downsamplaus ---
         mask_dir = patient.mask_dir
         if mask_dir.exists():
             for f in mask_dir.glob("*.dcm"):
@@ -132,7 +134,7 @@ for patient in all_patients.sorted_by_number():
                 except Exception as e:
                     warnings.warn(f"{patient_name}: Mask-tiedoston {f.name} käsittely epäonnistui: {e}")
 
-        # --- Copy RP ja RS ---
+        # --- Kopioi RP ja RS ---
         try:
             ds = dcmread(patient.rtplan_file, stop_before_pixels=True)
             ds.save_as(folders["plan"] / patient.rtplan_file.name)
