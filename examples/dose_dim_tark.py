@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Feb 18 12:11:29 2026
+Luotu Ke 18.02.2026
+Tekijä: Sanni Sinisalo
 
-@author: User01
+Koodi, jolla voi vertailla kahden eri RTDose tiedoston dimensioita ja metadataa
 """
 
 import pydicom

@@ -18,14 +18,11 @@ lisätty kaikki ROI:t.
 """
 
 import os
-
+import re
 import numpy as np
 import pydicom
-from rt_utils import RTStructBuilder  # type: ignore
-
-from ..config import BASEDIR
-from .data import AllPatients, Patient
-
+from rt_utils import RTStructBuilder
+from luokat import AllPatients
 
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on
@@ -60,10 +57,6 @@ def load_CT(path):
 
     # Järjestetään listan tiedostot InstanceNumberin mukaan ensin nousevaan järjestykseen, jonka jälkeen
     # listan järjestys käännetään päinvastaiseksi
-    slices.sort(key=lambda x: int(x.InstanceNumber))
-    slices = slices[::-1]
-
-    return slices
     slices.sort(key=lambda x: int(x.InstanceNumber))
     slices = slices[::-1]
 
@@ -146,7 +139,6 @@ def map_roi_name_to_label(roi_name) -> int | None:
 
     """
     # Muuttaa ROI:n nimen pieniksi kirjaimiksi sekä poistaa turhat välilyönnit nimen edestä ja lopusta
-    # Muuttaa ROI:n nimen pieniksi kirjaimiksi sekä poistaa turhat välilyönnit nimen edestä ja lopusta
     roi = roi_name.lower().strip()
 
     # Määritellään jokainen mallin haluama ROI ja sen nimet sekä sitä vastaavan lukuarvon
@@ -228,12 +220,6 @@ def overlay_ROI(rt_path, ct_path):
     rows = int(ct_slices[0].Rows)
     cols = int(ct_slices[0].Columns)
 
-    # Ladataan CT-kuvat käyttäen aikaisemmin määriteltyä Load_CT funktiota
-    ct_slices = load_CT(ct_path)
-    num_slices = len(ct_slices)
-    rows = int(ct_slices[0].Rows)
-    cols = int(ct_slices[0].Columns)
-
     # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resamplata ROI:t CT:n koordinaatistoon
     rtstruct = RTStructBuilder.create_from(
         dicom_series_path=ct_path, rt_struct_path=rt_path
@@ -265,10 +251,6 @@ def overlay_ROI(rt_path, ct_path):
         # print(f"{roi_name}: {txt}")
 
         any_mask |= mask.astype(bool)
-
-        sum_mask |= mask.astype(np.int32) * roi_value
-
-        # Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
 
         sum_mask |= mask.astype(np.int32) * roi_value
 
@@ -316,9 +298,7 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
         # Metadata maskille
         new_ds.SeriesDescription = "ROI MASK"
         new_ds.SeriesInstanceUID = series_uid  # sama kaikille slicille
-        new_ds.SeriesInstanceUID = series_uid  # sama kaikille slicille
         new_ds.SOPInstanceUID = pydicom.uid.generate_uid()
-        new_ds.InstanceNumber = idx + 1  # oikea järjestys
         new_ds.InstanceNumber = idx + 1  # oikea järjestys
 
         # Päivitetään ImagePositionPatient Z-koordinaatti
@@ -350,14 +330,25 @@ def create_mask(patient: Patient) -> tuple:
     ct_path = patient.ct_path
     out_path = patient.mask_destination
 
-    struct_dir = patient.struct_path
-    rs_files = list(struct_dir.glob("RS.*.dcm"))
+# Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
+def get_patient_number(name) -> int:
+    """
+    Get the numeric value from the patient folder name for sorting purposes.
 
-    if not rs_files:
-        print(f"RS-tiedostoa ei löytynyt potilaalta {patient.dir}. Skippataan.")
-        return None, None, out_path
+    Parameters
+    ----------
+    patient : Patient
+        The patient object.
 
-    rs_path = rs_files[0]
+    Returns
+    -------
+    int
+        The numeric value extracted from the patient folder name, or 0 if none found.
+
+    """
+    # Eristetään numero nimestä
+    m = re.search(r"(\d+)", name)
+    return int(m.group(1)) if m else 0
 
     mask, ct_slices = overlay_ROI(rs_path, ct_path)
     return mask, ct_slices, out_path
@@ -368,28 +359,27 @@ def create_mask(patient: Patient) -> tuple:
 if __name__ == "__main__":
     import argparse
 
-    # komennon argumentit
-    # kysytään input-root, joka on polku kansioon, jossa on potilaskansiot (esim. "VN0")
-    parser = argparse.ArgumentParser(description="Create ROI masks for patients.")
-    parser.add_argument(
-        "-i",
-        "--input-root",
-        type=str,
-        default="VN0",
-        help="Path to the directory containing patient folders.",
+    # Luodaan AllPatients-objekti
+    all_patients = AllPatients(
+        processed_dataset="VN0ds",   # kansio muokattuja tiedostoja varten
+        original_dataset="VN0"       # alkuperäiset tiedostot
     )
 
-    args = parser.parse_args()
+    # Käydään kaikki potilaat läpi numerojärjestyksessä
+    for patient in all_patients.sorted_by_number():
+        print(f"Käsitellään {patient.patient_folder}...")
 
-    patient_dir = BASEDIR / args.input_root
+        # Polut luokkien kautta
+        ct_path = patient.org_ct_dir  # CT-kuvat tallennettuna "ct"-kansioon muokatuissa tiedostoissa
+        out_path = patient.mask_dir  # Maskit tallennetaan "maski"-kansioon
+        struct_dir = patient.struct_dir  # RS-tiedostot sijaitsevat "struct"-kansiossa
 
-    # Etsitään kaikki potilaskansiot, jotka alkavat "Patient"
-    patients = AllPatients(data_root=patient_dir)
-    # patients = [d for d in os.listdir(patient_dir) if d.startswith("Patient")]
-
-    # Käydään kaikki potilaat läpi
-    for patient in patients.sorted_by_number():
-        print(f"Käsitellään {patient.dir}...")
+        # Etsitään RS-tiedosto
+        try:
+            rs_path = patient.rtstruct_file
+        except FileNotFoundError:
+            print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
+            continue  # hypätään tämän potilaan yli
 
         # Luodaan maski
         mask, ct_slices, out_path = create_mask(patient=patient)

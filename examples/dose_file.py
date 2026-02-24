@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-
 Luotu Ke 28.1.2026
 Tekijä: Sanni Sinisalo
 

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Luotu Ke 11.2.2026
-
 Tekijä: Sanni Sinisalo
+
+Koodi, jolla tarkastellaan RTDose, CT ja maskien pixel_spacing
 """
 
 import os

@@ -15,7 +15,6 @@ dependencies = [
     "simpleitk>=2.5.3",
     "torch>=2.10.0",
     "torchio>=0.21.3",
-    "torchvision>=0.25.0",
     "tqdm>=4.67.3",
 ]
 
