@@ -21,6 +21,7 @@ import numpy as np
 import pydicom
 from rt_utils import RTStructBuilder
 import yaml
+from luokat import AllPatients
 
 
 # Haetaan polku config.yaml tiedostosta
@@ -359,33 +360,27 @@ def get_patient_number(name) -> int:
 
 if __name__ == "__main__":
 
-    # Kansio, jossa jokaisen potilaan kansio
-    patient_dir = BASEDIR / "VN0ds"
+    # Luodaan AllPatients-objekti
+    all_patients = AllPatients(
+        processed_dataset="VN0ds",   # kansio muokattuja tiedostoja varten
+        original_dataset="VN0"       # alkuperäiset tiedostot
+    )
 
-    # Etsitään kaikki potilaskansiot, jotka alkavat "Patient"
-    patients = [d for d in os.listdir(patient_dir) if d.startswith("Patient")]
+    # Käydään kaikki potilaat läpi numerojärjestyksessä
+    for patient in all_patients.sorted_by_number():
+        print(f"Käsitellään {patient.patient_folder}...")
 
-    # Luodaan maski
-    patients = sorted(patients, key=get_patient_number)
+        # Polut luokkien kautta
+        ct_path = patient.org_ct_dir  # CT-kuvat tallennettuna "ct"-kansioon muokatuissa tiedostoissa
+        out_path = patient.mask_dir  # Maskit tallennetaan "maski"-kansioon
+        struct_dir = patient.struct_dir  # RS-tiedostot sijaitsevat "struct"-kansiossa
 
-    # Käydään kaikki potilaat läpi
-    for patient in patients:
-        print(f"Käsitellään {patient}...")
-
-        ct_path = patient_dir / patient / "vanha ct"
-        out_path = patient_dir / patient / "maski"
-
-        # Etsitään RS-tiedosto potilaan struct-kansiosta
-        struct_dir = patient_dir / patient / "struct"
-        rs_files = [f for f in os.listdir(struct_dir) if f.startswith("RS.")]
-        
-        if not rs_files:
-            print(f"RS-tiedostoa ei löytynyt potilaalta {patient}")
+        # Etsitään RS-tiedosto
+        try:
+            rs_path = patient.rtstruct_file
+        except FileNotFoundError:
+            print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
             continue  # hypätään tämän potilaan yli
-        
-        # Oletetaan, että halutaan ensimmäinen RS-tiedosto, jos niitä on useampi
-        rs_path = struct_dir / rs_files[0]
-
 
         # Luodaan maski
         mask, ct_slices = overlay_ROI(rs_path, ct_path)
