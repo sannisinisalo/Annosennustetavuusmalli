@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Tekijä: Akseli Leino
-Muokkaaja. Sanni Sinisalo
+Muokkaaja: Sanni Sinisalo
 """
 
 import re
