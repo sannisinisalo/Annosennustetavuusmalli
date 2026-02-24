@@ -16,25 +16,10 @@ lisätty kaikki ROI:t.
 
 import os
 import re
-from pathlib import Path
 import numpy as np
 import pydicom
 from rt_utils import RTStructBuilder
-import yaml
 from luokat import AllPatients
-
-
-# Haetaan polku config.yaml tiedostosta
-CURRENT_DIR = Path(__file__).resolve().parent
-CONFIG_PATH = CURRENT_DIR.parent / "config.yaml"
-
-with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-    config = yaml.load(f, Loader=yaml.FullLoader)
-
-vn0_path = config["data_paths"]["VN0_data"]
-vn0_path_clean = vn0_path.rstrip("*/")
-
-BASEDIR = Path(vn0_path_clean).parent
 
 
 
