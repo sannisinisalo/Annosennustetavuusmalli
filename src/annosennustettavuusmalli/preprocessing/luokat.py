@@ -77,6 +77,10 @@ class Patient:
     @property
     def ct_dir(self) -> Path:
         return self.modified_dir / "ct"
+    
+    @property
+    def org_ct_dir(self) -> Path:
+        return self.modified_dir / "vanha ct"
 
     @property
     def mask_dir(self) -> Path:
