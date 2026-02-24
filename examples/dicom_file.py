@@ -12,7 +12,7 @@ import pydicom
 import matplotlib.pyplot as plt
 import numpy as np
 
-kansio = r"C:\Users\User01\GRADU\ANON0075\ANON0075 alkup\2017-01__Studies\Anon^0075_ANON0075_CT_2017-01-14_112335_AI.DVH.Mask.CT.2.beams_AI.DVH.Mask.CT.2.beams_n133__00000"
+kansio = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
 # tallennusk = r"C:\Users\User01\GRADU\tiedostot\MASKI1_tuloksia"
 
 dicom_lista = []
