@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Feb 18 10:37:54 2026
+Luotu Ke 18.02.2026
+Tekijä: Sanni Sinisalo
 
-@author: User01
+Koodi, jolla voi vertailla kahden eri maskin dimensioita ja metadataa
 """
 
 import os

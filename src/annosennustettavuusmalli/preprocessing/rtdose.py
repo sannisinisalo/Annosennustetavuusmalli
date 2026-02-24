@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Luotu To 29.1.2026
-
 Tekijä: Sanni Sinisalo
 
 Koodi RTDose tiedoston upsamplaamiseen.
