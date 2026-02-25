@@ -7,20 +7,21 @@ Luokkarakenne yhdistämään ja vähentämään toistoa preprocessing koodeissa.
 Alkuperäisille ja muokatuille tiedostoille tehty eri tiedostopolut.
 """
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
 from typing import List
 
 # Keskitetty juuripolku:
 BASE_DIR = Path(r"C:\Users\User01\GRADU\Aineisto")
 
+
 @dataclass
 class Patient:
-    processed_dataset: Path   # esim. "VN0ds", mihin tulokset tallennetaan
-    original_dataset: Path    # esim. "VN0", mistä lähdetiedostot haetaan
-    patient_folder: Path      # esim. Patient1_VN0
-    
+    processed_dataset: Path  # esim. "VN0ds", mihin tulokset tallennetaan
+    original_dataset: Path  # esim. "VN0", mistä lähdetiedostot haetaan
+    patient_folder: Path  # esim. Patient1_VN0
+
     def __post_init__(self):
         # Varmistetaan, että kaikki parametrit ovat Path-objekteja
         self.processed_dataset = Path(self.processed_dataset)
@@ -47,27 +48,33 @@ class Patient:
 
     @property
     def ct_files(self) -> List[Path]:
-        return self.original_dir.glob("CT.*")
+        return list(self.original_dir.glob("CT.*"))
 
     @property
     def rtstruct_file(self) -> Path:
         files = list(self.original_dir.glob("RS*"))
         if not files:
-            raise FileNotFoundError(f"RTStruct-tiedostoa ei löytynyt kansiosta {self.original_dir}")
+            raise FileNotFoundError(
+                f"RTStruct-tiedostoa ei löytynyt kansiosta {self.original_dir}"
+            )
         return files[0]
 
     @property
     def rtdose_file(self) -> Path:
         files = list(self.original_dir.glob("RD*"))
         if not files:
-            raise FileNotFoundError(f"RTDose-tiedostoa ei löytynyt kansiosta {self.original_dir}")
+            raise FileNotFoundError(
+                f"RTDose-tiedostoa ei löytynyt kansiosta {self.original_dir}"
+            )
         return files[0]
 
     @property
     def rtplan_file(self) -> Path:
         files = list(self.original_dir.glob("RP*"))
         if not files:
-            raise FileNotFoundError(f"RTPlan-tiedostoa ei löytynyt kansiosta {self.original_dir}")
+            raise FileNotFoundError(
+                f"RTPlan-tiedostoa ei löytynyt kansiosta {self.original_dir}"
+            )
         return files[0]
 
     # -------------------------
@@ -77,7 +84,7 @@ class Patient:
     @property
     def ct_dir(self) -> Path:
         return self.modified_dir / "ct"
-    
+
     @property
     def org_ct_dir(self) -> Path:
         return self.modified_dir / "vanha ct"
@@ -107,6 +114,7 @@ class Patient:
         m = re.search(r"(\d+)", str(self.patient_folder))
         return int(m.group(1)) if m else 0
 
+
 @dataclass
 class AllPatients:
     processed_dataset: Path
@@ -116,7 +124,7 @@ class AllPatients:
         # Varmistetaan että Path
         self.processed_dataset = Path(self.processed_dataset)
         self.original_dataset = Path(self.original_dataset)
-        self._patients = self._find_patients()   
+        self._patients = self._find_patients()
 
     def _find_patients(self):
         dataset_path = BASE_DIR / self.processed_dataset
@@ -126,7 +134,7 @@ class AllPatients:
             Patient(
                 processed_dataset=self.processed_dataset,
                 original_dataset=self.original_dataset,
-                patient_folder=p.name
+                patient_folder=p.name,
             )
             for p in patient_dirs
         ]
