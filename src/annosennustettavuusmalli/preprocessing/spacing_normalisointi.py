@@ -131,15 +131,6 @@ def process_dose(patient):
     out_dir.mkdir(parents=True, exist_ok=True)
 
     dose_path = patient.doseds_dir
-    dose_files = list(dose_path.glob("*.dcm"))  # kaikki .dcm tiedostot kansiossa
-    
-    # Otetaan ensimmäinen tiedosto
-    dose_file = dose_files[0]
-    
-    # Luetaan DICOM
-    ds = pydicom.dcmread(dose_file)
-    dose_raw = ds.pixel_array * float(ds.DoseGridScaling)
-    print("Dose shape:", dose_raw.shape)
     ds = pydicom.dcmread(dose_path)
 
     original_spacing_xy = [float(x) for x in ds.PixelSpacing]
