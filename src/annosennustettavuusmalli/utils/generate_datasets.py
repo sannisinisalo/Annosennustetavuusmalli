@@ -61,15 +61,15 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
             new_subject = tio.Subject(
                 ct = ct_data,
                 mask = mask_data,
-                original_mask = mask_data,
+                original_mask = tio.ScalarImage(mask_path),
                 dose = dose_data,
                 name = subject,
                 dose_multiplier = dose_multiplier,
                 num_samples = int(num_samples/reduce_samples),
                 pixel_spacing = pixel_spacing,
-                distance_to_PTV = tio.ScalarImage(tensor=torch.zeros_like(mask_data.data)), # MUUTETTU, JOTTA MASKI SAISI JÄRKEVIÄ ARVOJA
-                probability_map = tio.ScalarImage(tensor=torch.zeros_like(mask_data.data))
-                ) # MUUTETTU, JOTTA MASKI SAISI JÄRKEVIÄ ARVOJA
+                distance_to_PTV = tio.ScalarImage(mask_data), 
+                probability_map = tio.ScalarImage(mask_data)
+                ) 
             
             if j == 0:
                 train_subjects_list.append(new_subject)
@@ -92,9 +92,7 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
     # The order of the transforms is important! Padding of the size transformations are made with the assumption that data is already scaled. Thus, rescale transforms must be befor rescale pixels.
     # Also, create_final_mask must be AFTER resizing pixels, as it creates 'original_mask', which is not at the moment handled by PixelSizingTransform.
     
-    resample = tio.Resample('ct') # LISÄTTY, JOTTA DOSELLE SAI SMAN pixel_spacing KUIN CT:LLÄ JA MASKEILLA
     train_transforms = tio.Compose((
-        resample,
         rescale_dose, 
         rescale_ct, 
         rescale_pixels, 
@@ -104,7 +102,6 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
         rand_affine
         ))
     transforms = tio.Compose((
-        resample,
         rescale_dose, 
         rescale_ct, 
         rescale_pixels, 
