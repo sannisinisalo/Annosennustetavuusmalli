@@ -47,27 +47,21 @@ class Patient:
 
     @property
     def ct_files(self) -> List[Path]:
-        return self.original_dir.glob("CT.*")
+        return list(self.original_dir.glob("CT.*"))
 
     @property
     def rtstruct_file(self) -> Path:
         files = list(self.original_dir.glob("RS*"))
-        if not files:
-            raise FileNotFoundError(f"RTStruct-tiedostoa ei löytynyt kansiosta {self.original_dir}")
         return files[0]
 
     @property
     def rtdose_file(self) -> Path:
         files = list(self.original_dir.glob("RD*"))
-        if not files:
-            raise FileNotFoundError(f"RTDose-tiedostoa ei löytynyt kansiosta {self.original_dir}")
         return files[0]
 
     @property
     def rtplan_file(self) -> Path:
         files = list(self.original_dir.glob("RP*"))
-        if not files:
-            raise FileNotFoundError(f"RTPlan-tiedostoa ei löytynyt kansiosta {self.original_dir}")
         return files[0]
 
     # -------------------------

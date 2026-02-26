@@ -20,7 +20,7 @@ def extract_patient_number(name):
 patients = [d for d in os.listdir(base_path) 
             if os.path.isdir(os.path.join(base_path, d))]
 
-# 🔹 Lajitellaan numeron perusteella
+# Lajitellaan numeron perusteella
 patients = sorted(patients, key=extract_patient_number)
 
 for patient in patients:
