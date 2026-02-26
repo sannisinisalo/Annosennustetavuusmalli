@@ -13,13 +13,10 @@ Tekijä: ChatGPT
 Tarkoitus: Resample CT, Dose ja maskit samaan spacingiin turvallisesti.
 """
 
-import os
-from pathlib import Path
 import shutil
-
 import pydicom
 import SimpleITK as sitk
-from src.annosennustettavuusmalli.preprocessing.luokat import Patient, AllPatients  # oletan että luokat.py on importattavissa
+from luokat import Patient, AllPatients
 
 TARGET_SPACING = [1.9531248, 1.9531248]
 
@@ -51,46 +48,52 @@ def resample_image(itk_image, target_spacing, is_label=False):
 
     return resampler.Execute(itk_image)
 
+# --------------------------
+# CT ja maskit
+# --------------------------
 def process_ct_and_mask(patient: Patient):
-    patient.ct_dir.mkdir(parents=True, exist_ok=True)
-    patient.mask_dir.mkdir(parents=True, exist_ok=True)
-
     # CT-kuvat
-    for ct_file in patient.ct_files:
+    for ct_file in patient.ct_dir.glob("*.dcm"):
         ds = pydicom.dcmread(ct_file)
-        spacing = ds.PixelSpacing
-        if list(spacing) != TARGET_SPACING:
-            # Muutetaan SimpleITK:llä geometrisesti oikein
+        if list(ds.PixelSpacing) != TARGET_SPACING:
             itk_image = sitk.ReadImage(str(ct_file))
             resampled = resample_image(itk_image, TARGET_SPACING)
-            sitk.WriteImage(resampled, str(patient.ct_dir / ct_file.name))
-        else:
-            shutil.copy(ct_file, patient.ct_dir / ct_file.name)
-
+            sitk.WriteImage(resampled, str(ct_file))  # tallennetaan päälle
     # Maskit
-    mask_files = list((patient.original_dir / "mask*").glob("*"))
-    for mask_file in mask_files:
+    for mask_file in patient.maskds_dir.glob("*.dcm"):
         ds = pydicom.dcmread(mask_file)
-        spacing = ds.PixelSpacing
-        if list(spacing) != TARGET_SPACING:
+        if list(ds.PixelSpacing) != TARGET_SPACING:
             itk_image = sitk.ReadImage(str(mask_file))
             resampled = resample_image(itk_image, TARGET_SPACING, is_label=True)
-            sitk.WriteImage(resampled, str(patient.mask_dir / mask_file.name))
-        else:
-            shutil.copy(mask_file, patient.mask_dir / mask_file.name)
+            sitk.WriteImage(resampled, str(mask_file))  # tallennetaan päälle
 
+# --------------------------
+# RTDose
+# --------------------------
 def process_rtdose(patient: Patient):
-    patient.doseds_dir.mkdir(parents=True, exist_ok=True)
-    dose_file = patient.rtdose_file
-    ds = pydicom.dcmread(dose_file)
+    dose_file = list(patient.doseds_dir.glob("*.dcm"))[0]  # oletetaan yksi dose
+    ds = pydicom.dcmread(dose_file, force=True)
     spacing = list(ds.PixelSpacing)
-    if spacing != TARGET_SPACING:
-        itk_image = sitk.ReadImage(str(dose_file))
-        resampled = resample_image(itk_image, TARGET_SPACING)
-        sitk.WriteImage(resampled, str(patient.doseds_dir / dose_file.name))
-    else:
-        shutil.copy(dose_file, patient.doseds_dir / dose_file.name)
 
+    if spacing != TARGET_SPACING:
+        dose_array = ds.pixel_array.astype("float32")
+        itk_image = sitk.GetImageFromArray(dose_array)
+        original_spacing = [float(ds.PixelSpacing[0]), float(ds.PixelSpacing[1]),
+                            float(ds.GridFrameOffsetVector[1] - ds.GridFrameOffsetVector[0])]
+        itk_image.SetSpacing(original_spacing[::-1])
+        resampled_itk = resample_image(itk_image, TARGET_SPACING)
+        resampled_array = sitk.GetArrayFromImage(resampled_itk)
+
+        ds.Rows, ds.Columns = resampled_array.shape[1], resampled_array.shape[2]
+        ds.PixelSpacing = TARGET_SPACING
+        ds.PixelData = resampled_array.astype("float32").tobytes()
+        ds.file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
+
+        ds.save_as(dose_file)  # tallennetaan päälle
+
+# --------------------------
+# Koko potilasjoukko
+# --------------------------
 def main():
     all_patients = AllPatients(processed_dataset="VN0ds", original_dataset="VN0")
     for patient in all_patients.sorted_by_number():

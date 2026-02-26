@@ -27,8 +27,8 @@ for patient in patients:
     patient_path = os.path.join(base_path, patient)
     
     ct_path = os.path.join(patient_path, "vanha ct")
-    mask_path = os.path.join(patient_path, "maskids")
-    dose_path = os.path.join(patient_path, "doseds")
+    mask_path = os.path.join(patient_path, "maski")
+    dose_path = os.path.join(patient_path, "dose")
     
     # Lue dose (yksi 3D-kuva)
     dose_files = [f for f in os.listdir(dose_path) if os.path.isfile(os.path.join(dose_path, f))]
