@@ -42,30 +42,7 @@ class Patient:
         return BASE_DIR / self.processed_dataset / self.patient_folder
 
     # -------------------------
-    # ALKUPERÄISET DICOMIT
-    # -------------------------
-
-    @property
-    def ct_files(self) -> List[Path]:
-        return list(self.original_dir.glob("CT.*"))
-
-    @property
-    def rtstruct_file(self) -> Path:
-        files = list(self.original_dir.glob("RS*"))
-        return files[0]
-
-    @property
-    def rtdose_file(self) -> Path:
-        files = list(self.original_dir.glob("RD*"))
-        return files[0]
-
-    @property
-    def rtplan_file(self) -> Path:
-        files = list(self.original_dir.glob("RP*"))
-        return files[0]
-
-    # -------------------------
-    # MUOKATTUJEN TIEDOSTOJEN POLUT
+    # TIEDOSTOJEN POLUT
     # -------------------------
 
     @property

@@ -13,27 +13,39 @@ Tekijä: ChatGPT
 Tarkoitus: Resample CT, Dose ja maskit samaan spacingiin turvallisesti.
 """
 
-import shutil
-import pydicom
 import SimpleITK as sitk
-from luokat import Patient, AllPatients
+import numpy as np
+from pathlib import Path
+import pydicom
+from luokat import AllPatients
 
-TARGET_SPACING = [1.9531248, 1.9531248]
+TARGET_SPACING_XY = [1.953125, 1.953125]
 
-def resample_image(itk_image, target_spacing, is_label=False):
-    """Resample SimpleITK image to target spacing."""
+
+# -----------------------------
+# Apufunktio: resample
+# -----------------------------
+def resample_image(itk_image, target_spacing_xy, interpolator):
+    original_pixel_type = itk_image.GetPixelID()
+    itk_image = sitk.Cast(itk_image, sitk.sitkFloat32)
+    
     original_spacing = itk_image.GetSpacing()
     original_size = itk_image.GetSize()
 
-    new_spacing = list(original_spacing)
-    new_spacing[0:2] = target_spacing  # x, y
+    new_spacing = [
+        target_spacing_xy[0],
+        target_spacing_xy[1],
+        original_spacing[2]
+    ]
 
     new_size = [
-        int(round(original_size[i] * (original_spacing[i] / new_spacing[i])))
-        for i in range(3)
+        int(round(original_size[0] * original_spacing[0] / new_spacing[0])),
+        int(round(original_size[1] * original_spacing[1] / new_spacing[1])),
+        original_size[2]
     ]
 
     resampler = sitk.ResampleImageFilter()
+    resampler.SetInterpolator(interpolator)
     resampler.SetOutputSpacing(new_spacing)
     resampler.SetSize(new_size)
     resampler.SetOutputDirection(itk_image.GetDirection())
@@ -41,66 +53,158 @@ def resample_image(itk_image, target_spacing, is_label=False):
     resampler.SetTransform(sitk.Transform())
     resampler.SetDefaultPixelValue(0)
 
-    if is_label:
-        resampler.SetInterpolator(sitk.sitkNearestNeighbor)
-    else:
-        resampler.SetInterpolator(sitk.sitkLinear)
+    resampled = resampler.Execute(itk_image)
+    return sitk.Cast(resampled, original_pixel_type)
 
-    return resampler.Execute(itk_image)
 
-# --------------------------
-# CT ja maskit
-# --------------------------
-def process_ct_and_mask(patient: Patient):
-    # CT-kuvat
-    for ct_file in patient.ct_dir.glob("*.dcm"):
-        ds = pydicom.dcmread(ct_file)
-        if list(ds.PixelSpacing) != TARGET_SPACING:
-            itk_image = sitk.ReadImage(str(ct_file))
-            resampled = resample_image(itk_image, TARGET_SPACING)
-            sitk.WriteImage(resampled, str(ct_file))  # tallennetaan päälle
-    # Maskit
-    for mask_file in patient.maskds_dir.glob("*.dcm"):
-        ds = pydicom.dcmread(mask_file)
-        if list(ds.PixelSpacing) != TARGET_SPACING:
-            itk_image = sitk.ReadImage(str(mask_file))
-            resampled = resample_image(itk_image, TARGET_SPACING, is_label=True)
-            sitk.WriteImage(resampled, str(mask_file))  # tallennetaan päälle
+# -----------------------------
+# CT:n käsittely
+# -----------------------------
+def process_ct(patient):
+    print("  -> CT")
 
-# --------------------------
-# RTDose
-# --------------------------
-def process_rtdose(patient: Patient):
-    dose_file = list(patient.doseds_dir.glob("*.dcm"))[0]  # oletetaan yksi dose
-    ds = pydicom.dcmread(dose_file, force=True)
-    spacing = list(ds.PixelSpacing)
+    out_dir = patient.modified_dir / "ct_norm"
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    if spacing != TARGET_SPACING:
-        dose_array = ds.pixel_array.astype("float32")
-        itk_image = sitk.GetImageFromArray(dose_array)
-        original_spacing = [float(ds.PixelSpacing[0]), float(ds.PixelSpacing[1]),
-                            float(ds.GridFrameOffsetVector[1] - ds.GridFrameOffsetVector[0])]
-        itk_image.SetSpacing(original_spacing[::-1])
-        resampled_itk = resample_image(itk_image, TARGET_SPACING)
-        resampled_array = sitk.GetArrayFromImage(resampled_itk)
+    files = sorted(patient.ct_dir.glob("*.dcm"))
+    if not files:
+        print("     Ei CT-tiedostoja!")
+        return
 
-        ds.Rows, ds.Columns = resampled_array.shape[1], resampled_array.shape[2]
-        ds.PixelSpacing = TARGET_SPACING
-        ds.PixelData = resampled_array.astype("float32").tobytes()
-        ds.file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
+    reader = sitk.ImageSeriesReader()
+    reader.SetFileNames([str(f) for f in files])
+    image = reader.Execute()
 
-        ds.save_as(dose_file)  # tallennetaan päälle
+    original_spacing_xy = image.GetSpacing()[:2]
 
-# --------------------------
-# Koko potilasjoukko
-# --------------------------
+    if np.allclose(original_spacing_xy, TARGET_SPACING_XY, atol=1e-3):
+        print("     spacing jo oikein")
+        # Kirjoitetaan vain kopio
+        for i, f in enumerate(files):
+            sitk.WriteImage(sitk.ReadImage(str(f)), str(out_dir / f.name))
+        return
+
+    resampled = resample_image(image, TARGET_SPACING_XY, sitk.sitkLinear)
+
+    for i in range(resampled.GetDepth()):
+        slice_i = resampled[:, :, i]
+        sitk.WriteImage(slice_i, str(out_dir / f"CT_{i:04d}.dcm"))
+
+    print("     valmis")
+
+
+# -----------------------------
+# Maskien käsittely
+# -----------------------------
+def process_masks(patient):
+    print("  -> Maskit")
+
+    out_dir = patient.modified_dir / "mask_norm"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    mask_files = sorted(patient.mask_dir.glob("*.dcm"))
+    if not mask_files:
+        print("     Ei maskeja!")
+        return
+
+    for mask_path in mask_files:
+        image = sitk.ReadImage(str(mask_path))
+        original_spacing_xy = image.GetSpacing()[:2]
+
+        if np.allclose(original_spacing_xy, TARGET_SPACING_XY, atol=1e-3):
+            sitk.WriteImage(image, str(out_dir / mask_path.name))
+            continue
+
+        resampled = resample_image(image, TARGET_SPACING_XY, sitk.sitkNearestNeighbor)
+        sitk.WriteImage(resampled, str(out_dir / mask_path.name))
+
+    print("     valmis")
+
+
+# -----------------------------
+# RTDose käsittely
+# -----------------------------
+def process_dose(patient):
+    print("  -> RTDose")
+
+    out_dir = patient.modified_dir / "dose_norm"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    dose_path = patient.doseds_dir
+    dose_files = list(dose_path.glob("*.dcm"))  # kaikki .dcm tiedostot kansiossa
+    
+    # Otetaan ensimmäinen tiedosto
+    dose_file = dose_files[0]
+    
+    # Luetaan DICOM
+    ds = pydicom.dcmread(dose_file)
+    dose_raw = ds.pixel_array * float(ds.DoseGridScaling)
+    print("Dose shape:", dose_raw.shape)
+    ds = pydicom.dcmread(dose_path)
+
+    original_spacing_xy = [float(x) for x in ds.PixelSpacing]
+    if np.allclose(original_spacing_xy, TARGET_SPACING_XY, atol=1e-3):
+        ds.save_as(out_dir / dose_path.name)
+        print("     spacing jo oikein")
+        return
+
+    # Muunna array floatiksi
+    dose_array = ds.pixel_array.astype(np.float32) * float(ds.DoseGridScaling)
+
+    image = sitk.GetImageFromArray(dose_array)
+    spacing = [
+        float(ds.PixelSpacing[1]),
+        float(ds.PixelSpacing[0]),
+        float(ds.GridFrameOffsetVector[1] - ds.GridFrameOffsetVector[0])
+    ]
+    image.SetSpacing(spacing)
+
+    resampled = resample_image(image, TARGET_SPACING_XY, sitk.sitkLinear)
+    resampled_array = sitk.GetArrayFromImage(resampled)
+
+    # Uusi scaling ja uint16
+    max_dose = np.max(resampled_array)
+    new_scaling = max_dose / 65535.0
+    stored_array = (resampled_array / new_scaling).astype(np.uint16)
+
+    # Päivitä DICOM
+    ds.Rows = stored_array.shape[1]
+    ds.Columns = stored_array.shape[2]
+    ds.PixelSpacing = [str(TARGET_SPACING_XY[0]), str(TARGET_SPACING_XY[1])]
+    ds.DoseGridScaling = new_scaling
+    ds.PixelData = stored_array.tobytes()
+    z_spacing = resampled.GetSpacing()[2]
+    ds.GridFrameOffsetVector = [str(i * z_spacing) for i in range(stored_array.shape[0])]
+
+    ds.save_as(out_dir / dose_path.name)
+    print("     valmis")
+
+
+# -----------------------------
+# Yksi potilas
+# -----------------------------
+def process_patient(patient):
+    print(f"Käsitellään: {patient.patient_folder}")
+    process_ct(patient)
+    process_masks(patient)
+    process_dose(patient)
+    print("Potilas valmis.")
+
+
+# -----------------------------
+# Pääohjelma
+# -----------------------------
 def main():
-    all_patients = AllPatients(processed_dataset="VN0ds", original_dataset="VN0")
-    for patient in all_patients.sorted_by_number():
-        print(f"Processing patient {patient.patient_folder}")
-        process_ct_and_mask(patient)
-        process_rtdose(patient)
-        print(f"Done patient {patient.patient_folder}")
+    patients = AllPatients(
+        processed_dataset="VN0ds",
+        original_dataset="VN0"
+    )
+
+    for patient in patients.sorted_by_number():
+        process_patient(patient)
+
+    print("\nKaikki potilaat käsitelty.")
+
 
 if __name__ == "__main__":
     main()
