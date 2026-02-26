@@ -85,10 +85,18 @@ class Patient:
     @property
     def mask_dir(self) -> Path:
         return self.modified_dir / "maski"
+    
+    @property
+    def maskds_dir(self) -> Path:
+        return self.modified_dir / "maskids"
 
     @property
     def dose_dir(self) -> Path:
         return self.modified_dir / "dose"
+    
+    @property
+    def doseds_dir(self) -> Path:
+        return self.modified_dir / "doseds"
 
     @property
     def struct_dir(self) -> Path:

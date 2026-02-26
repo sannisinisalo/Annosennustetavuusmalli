@@ -7,17 +7,27 @@ Koodi, jolla tarkastellaan RTDose, CT ja maskien pixel_spacing
 """
 
 import os
+import re
 import SimpleITK as sitk
 
 base_path = r"C:/Users/User01/GRADU/Aineisto/VN0ds"
 
-patients = [d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))]
+# Funktio, joka poimii potilasnumeron nimestä (esim. Patient12_VN0 → 12)
+def extract_patient_number(name):
+    match = re.search(r'Patient(\d+)', name)
+    return int(match.group(1)) if match else float('inf')
+
+patients = [d for d in os.listdir(base_path) 
+            if os.path.isdir(os.path.join(base_path, d))]
+
+# 🔹 Lajitellaan numeron perusteella
+patients = sorted(patients, key=extract_patient_number)
 
 for patient in patients:
     patient_path = os.path.join(base_path, patient)
     
-    ct_path = os.path.join(patient_path, "ct_resampled")
-    mask_path = os.path.join(patient_path, "maskids_resampled")
+    ct_path = os.path.join(patient_path, "ct")
+    mask_path = os.path.join(patient_path, "maskids")
     dose_path = os.path.join(patient_path, "doseds")
     
     # Lue dose (yksi 3D-kuva)
@@ -34,7 +44,7 @@ for patient in patients:
         print(f"{patient}: CT-kansio tyhjä!")
         continue
     first_ct = sitk.ReadImage(os.path.join(ct_path, ct_files[0]))
-    ct_spacing = (first_ct.GetSpacing()[0], first_ct.GetSpacing()[1], dose_spacing[2])  # oletetaan z sama kuin dose
+    ct_spacing = (first_ct.GetSpacing()[0], first_ct.GetSpacing()[1], dose_spacing[2])
     
     # Lue maski
     mask_files = sorted([f for f in os.listdir(mask_path) if os.path.isfile(os.path.join(mask_path, f))])

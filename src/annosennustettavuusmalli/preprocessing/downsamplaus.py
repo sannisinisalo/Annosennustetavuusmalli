@@ -48,8 +48,7 @@ if __name__ == "__main__":
     source_dataset, processed_dataset = dataset_map[dataset]
 
     all_patients = AllPatients(
-        processed_dataset=processed_dataset, 
-        original_dataset=source_dataset
+        processed_dataset=processed_dataset, original_dataset=source_dataset
         )
 
 for patient in all_patients.sorted_by_number():
@@ -60,15 +59,16 @@ for patient in all_patients.sorted_by_number():
         folders = {
             "ct": patient.ct_dir,
             "dose": patient.dose_dir,
-            "doseds": patient.dose_dir / "doseds",
+            "doseds": patient.doseds_dir,
             "plan": patient.plan_dir,
             "struct": patient.struct_dir,
-            "mask": patient.mask_dir / "maskids",
+            "mask": patient.maskds_dir,
         }
         for d in folders.values():
             ensure_dir(d)
 
         # --- CT downsamplaus ---
+        ct_new_spacing = None
         for f in patient.ct_files:
             try:
                 ds = dcmread(f)
@@ -76,9 +76,8 @@ for patient in all_patients.sorted_by_number():
                 ds.PixelData = arr_down.tobytes()
                 ds.Rows, ds.Columns = arr_down.shape
                 if hasattr(ds, "PixelSpacing"):
-                    ds.PixelSpacing = MultiValue(
-                        float, [float(x)*2 for x in ds.PixelSpacing]
-                    )
+                    ct_new_spacing = [float(x)*2 for x in ds.PixelSpacing]
+                    ds.PixelSpacing = MultiValue(float, ct_new_spacing)
                 ds.save_as(folders["ct"] / f.name)
             except Exception as e:
                 warnings.warn(f"{patient_name}: CT-tiedoston {f.name} käsittely epäonnistui: {e}")
@@ -90,11 +89,14 @@ for patient in all_patients.sorted_by_number():
             arr_dose = ds_dose.pixel_array
             arr_dose_down = zoom(arr_dose, zoom=(1, 0.5, 0.5), order=1)
             ds_dose.Rows, ds_dose.Columns = arr_dose_down.shape[1], arr_dose_down.shape[2]
-            if hasattr(ds_dose, "PixelSpacing"):
-                ds_dose.PixelSpacing = MultiValue(
-                    float, [float(x)*2 for x in ds_dose.PixelSpacing]
-                )
+            if ct_new_spacing is not None:
+                ds_dose.PixelSpacing = MultiValue(float, ct_new_spacing)
+                if "SharedFunctionalGroupsSequence" in ds_dose:
+                    sfg = ds_dose.SharedFunctionalGroupsSequence[0]
+                    if "PixelMeasuresSequence" in sfg:
+                        sfg.PixelMeasuresSequence[0].PixelSpacing = ct_new_spacing
             ds_dose.PixelData = arr_dose_down.tobytes()
+            print("Dose spacing before save:", ds_dose.PixelSpacing)
             ds_dose.save_as(folders["doseds"] / dose_file.name)
         except FileNotFoundError:
             warnings.warn(f"{patient_name}: Dose-tiedostoa ei löytynyt → ohitetaan")
