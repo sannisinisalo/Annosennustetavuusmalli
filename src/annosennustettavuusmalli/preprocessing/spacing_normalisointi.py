@@ -15,112 +15,89 @@ Tarkoitus: Resample CT, Dose ja maskit samaan spacingiin turvallisesti.
 
 import os
 from pathlib import Path
-import warnings
+import shutil
+
+import pydicom
 import SimpleITK as sitk
+from src.annosennustettavuusmalli.preprocessing.luokat import Patient, AllPatients  # oletan että luokat.py on importattavissa
 
-from luokat import AllPatients
+TARGET_SPACING = [1.9531248, 1.9531248]
 
-# -----------------------------
-# Asetukset
-# -----------------------------
-TARGET_SPACING = (1.953125, 1.953125, 2.0)  # mm, x,y,z
-INTERPOLATOR_CT_DOSE = sitk.sitkLinear
-INTERPOLATOR_MASK = sitk.sitkNearestNeighbor
+def resample_image(itk_image, target_spacing, is_label=False):
+    """Resample SimpleITK image to target spacing."""
+    original_spacing = itk_image.GetSpacing()
+    original_size = itk_image.GetSize()
 
-# -----------------------------
-# Funktiot
-# -----------------------------
-def ensure_dir(path: Path):
-    path.mkdir(parents=True, exist_ok=True)
+    new_spacing = list(original_spacing)
+    new_spacing[0:2] = target_spacing  # x, y
 
-def resample_image(itk_img, new_spacing_xy, interpolator=sitk.sitkLinear):
-    """
-    Resample a 2D image slice (x,y) safely.
-    """
-    spacing_orig = itk_img.GetSpacing()
-    size_orig = itk_img.GetSize()
-
-    # Uusi koko x,y, säilytä z
     new_size = [
-        int(round(size_orig[0] * (spacing_orig[0] / new_spacing_xy[0]))),
-        int(round(size_orig[1] * (spacing_orig[1] / new_spacing_xy[1]))
-        )
+        int(round(original_size[i] * (original_spacing[i] / new_spacing[i])))
+        for i in range(3)
     ]
 
     resampler = sitk.ResampleImageFilter()
-    resampler.SetOutputSpacing((new_spacing_xy[0], new_spacing_xy[1]))
+    resampler.SetOutputSpacing(new_spacing)
     resampler.SetSize(new_size)
-    resampler.SetOutputDirection(itk_img.GetDirection())
-    resampler.SetOutputOrigin(itk_img.GetOrigin())
-    resampler.SetInterpolator(interpolator)
+    resampler.SetOutputDirection(itk_image.GetDirection())
+    resampler.SetOutputOrigin(itk_image.GetOrigin())
+    resampler.SetTransform(sitk.Transform())
     resampler.SetDefaultPixelValue(0)
 
-    return resampler.Execute(itk_img)
+    if is_label:
+        resampler.SetInterpolator(sitk.sitkNearestNeighbor)
+    else:
+        resampler.SetInterpolator(sitk.sitkLinear)
 
-# -----------------------------
-# Suorita resample kaikille potilaille
-# -----------------------------
-if __name__ == "__main__":
-    dataset_original = "VN0"
-    dataset_processed = "VN0ds"
-    all_patients = AllPatients(processed_dataset=dataset_processed, original_dataset=dataset_original)
+    return resampler.Execute(itk_image)
 
+def process_ct_and_mask(patient: Patient):
+    patient.ct_dir.mkdir(parents=True, exist_ok=True)
+    patient.mask_dir.mkdir(parents=True, exist_ok=True)
+
+    # CT-kuvat
+    for ct_file in patient.ct_files:
+        ds = pydicom.dcmread(ct_file)
+        spacing = ds.PixelSpacing
+        if list(spacing) != TARGET_SPACING:
+            # Muutetaan SimpleITK:llä geometrisesti oikein
+            itk_image = sitk.ReadImage(str(ct_file))
+            resampled = resample_image(itk_image, TARGET_SPACING)
+            sitk.WriteImage(resampled, str(patient.ct_dir / ct_file.name))
+        else:
+            shutil.copy(ct_file, patient.ct_dir / ct_file.name)
+
+    # Maskit
+    mask_files = list((patient.original_dir / "mask*").glob("*"))
+    for mask_file in mask_files:
+        ds = pydicom.dcmread(mask_file)
+        spacing = ds.PixelSpacing
+        if list(spacing) != TARGET_SPACING:
+            itk_image = sitk.ReadImage(str(mask_file))
+            resampled = resample_image(itk_image, TARGET_SPACING, is_label=True)
+            sitk.WriteImage(resampled, str(patient.mask_dir / mask_file.name))
+        else:
+            shutil.copy(mask_file, patient.mask_dir / mask_file.name)
+
+def process_rtdose(patient: Patient):
+    patient.doseds_dir.mkdir(parents=True, exist_ok=True)
+    dose_file = patient.rtdose_file
+    ds = pydicom.dcmread(dose_file)
+    spacing = list(ds.PixelSpacing)
+    if spacing != TARGET_SPACING:
+        itk_image = sitk.ReadImage(str(dose_file))
+        resampled = resample_image(itk_image, TARGET_SPACING)
+        sitk.WriteImage(resampled, str(patient.doseds_dir / dose_file.name))
+    else:
+        shutil.copy(dose_file, patient.doseds_dir / dose_file.name)
+
+def main():
+    all_patients = AllPatients(processed_dataset="VN0ds", original_dataset="VN0")
     for patient in all_patients.sorted_by_number():
-        print(f"\nProcessing patient {patient.patient_folder}...")
+        print(f"Processing patient {patient.patient_folder}")
+        process_ct_and_mask(patient)
+        process_rtdose(patient)
+        print(f"Done patient {patient.patient_folder}")
 
-        # Luo output-kansiot uusille normalisoiduille tiedostoille
-        ct_out_dir = patient.ct_dir / "ct_norm"
-        dose_out_dir = patient.doseds_dir / "doseds_norm"
-        mask_out_dir = patient.maskds_dir / "maskids_norm"
-        for folder in [ct_out_dir, dose_out_dir, mask_out_dir]:
-            ensure_dir(folder)
-
-        # -----------------------------
-        # 1. CT
-        # -----------------------------
-        ct_sitk_list = []
-        for f in patient.ct_dir.glob("*"):  # Lähdetään koko CT-kansiosta
-            try:
-                itk_img = sitk.ReadImage(str(f))
-                print(f"CT {f.name} spacing ennen: {itk_img.GetSpacing()}")
-                itk_resampled = resample_image(itk_img, TARGET_SPACING, INTERPOLATOR_CT_DOSE)
-                print(f"CT {f.name} spacing jälkeen: {itk_resampled.GetSpacing()}\n")
-                out_path = ct_out_dir / f.name
-                sitk.WriteImage(itk_resampled, str(out_path))
-                ct_sitk_list.append(itk_resampled)
-            except Exception as e:
-                warnings.warn(f"{patient.patient_folder}: CT {f.name} resample epäonnistui: {e}")
-
-        if not ct_sitk_list:
-            warnings.warn(f"{patient.patient_folder}: CT:tä ei löytynyt, hypätään dose/mask")
-            continue
-        ct_ref = ct_sitk_list[0]
-
-        # -----------------------------
-        # 2. RTDose
-        # -----------------------------
-        try:
-            dose_file = patient.doseds_dir.glob("*")  # Kaikki doseds tiedostot
-            for f in dose_file:
-                dose_itk = sitk.ReadImage(str(f))
-                dose_resampled = resample_image(dose_itk, TARGET_SPACING, INTERPOLATOR_CT_DOSE)
-                out_path = dose_out_dir / f.name
-                sitk.WriteImage(dose_resampled, str(out_path))
-        except Exception as e:
-            warnings.warn(f"{patient.patient_folder}: Dose resample epäonnistui: {e}")
-
-        # -----------------------------
-        # 3. Maskit
-        # -----------------------------
-        for f in patient.maskds_dir.glob("*"):  # Kaikki maskit
-            try:
-                mask_itk = sitk.ReadImage(str(f))
-                print(f"Mask {f.name} spacing ennen: {mask_itk.GetSpacing()}")
-                mask_resampled = resample_image(mask_itk, TARGET_SPACING, INTERPOLATOR_MASK)
-                print(f"Mask {f.name} spacing jälkeen: {mask_resampled.GetSpacing()}\n")
-                out_path = mask_out_dir / f.name
-                sitk.WriteImage(mask_resampled, str(out_path))
-            except Exception as e:
-                warnings.warn(f"{patient.patient_folder}: Mask {f.name} resample epäonnistui: {e}")
-
-        print(f"{patient.patient_folder} done.")
+if __name__ == "__main__":
+    main()

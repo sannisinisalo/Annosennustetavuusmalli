@@ -26,7 +26,7 @@ patients = sorted(patients, key=extract_patient_number)
 for patient in patients:
     patient_path = os.path.join(base_path, patient)
     
-    ct_path = os.path.join(patient_path, "ct")
+    ct_path = os.path.join(patient_path, "vanha ct")
     mask_path = os.path.join(patient_path, "maskids")
     dose_path = os.path.join(patient_path, "doseds")
     
