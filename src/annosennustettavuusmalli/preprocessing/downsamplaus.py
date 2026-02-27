@@ -140,19 +140,17 @@ if __name__ == "__main__":
                 os.path.join(dose_src_folder, f) 
                 for f in os.listdir(dose_src_folder)
                 if os.path.isfile(os.path.join(dose_src_folder, f))
-                ]
+            ]
             
             arr_dose_down = None
             ds_dose = None
             if dose_files:
                 try:
-                    ds_dose = dcmread(dose_files[0])
-                    
-                    if hasattr(ds, "ImagePositionPatient") and hasattr(ds_dose, "ImagePositionPatient"):
-                        ds_dose.ImagePositionPatient = ds.ImagePositionPatient
-                    
+                    ds_dose = dcmread(dose_files[0])                
                     arr_dose = ds_dose.pixel_array
+                    
                     # 2. Downsample Y/X (Z pysyy samana)
+                    scale_y, scale_x = 0.5, 0.5
                     arr_dose_down = zoom(arr_dose, zoom=(1, 0.5, 0.5), order=0)
                     ds_dose.Rows, ds_dose.Columns = (
                         arr_dose_down.shape[1], 
@@ -162,6 +160,23 @@ if __name__ == "__main__":
                         ds_dose.PixelSpacing = MultiValue(
                             float, [float(x)*2 for x in ds_dose.PixelSpacing]
                             )
+                    # --- Korjataan ImagePositionPatient ---
+                    # Skaalataan X/Y origot
+                    orig = list(ds_dose.ImagePositionPatient)
+                    orig[0] *= scale_x  # X
+                    orig[1] *= scale_y  # Y
+            
+                    # Z-koordinaatit interpoloituna CT:ltä
+                    ct_z = [s.ImagePositionPatient[2] for s in ct_slices]
+                    num_slices = arr_dose_down.shape[0]
+                    if num_slices == len(ct_z):
+                        new_z = ct_z
+                    else:
+                        new_z = np.linspace(ct_z[0], ct_z[-1], num=num_slices)
+            
+                    # Luo uusi ImagePositionPatient jokaiselle slicelle
+                    # Tallennetaan ds_dose:een vain ensimmäinen, muille sliceille voi olla tarvittaessa erillinen DICOM-sarja
+                    ds_dose.ImagePositionPatient = [orig[0], orig[1], new_z[0]]                
                     
                 except Exception as e:
                     warnings.warn(
@@ -219,7 +234,7 @@ if __name__ == "__main__":
                         f"{patient_name}: Mask-tiedoston {os.path.basename(f)} käsittely epäonnistui: {e}"
                         )
             
-            # 5. Tallennetaan muokattu dose doseds-kansioon
+            # 6. Tallennetaan muokattu dose doseds-kansioon
             if ds_dose is not None and arr_dose_down is not None:
                 try:
                     ds_dose.PixelData = arr_dose_down.tobytes()
