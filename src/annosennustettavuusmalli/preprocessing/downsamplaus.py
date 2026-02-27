@@ -147,7 +147,7 @@ if __name__ == "__main__":
                     ds_dose = dcmread(dose_files[0])
                     arr_dose = ds_dose.pixel_array
                     # 2. Downsample Y/X (Z pysyy samana)
-                    arr_dose_down = zoom(arr_dose, zoom=(1, 0.5, 0.5), order=1)
+                    arr_dose_down = zoom(arr_dose, zoom=(1, 0.5, 0.5), order=0)
                     ds_dose.Rows, ds_dose.Columns = (
                         arr_dose_down.shape[1], 
                         arr_dose_down.shape[2]
@@ -188,10 +188,10 @@ if __name__ == "__main__":
             
                     # 4. Sovelletaan maski doseen slice-reversoinnilla
                     if hasattr(ds_mask, "InstanceNumber") and arr_dose_down is not None:
-                        idx = arr_dose_down.shape[0] - ds_mask.InstanceNumber
+                        #idx = arr_dose_down.shape[0] - ds_mask.InstanceNumber
                         mask_min = np.min(mask_down)
-                        arr_dose_down[idx, :, :] *= np.isin(
-                            mask_down, mask_min, invert=True
+                        arr_dose_down[ds_mask.InstanceNumber - 1, :, :] *= (
+                            np.isin(mask_down, mask_min, invert=True)
                             )
             
                     # 5. Tallennetaan maski maskids-kansioon

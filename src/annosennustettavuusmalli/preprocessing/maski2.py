@@ -283,7 +283,7 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
         new_ds = ct.copy()
 
         # Pixel data
-        new_ds.PixelData = slice_img.astype(np.int16).tobytes()
+        new_ds.PixelData = slice_img.astype(np.int32).tobytes()
         new_ds.Rows, new_ds.Columns = slice_img.shape
 
         # Metadata maskille
@@ -308,9 +308,9 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
 
         # DICOM-tyyppiasetukset
         new_ds.PixelRepresentation = 1
-        new_ds.BitsAllocated = 16
-        new_ds.BitsStored = 16
-        new_ds.HighBit = 15
+        new_ds.BitsAllocated = 32
+        new_ds.BitsStored = 32
+        new_ds.HighBit = 31
 
         # Tallennus
         out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
@@ -362,7 +362,8 @@ if __name__ == "__main__":
 
         # Etsitään RS-tiedosto
         try:
-            rs_path = patient.rtstruct_file
+            struct_files = [f for f in os.listdir(patient.struct_dir) if f.endswith(".dcm")]            
+            rs_path = os.path.join(patient.struct_dir, struct_files[0])
         except FileNotFoundError:
             print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
             continue  # hypätään tämän potilaan yli

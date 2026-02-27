@@ -67,8 +67,8 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
                 dose_multiplier = dose_multiplier,
                 num_samples = int(num_samples/reduce_samples),
                 pixel_spacing = pixel_spacing,
-                distance_to_PTV = tio.ScalarImage(tensor=mask_data.data.clone()),
-                probability_map = tio.ScalarImage(tensor=mask_data.data.clone())
+                distance_to_PTV = tio.ScalarImage(mask_path),
+                probability_map = tio.ScalarImage(mask_path)
                 ) 
             
             if j == 0:

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # RT Dose -tiedoston polku
-dose_polku = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\dose_norm\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
+dose_polku = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\doseds\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
 
 ds = pydicom.dcmread(dose_polku)
 

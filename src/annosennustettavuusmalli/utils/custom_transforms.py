@@ -26,9 +26,9 @@ class ProbabilityMapTransform(tio.transforms.Transform):
             current_slice = mask[:, :, :, i]
         
             if torch.any(current_slice == 1):
-                probability_map[:, :, :, i] = 0.6
+                probability_map[:, :, :, i] = 0.75
             else:
-                probability_map[:, :, :, i] = 0.2
+                probability_map[:, :, :, i] = 0.25
         
         subject['probability_map'].set_data(probability_map)
         

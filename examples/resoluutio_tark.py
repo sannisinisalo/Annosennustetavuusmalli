@@ -29,7 +29,7 @@ for patient_folder in all_patients:
     
     print(f"\nPotilas: {patient_folder}")
     
-    for subfolder in ['ct', 'maskids']:
+    for subfolder in ['ct_norm', 'mask_norm']:
         subfolder_path = os.path.join(patient_path, subfolder)
         
         if os.path.exists(subfolder_path) and os.listdir(subfolder_path):
