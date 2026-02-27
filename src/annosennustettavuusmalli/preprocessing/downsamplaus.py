@@ -145,6 +145,10 @@ if __name__ == "__main__":
             if dose_files:
                 try:
                     ds_dose = dcmread(dose_files[0])
+                    
+                    if hasattr(ds, "ImagePositionPatient") and hasattr(ds_dose, "ImagePositionPatient"):
+                        ds_dose.ImagePositionPatient = ds.ImagePositionPatient
+                    
                     arr_dose = ds_dose.pixel_array
                     # 2. Downsample Y/X (Z pysyy samana)
                     arr_dose_down = zoom(arr_dose, zoom=(1, 0.5, 0.5), order=0)
@@ -156,6 +160,7 @@ if __name__ == "__main__":
                         ds_dose.PixelSpacing = MultiValue(
                             float, [float(x)*2 for x in ds_dose.PixelSpacing]
                             )
+                    
                 except Exception as e:
                     warnings.warn(
                         f"{patient_name}: RD-tiedoston käsittely epäonnistui: {e}"
@@ -172,6 +177,10 @@ if __name__ == "__main__":
             for f in mask_files:
                 try:
                     ds_mask = dcmread(f)
+                    
+                    if hasattr(ds, "ImagePositionPatient") and hasattr(ds_mask, "ImagePositionPatient"):
+                        ds_mask.ImagePositionPatient = ds.ImagePositionPatient
+                    
                     mask_orig = ds_mask.pixel_array
             
                     # Downsample mask samaan kokoon kuin dose
@@ -185,6 +194,8 @@ if __name__ == "__main__":
                         ds_mask.PixelSpacing = MultiValue(
                             float, [float(x)*2 for x in ds_mask.PixelSpacing]
                             )
+                    if hasattr(ds_dose, "ImagePositionPatient"):
+                        ds_dose.ImagePositionPatient = ds.ImagePositionPatient
             
                     # 4. Sovelletaan maski doseen slice-reversoinnilla
                     if hasattr(ds_mask, "InstanceNumber") and arr_dose_down is not None:
@@ -193,6 +204,7 @@ if __name__ == "__main__":
                         arr_dose_down[ds_mask.InstanceNumber - 1, :, :] *= (
                             np.isin(mask_down, mask_min, invert=True)
                             )
+                    
             
                     # 5. Tallennetaan maski maskids-kansioon
                     ds_mask.save_as(os.path.join(folders["mask"], os.path.basename(f)))

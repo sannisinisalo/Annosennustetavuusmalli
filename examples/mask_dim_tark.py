@@ -89,8 +89,8 @@ def show_comparison(mask1, mask2, slice_index=None):
 # -------------------------------------------------
 # 5. PÄÄOHJELMA
 # -------------------------------------------------
-folder1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
-folder2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient2_VN0\maski"
+folder1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient6_VN0\maskids"
+folder2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient5_VN0\maskids"
 
 mask1, files1 = load_dicom_series(folder1)
 mask2, files2 = load_dicom_series(folder2)

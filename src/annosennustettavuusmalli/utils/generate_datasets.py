@@ -9,6 +9,7 @@ import math
 import pickle
 from scipy.ndimage import zoom
 import numpy as np
+import torch
 
 import glob
 import os
@@ -16,7 +17,6 @@ import torchio as tio
 import random
 from pydicom import dcmread
 from .custom_transforms import DoseScalingTransform, PixelSizingTransform, CreateInputMask, CreateDistanceToPTV, ProbabilityMapTransform
-import torch
 
 
 def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))->tuple([tio.SubjectsDataset, tio.SubjectsDataset, tio.SubjectsDataset]):
@@ -55,7 +55,9 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
             pixel_spacing = float(list(ds_ct.PixelSpacing)[0])
 
             ct_data = tio.ScalarImage(ct_path)
+            print(ct_data.spacing)
             mask_data = tio.ScalarImage(mask_path)
+            print(mask_data.spacing)
             dose_data = tio.ScalarImage(dose_path)
             
             new_subject = tio.Subject(
@@ -78,7 +80,7 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
             elif j == 2:
                 test_subjects_list.append(new_subject)
     
-    print("Mask dtype:", new_subject['mask'][tio.DATA].dtype) # DEBULISÄYS
+    print("Mask dtype:", new_subject['mask'][tio.DATA].dtype) # DEBUGLISÄYS
     
     #rescale_mask = tio.RescaleIntensity(out_min_max=(-0.2, 1), in_min_max = (-1, 10), include = ['mask'])
     rescale_ct = tio.RescaleIntensity(out_min_max=(0, 4), in_min_max = (-1024, 3072), include = ['ct'])
