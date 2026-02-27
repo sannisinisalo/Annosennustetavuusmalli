@@ -76,7 +76,7 @@ def show_comparison(mask1, mask2, slice_index=None):
     axes[1].set_title("Maski 2")
 
     diff = mask1[slice_index] - mask2[slice_index]
-    axes[2].imshow(diff, cmap='bwr')
+    axes[2].imshow(diff, cmap='grey')
     axes[2].set_title("Erotus (Mask1 - Mask2)")
 
     for ax in axes:
@@ -89,8 +89,8 @@ def show_comparison(mask1, mask2, slice_index=None):
 # -------------------------------------------------
 # 5. PÄÄOHJELMA
 # -------------------------------------------------
-folder1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient6_VN0\maskids"
-folder2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient5_VN0\maskids"
+folder1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct"
+folder2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maskids"
 
 mask1, files1 = load_dicom_series(folder1)
 mask2, files2 = load_dicom_series(folder2)

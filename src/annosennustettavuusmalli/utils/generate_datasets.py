@@ -55,9 +55,7 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
             pixel_spacing = float(list(ds_ct.PixelSpacing)[0])
 
             ct_data = tio.ScalarImage(ct_path)
-            print(ct_data.spacing)
             mask_data = tio.ScalarImage(mask_path)
-            print(mask_data.spacing)
             dose_data = tio.ScalarImage(dose_path)
             
             new_subject = tio.Subject(

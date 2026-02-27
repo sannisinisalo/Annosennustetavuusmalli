@@ -98,6 +98,8 @@ if __name__ == "__main__":
             rp_files = _find_dicom_by_modality(p, "RTPLAN")
             rs_files = _find_dicom_by_modality(p, "RTSTRUCT")
 
+            ct_slices = [dcmread(f) for f in ct_files]
+
             # Create output folders
             folders = {
                 "ct": os.path.join(DESTINATION_PATH, patient_name, "ct"),
@@ -174,13 +176,11 @@ if __name__ == "__main__":
                 if os.path.isfile(os.path.join(mask_src_folder, f))
                 ]
             
-            for f in mask_files:
+            mask_down_slices = []
+            
+            for idx, f in enumerate(mask_files):
                 try:
-                    ds_mask = dcmread(f)
-                    
-                    if hasattr(ds, "ImagePositionPatient") and hasattr(ds_mask, "ImagePositionPatient"):
-                        ds_mask.ImagePositionPatient = ds.ImagePositionPatient
-                    
+                    ds_mask = dcmread(f)                    
                     mask_orig = ds_mask.pixel_array
             
                     # Downsample mask samaan kokoon kuin dose
@@ -190,12 +190,15 @@ if __name__ == "__main__":
             
                     ds_mask.PixelData = mask_down.tobytes()
                     ds_mask.Rows, ds_mask.Columns = mask_down.shape
+                    
                     if hasattr(ds_mask, "PixelSpacing"):
                         ds_mask.PixelSpacing = MultiValue(
                             float, [float(x)*2 for x in ds_mask.PixelSpacing]
                             )
-                    if hasattr(ds_dose, "ImagePositionPatient"):
-                        ds_dose.ImagePositionPatient = ds.ImagePositionPatient
+                        
+                    if hasattr(ds_mask, "ImagePositionPatient"):
+                        # idx vastaa slicen paikkaa maskissa
+                        ds_mask.ImagePositionPatient[2] = ct_slices[idx].ImagePositionPatient[2]
             
                     # 4. Sovelletaan maski doseen slice-reversoinnilla
                     if hasattr(ds_mask, "InstanceNumber") and arr_dose_down is not None:
@@ -208,6 +211,9 @@ if __name__ == "__main__":
             
                     # 5. Tallennetaan maski maskids-kansioon
                     ds_mask.save_as(os.path.join(folders["mask"], os.path.basename(f)))
+                    
+                    mask_down_slices.append(ds_mask)
+                    
                 except Exception as e:
                     warnings.warn(
                         f"{patient_name}: Mask-tiedoston {os.path.basename(f)} käsittely epäonnistui: {e}"

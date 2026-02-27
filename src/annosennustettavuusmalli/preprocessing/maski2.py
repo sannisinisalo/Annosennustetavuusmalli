@@ -294,9 +294,8 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
 
         # Päivitetään ImagePositionPatient Z-koordinaatti
         new_ds.ImagePositionPatient = list(ct.ImagePositionPatient)
-        new_ds.ImagePositionPatient[2] = ct.ImagePositionPatient[2]
+        new_ds.ImagePositionPatient[2] = ct.ImagePositionPatient[2] + idx * ct.SliceThickness
         
-        new_ds.PixelSpacing = list(ct.PixelSpacing)
         new_ds.PixelSpacing = list(ct.PixelSpacing)
         new_ds.SliceThickness = ct.SliceThickness
 
