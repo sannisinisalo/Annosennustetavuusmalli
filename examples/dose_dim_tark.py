@@ -85,8 +85,8 @@ def dose_difference_analysis(dose1, dose2):
 # -------------------------------------------------
 # 5. PÄÄOHJELMA
 # -------------------------------------------------
-file1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\dose\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
-file2 = r"C:\Users\User01\GRADU\ANON0075\ANON0075 alkup\2017-01__Studies\Anon^0075_ANON0075_RTDOSE_2017-01-14_112335_AI.DVH.Dose.2.beams_AI.DVH.Dose.2.beams_n1__00000\2.16.840.1.114362.1.12289667.23994421178.698228408.758.6695.dcm"
+file1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\doseds\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
+file2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\dose\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
 
 dose1, ds1 = load_rtdose(file1)
 dose2, ds2 = load_rtdose(file2)

@@ -8,11 +8,10 @@ import glob
 import os
 import random
 
-import torch
-import torchio as tio
+import torchio as tio  # type: ignore
 from pydicom import dcmread
 
-from .custom_transforms import (
+from annosennustettavuusmalli.utils.custom_transforms import (
     CreateDistanceToPTV,
     CreateInputMask,
     DoseScalingTransform,
@@ -67,21 +66,15 @@ def generate_datasets(
             new_subject = tio.Subject(
                 ct=ct_data,
                 mask=mask_data,
-                original_mask=mask_data,
+                original_mask=tio.ScalarImage(mask_path),
                 dose=dose_data,
                 name=subject,
                 dose_multiplier=dose_multiplier,
                 num_samples=int(num_samples / reduce_samples),
                 pixel_spacing=pixel_spacing,
-                distance_to_PTV=tio.ScalarImage(
-                    tensor=torch.zeros_like(mask_data.data)
-                ),  # mask_data is only a placeholder. This could be implemented better? The problem is that there needs to be a empty tensor that is shaped like other data of the subject, and it can't be loaded to memory.
-                probability_map=tio.ScalarImage(
-                    tensor=torch.zeros_like(mask_data.data)
-                ),
-            )  # mask_data is only a placeholder
-
-            # print("BEFORE transforms unique:", np.unique(new_subject['mask'][tio.DATA]))
+                distance_to_PTV=tio.ScalarImage(mask_path),
+                probability_map=tio.ScalarImage(mask_path),
+            )
 
             if j == 0:
                 train_subjects_list.append(new_subject)
@@ -90,7 +83,8 @@ def generate_datasets(
             elif j == 2:
                 test_subjects_list.append(new_subject)
 
-    print("Mask dtype:", new_subject["mask"][tio.DATA].dtype)
+    print("Mask dtype:", new_subject["mask"][tio.DATA].dtype)  # DEBUGLISÄYS
+
     # rescale_mask = tio.RescaleIntensity(out_min_max=(-0.2, 1), in_min_max = (-1, 10), include = ['mask'])
     rescale_ct = tio.RescaleIntensity(
         out_min_max=(0, 4), in_min_max=(-1024, 3072), include=["ct"]
@@ -110,10 +104,8 @@ def generate_datasets(
     # The order of the transforms is important! Padding of the size transformations are made with the assumption that data is already scaled. Thus, rescale transforms must be befor rescale pixels.
     # Also, create_final_mask must be AFTER resizing pixels, as it creates 'original_mask', which is not at the moment handled by PixelSizingTransform.
 
-    resample = tio.Resample("ct")
     train_transforms = tio.Compose(
         (
-            resample,
             rescale_dose,
             rescale_ct,
             rescale_pixels,
@@ -125,7 +117,6 @@ def generate_datasets(
     )
     transforms = tio.Compose(
         (
-            resample,
             rescale_dose,
             rescale_ct,
             rescale_pixels,
@@ -139,4 +130,4 @@ def generate_datasets(
     val_set = tio.SubjectsDataset(val_subjects_list, transform=transforms)
     test_set = tio.SubjectsDataset(test_subjects_list, transform=transforms)
 
-    return train_set, val_set, test_set, train_transforms, transforms
+    return train_set, val_set, test_set

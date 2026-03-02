@@ -10,7 +10,6 @@ Alkuperäisille ja muokatuille tiedostoille tehty eri tiedostopolut.
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
 
 # Keskitetty juuripolku:
 BASE_DIR = Path(r"C:\Users\User01\GRADU\Aineisto")
@@ -43,42 +42,7 @@ class Patient:
         return BASE_DIR / self.processed_dataset / self.patient_folder
 
     # -------------------------
-    # ALKUPERÄISET DICOMIT
-    # -------------------------
-
-    @property
-    def ct_files(self) -> List[Path]:
-        return list(self.original_dir.glob("CT.*"))
-
-    @property
-    def rtstruct_file(self) -> Path:
-        files = list(self.original_dir.glob("RS*"))
-        if not files:
-            raise FileNotFoundError(
-                f"RTStruct-tiedostoa ei löytynyt kansiosta {self.original_dir}"
-            )
-        return files[0]
-
-    @property
-    def rtdose_file(self) -> Path:
-        files = list(self.original_dir.glob("RD*"))
-        if not files:
-            raise FileNotFoundError(
-                f"RTDose-tiedostoa ei löytynyt kansiosta {self.original_dir}"
-            )
-        return files[0]
-
-    @property
-    def rtplan_file(self) -> Path:
-        files = list(self.original_dir.glob("RP*"))
-        if not files:
-            raise FileNotFoundError(
-                f"RTPlan-tiedostoa ei löytynyt kansiosta {self.original_dir}"
-            )
-        return files[0]
-
-    # -------------------------
-    # MUOKATTUJEN TIEDOSTOJEN POLUT
+    # TIEDOSTOJEN POLUT
     # -------------------------
 
     @property
@@ -94,8 +58,16 @@ class Patient:
         return self.modified_dir / "maski"
 
     @property
+    def maskds_dir(self) -> Path:
+        return self.modified_dir / "maskids"
+
+    @property
     def dose_dir(self) -> Path:
         return self.modified_dir / "dose"
+
+    @property
+    def doseds_dir(self) -> Path:
+        return self.modified_dir / "doseds"
 
     @property
     def struct_dir(self) -> Path:

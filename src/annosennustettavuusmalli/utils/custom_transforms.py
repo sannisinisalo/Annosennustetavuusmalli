@@ -4,7 +4,7 @@ from einops import rearrange
 from scipy.ndimage import distance_transform_edt  # type: ignore
 from torchvision.transforms.functional import InterpolationMode, affine  # type: ignore
 
-from .integer_mask_to_binary import integer_mask_to_binary
+from annosennustettavuusmalli.utils.integer_mask_to_binary import integer_mask_to_binary
 
 """
 Tekijä: Akseli Leino
@@ -19,16 +19,16 @@ class ProbabilityMapTransform(tio.transforms.Transform):
 
     def apply_transform(self, subject: tio.Subject) -> tio.Subject:
         mask = subject["mask"][tio.DATA]
-        probability_map = torch.empty_like(mask)
+        probability_map = torch.empty_like(mask, dtype=torch.float32)
 
         # Images are (c, w, h, d), we want to iterate depth.
         for i in range(probability_map.shape[3]):
             current_slice = mask[:, :, :, i]
 
             if torch.any(current_slice == 1):
-                probability_map[:, :, :, i] = 0.6
+                probability_map[:, :, :, i] = 0.75
             else:
-                probability_map[:, :, :, i] = 0.2
+                probability_map[:, :, :, i] = 0.25
 
         subject["probability_map"].set_data(probability_map)
 
@@ -45,7 +45,7 @@ class CreateDistanceToPTV(tio.transforms.Transform):
         )  # distance_transform_edt calcualates distance to 0, not 1. Thus we need mask that is NOT PTV.
         body_mask = mask != -1  # Outside of body is -1
         slice_thickness_mm = (
-            3  # Change this to your slice thickness - Cyberknife prostatoille 1
+            2  # Change this to your slice thickness - Cyberknife prostatoille 1
         )
         distance_to_PTV = torch.multiply(
             torch.tensor(
