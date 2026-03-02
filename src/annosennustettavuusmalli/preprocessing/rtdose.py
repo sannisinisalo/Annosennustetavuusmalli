@@ -98,6 +98,9 @@ if __name__ == "__main__":
     
             dose_img = sitk.ReadImage(dose_path, sitk.sitkFloat32)
             dose_img = dose_img * dose_scaling
+
+            dose_img = sitk.DICOMOrient(dose_img, "LPS")
+
             print(" Dose ladattu")
     
             # --- REFERENSSI ---
@@ -110,6 +113,22 @@ if __name__ == "__main__":
             ct_spacing = ct_img.GetSpacing()
             ct_origin = ct_img.GetOrigin()
             ct_direction = ct_img.GetDirection()
+            
+            ct_positions = []
+            for f in ct_files:
+                ds_ct = pydicom.dcmread(f, stop_before_pixels=True)
+                ct_positions.append(ds_ct.ImagePositionPatient[2])
+            
+            ct_positions = sorted(ct_positions)
+
+            ct_ref = pydicom.dcmread(ct_files[0], stop_before_pixels=True)
+            
+            ct_iop = ct_ref.ImageOrientationPatient      # 6 arvoa
+            ct_ipp = ct_ref.ImagePositionPatient         # 3 arvoa
+            ct_ps  = ct_ref.PixelSpacing                 # [row, col] = [Y, X]
+            ct_th  = float(getattr(ct_ref, "SliceThickness", ct_spacing[2]))
+            ct_for = getattr(ct_ref, "FrameOfReferenceUID", None)
+
             
             # Luo referenssikuva X/Y = CT, Z = dose
             reference = sitk.Image(
@@ -126,15 +145,11 @@ if __name__ == "__main__":
             resampler.SetDefaultPixelValue(0.0)
     
             dose_resampled = resampler.Execute(dose_img)
-
+            
+            dose_arr = sitk.GetArrayFromImage(dose_resampled)  # shape: (Z, Y, X)
             
             print("Resampled origin:", dose_resampled.GetOrigin())
             print("CT origin:", ct_img.GetOrigin())
-            print("Resampled direction:", dose_resampled.GetDirection())
-            print("CT direction:", ct_img.GetDirection())
-            print("Dose Z-spacing:", dose_resampled.GetSpacing()[2])
-            print("Dose origin Z:", dose_resampled.GetOrigin()[2])
-            print("GridFrameOffsetVector:", ds.GridFrameOffsetVector[:5])
             
             print(" Resamplaus valmis")
     
@@ -154,13 +169,24 @@ if __name__ == "__main__":
             ds.HighBit = 31
             ds.PixelRepresentation = 0  # unsigned
             ds.DoseGridScaling = new_scaling
-            ds.PixelSpacing = [ct_spacing[1], ct_spacing[0]]  # HUOM DICOM järjestys!
-            ds.SliceThickness = dose_spacing[2]
-            ds.GridFrameOffsetVector = [
-                i * dose_spacing[2] for i in range(stored_values.shape[0])
-            ]
-    
+            
+            # 1) Orientaatio ja sijainti
+            ds.ImageOrientationPatient = [float(v) for v in ct_iop]
+            ds.ImagePositionPatient = [float(v) for v in ct_ipp]
+            
+            # 2) Pikselikoko ja viipaleväli
+            ds.PixelSpacing = [float(ct_ps[0]), float(ct_ps[1])]  # [row, col] = [Y, X]
+            ds.SliceThickness = ct_th
+            
+            # 3) Z‑offsetit (GridFrameOffsetVector)
+            n_slices = stored_values.shape[0]
+            ds.GridFrameOffsetVector = [i * ct_th for i in range(n_slices)]
+            
+            # 4) FrameOfReferenceUID sama kuin CT:llä (tärkeä monelle viewerille)
+            if ct_for is not None:
+                ds.FrameOfReferenceUID = ct_for
             out_path = os.path.join(patient_out, os.path.basename(dose_path))
+        
             
             if not hasattr(ds, "file_meta") or ds.file_meta is None:
                 ds.file_meta = FileMetaDataset()
@@ -174,9 +200,7 @@ if __name__ == "__main__":
             
             ds2 = pydicom.dcmread(out_path)
             dose_check = ds2.pixel_array * float(ds2.DoseGridScaling)
-            
-            
-            
+
             print(dose_check.shape)
             print(dose_check.min(), dose_check.max())
     
