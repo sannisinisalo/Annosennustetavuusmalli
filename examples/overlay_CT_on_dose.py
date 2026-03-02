@@ -1,0 +1,68 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Mar  2 13:20:37 2026
+
+@author: User01
+"""
+
+import pydicom
+import numpy as np
+import matplotlib.pyplot as plt
+import SimpleITK as sitk
+import os
+
+# -----------------------------
+# 1. Lataa CT-sarja
+# -----------------------------
+ct_folder = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient2_VN0\ct"
+ct_files = [str((ct_folder + "\\" + f)) for f in sorted(os.listdir(ct_folder)) if f.endswith(".dcm")]
+
+reader = sitk.ImageSeriesReader()
+reader.SetFileNames(ct_files)
+ct_img = reader.Execute()
+
+ct_arr = sitk.GetArrayFromImage(ct_img)   # (z, y, x)
+ct_spacing = ct_img.GetSpacing()
+ct_origin = ct_img.GetOrigin()
+ct_direction = ct_img.GetDirection()
+
+print("CT shape:", ct_arr.shape)
+
+# -----------------------------
+# 2. Lataa annos ja resamplaa CT:n ruudukkoon
+# -----------------------------
+dose_path = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient2_VN0\dose\RD.1.2.246.352.221.5243245925728214844.2197592380591182783.dcm"
+ds_dose = pydicom.dcmread(dose_path)
+
+dose_img = sitk.ReadImage(dose_path, sitk.sitkFloat32)
+dose_img = dose_img * float(ds_dose.DoseGridScaling)
+
+# Resamplaus CT:n koordinaatistoon
+resampler = sitk.ResampleImageFilter()
+resampler.SetReferenceImage(ct_img)
+resampler.SetInterpolator(sitk.sitkLinear)
+resampler.SetDefaultPixelValue(0.0)
+
+dose_resampled = resampler.Execute(dose_img)
+dose_arr = sitk.GetArrayFromImage(dose_resampled)  # (z, y, x)
+
+print("Dose shape:", dose_arr.shape)
+
+# -----------------------------
+# 3. Visualisointi overlaynä
+# -----------------------------
+# Valitse viipale (esim. keskiviipale)
+slice_index = ct_arr.shape[0] // 2
+
+ct_slice = ct_arr[slice_index]
+dose_slice = dose_arr[slice_index]
+
+# Normalisoi annos overlaytä varten
+dose_norm = dose_slice / dose_slice.max()
+
+plt.figure(figsize=(8, 8))
+plt.imshow(ct_slice, cmap="gray", interpolation="none")
+plt.imshow(dose_norm, cmap="inferno", alpha=0.4, interpolation="none")
+plt.title(f"CT + Dose overlay (slice {slice_index})")
+plt.axis("off")
+plt.show()
