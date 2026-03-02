@@ -19,10 +19,13 @@ lisätty kaikki ROI:t.
 
 import os
 import re
+
 import numpy as np
 import pydicom
 from rt_utils import RTStructBuilder
-from luokat import AllPatients
+
+from annosennustettavuusmalli.preprocessing.luokat import AllPatients, Patient
+
 
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on
 # CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on
@@ -330,6 +333,7 @@ def create_mask(patient: Patient) -> tuple:
     ct_path = patient.ct_path
     out_path = patient.mask_destination
 
+
 # Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
 def get_patient_number(name) -> int:
     """
@@ -361,8 +365,8 @@ if __name__ == "__main__":
 
     # Luodaan AllPatients-objekti
     all_patients = AllPatients(
-        processed_dataset="VN0ds",   # kansio muokattuja tiedostoja varten
-        original_dataset="VN0"       # alkuperäiset tiedostot
+        processed_dataset="VN0ds",  # kansio muokattuja tiedostoja varten
+        original_dataset="VN0",  # alkuperäiset tiedostot
     )
 
     # Käydään kaikki potilaat läpi numerojärjestyksessä
@@ -370,7 +374,9 @@ if __name__ == "__main__":
         print(f"Käsitellään {patient.patient_folder}...")
 
         # Polut luokkien kautta
-        ct_path = patient.org_ct_dir  # CT-kuvat tallennettuna "ct"-kansioon muokatuissa tiedostoissa
+        ct_path = (
+            patient.org_ct_dir
+        )  # CT-kuvat tallennettuna "ct"-kansioon muokatuissa tiedostoissa
         out_path = patient.mask_dir  # Maskit tallennetaan "maski"-kansioon
         struct_dir = patient.struct_dir  # RS-tiedostot sijaitsevat "struct"-kansiossa
 

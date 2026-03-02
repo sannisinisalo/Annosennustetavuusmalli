@@ -7,17 +7,15 @@ Muokkaaja: Sanni Sinisalo
 Tiedostojen koon pienentämiseen käytetty koodi
 """
 
-import os
 import warnings
 from pathlib import Path
-from typing import List
 
 import numpy as np
 from pydicom import dcmread
 from pydicom.multival import MultiValue
 from scipy.ndimage import zoom
 
-from .luokat import AllPatients
+from annosennustettavuusmalli.preprocessing.luokat import AllPatients
 
 
 def ensure_dir(path: Path) -> None:
@@ -29,7 +27,7 @@ if __name__ == "__main__":
     print("PROCESSING...")
 
     # Choose dataset: 'L', 'R', 'LAX', 'RAX'
-    dataset = "L"
+    dataset = "R"
 
     # Map dataset to source and destination names
     dataset_map = {

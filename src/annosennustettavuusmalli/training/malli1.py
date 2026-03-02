@@ -22,18 +22,21 @@ import torch
 import torch.nn as nn
 import torchio as tio
 import yaml  # type:ignore  # type:ignore
+from loguru import logger
 from matplotlib import pyplot as plt
 
-from ..models.unet3plus_3d import UNet3plus_3d
-from ..utils.evaluate_dataset import evaluate_dataset
-from ..utils.evaluate_dose_metrics import evaluate_dose_metrics
-from ..utils.flatten_dict import flatten_dict
-from ..utils.generate_datasets import generate_datasets
-from ..utils.init_weights import init_weights_kaiming
-from ..utils.random_sample_hyperparameters import random_sample_hyperparameters
+from annosennustettavuusmalli.models.unet3plus_3d import UNet3plus_3d
+from annosennustettavuusmalli.utils.evaluate_dataset import evaluate_dataset
+from annosennustettavuusmalli.utils.evaluate_dose_metrics import evaluate_dose_metrics
+from annosennustettavuusmalli.utils.flatten_dict import flatten_dict
+from annosennustettavuusmalli.utils.generate_datasets import generate_datasets
+from annosennustettavuusmalli.utils.init_weights import init_weights_kaiming
+from annosennustettavuusmalli.utils.random_sample_hyperparameters import (
+    random_sample_hyperparameters,
+)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
+logger.debug(f"Using device: {device}")
 
 
 HYPERPARAMETERS = "manual_search"  # default, manual_search or random_search

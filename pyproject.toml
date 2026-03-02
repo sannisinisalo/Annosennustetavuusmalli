@@ -9,6 +9,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "loguru>=0.7.3",
     "matplotlib>=3.10.8",
     "mlflow>=3.9.0",
     "numpy>=2.4.2",
@@ -19,6 +20,7 @@ dependencies = [
     "simpleitk>=2.5.3",
     "torch>=2.10.0",
     "torchio>=0.21.3",
+    "torchvision>=0.25.0",
     "tqdm>=4.67.3",
 ]
 
