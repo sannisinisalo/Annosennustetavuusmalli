@@ -81,8 +81,17 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
     print("Mask dtype:", new_subject['mask'][tio.DATA].dtype) # DEBUGLISÄYS
     
     #rescale_mask = tio.RescaleIntensity(out_min_max=(-0.2, 1), in_min_max = (-1, 10), include = ['mask'])
-    rescale_ct = tio.RescaleIntensity(out_min_max=(0, 4), in_min_max = (-1024, 3072), include = ['ct'])
-    rand_affine = tio.transforms.RandomAffine(degrees = (0, 0, 10), translation = (30, 70, 0), image_interpolation = 'nearest', default_pad_value = 'otsu') # padding should equal to value outside of body, change if it's not minimum
+    rescale_ct = tio.RescaleIntensity(
+        out_min_max=(0, 4), 
+        in_min_max = (-1024, 3072), 
+        include = ['ct']
+    )
+    rand_affine = tio.transforms.RandomAffine(
+        degrees = (0, 0, 10), 
+        translation = (30, 70, 0), 
+        image_interpolation = 'nearest', 
+        default_pad_value = 'otsu'
+    ) # padding should equal to value outside of body, change if it's not minimum
     rescale_dose = DoseScalingTransform()
     rescale_pixels = PixelSizingTransform()
     create_final_mask = CreateInputMask()
