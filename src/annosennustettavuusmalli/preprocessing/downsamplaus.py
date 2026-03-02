@@ -121,7 +121,19 @@ if __name__ == "__main__":
                 try:
                     ds = dcmread(f)
                     arr_down = zoom(ds.pixel_array, zoom=(0.5, 0.5), order=1)
+                    
+                    # --- Muunna float32-muotoon ---
+                    arr_down = arr_down.astype(np.float32)
                     ds.PixelData = arr_down.tobytes()
+                    ds.Rows, ds.Columns = arr_down.shape
+                    
+                    # --- Päivitä DICOM metadata ---
+                    ds.BitsAllocated = 32
+                    ds.BitsStored = 32
+                    ds.HighBit = 31
+                    ds.PixelRepresentation = 0  
+                    ds.PixelData = arr_down.tobytes()
+                    
                     ds.Rows, ds.Columns = arr_down.shape
                     if hasattr(ds, "PixelSpacing"):
                         ds.PixelSpacing = MultiValue(
@@ -233,18 +245,32 @@ if __name__ == "__main__":
                     warnings.warn(
                         f"{patient_name}: Mask-tiedoston {os.path.basename(f)} käsittely epäonnistui: {e}"
                         )
-            
             # 6. Tallennetaan muokattu dose doseds-kansioon
             if ds_dose is not None and arr_dose_down is not None:
                 try:
+                    # --- MUUNNA FLOAT32 ---
+                    arr_dose_down = arr_dose_down.astype(np.float32)
+            
+                    # --- Päivitä metadata ---
+                    ds_dose.BitsAllocated = 32
+                    ds_dose.BitsStored = 32
+                    ds_dose.HighBit = 31
+                    ds_dose.PixelRepresentation = 0  # unsigned
+            
+                    # Jos et halua käyttää DoseGridScalingia
+                    if hasattr(ds_dose, "DoseGridScaling"):
+                        ds_dose.DoseGridScaling = 1.0
+            
                     ds_dose.PixelData = arr_dose_down.tobytes()
+            
                     ds_dose.save_as(
                         os.path.join(folders["doseds"], os.path.basename(dose_files[0]))
-                        )
+                    )
+            
                 except Exception as e:
                     warnings.warn(
                         f"{patient_name}: RD-tiedoston tallennus doseds-kansioon epäonnistui: {e}"
-                        )
+                    )
 
 
 

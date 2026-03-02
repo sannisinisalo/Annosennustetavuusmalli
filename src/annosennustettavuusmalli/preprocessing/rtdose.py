@@ -113,42 +113,50 @@ if __name__ == "__main__":
             
             # Luo referenssikuva X/Y = CT, Z = dose
             reference = sitk.Image(
-                [ct_size[0], ct_size[1], dose_size[2]], sitk.sitkFloat32
+                [ct_size[0], ct_size[1], ct_size[2]], sitk.sitkFloat32
                 )
-            reference.SetSpacing([ct_spacing[0], ct_spacing[1], dose_spacing[2]])
-            reference.SetOrigin([ct_origin[0], ct_origin[1], dose_origin[2]])
+            reference.SetSpacing([ct_spacing[0], ct_spacing[1], ct_spacing[2]])
+            reference.SetOrigin([ct_origin[0], ct_origin[1], ct_origin[2]])
             reference.SetDirection(dose_direction)
     
             # --- RESAMPLAA DOSE ---
             resampler = sitk.ResampleImageFilter()
             resampler.SetReferenceImage(reference)
-            resampler.SetInterpolator(sitk.sitkLinear)
+            resampler.SetInterpolator(sitk.sitkNearestNeighbor)
             resampler.SetDefaultPixelValue(0.0)
     
             dose_resampled = resampler.Execute(dose_img)
+            
+            print("Resampled origin:", dose_resampled.GetOrigin())
+            print("CT origin:", ct_img.GetOrigin())
+            print("Resampled direction:", dose_resampled.GetDirection())
+            print("CT direction:", ct_img.GetDirection())
+            print("Dose Z-spacing:", dose_resampled.GetSpacing()[2])
+            print("Dose origin Z:", dose_resampled.GetOrigin()[2])
+            print("GridFrameOffsetVector:", ds.GridFrameOffsetVector[:5])
+            
             print(" Resamplaus valmis")
     
             # --- TALLENNUS ---
             dose_array = sitk.GetArrayFromImage(dose_resampled)
     
             new_scaling = 0.001
-            stored_values = np.round(dose_array / new_scaling).astype(np.uint16)
+            stored_values = np.round(dose_array / new_scaling).astype(np.uint32)
     
             ds.PixelData = stored_values.tobytes()
             ds.Rows = stored_values.shape[1]       # Y
             ds.Columns = stored_values.shape[2]    # X
             ds.NumberOfFrames = stored_values.shape[0]  # Z
             
-            ds.BitsAllocated = 16
-            ds.BitsStored = 16
-            ds.HighBit = 15
+            ds.BitsAllocated = 32
+            ds.BitsStored = 32
+            ds.HighBit = 31
             ds.PixelRepresentation = 0  # unsigned
             ds.DoseGridScaling = new_scaling
-            ds.PixelSpacing = [ct_spacing[1], ct_spacing[0]]  # HUOM DICOM järjestys!
-            ds.SliceThickness = dose_spacing[2]
-            ds.GridFrameOffsetVector = [
-                i * dose_spacing[2] for i in range(stored_values.shape[0])
-            ]
+            ds.SliceThickness = ct_img.GetSpacing()[2]
+            ds.GridFrameOffsetVector = [i * ct_img.GetSpacing()[2] for i in range(dose_array.shape[0])]
+            ds.ImagePositionPatient = list(ct_img.GetOrigin())
+            ds.PixelSpacing = [ct_img.GetSpacing()[1], ct_img.GetSpacing()[0]]  # DICOM järjestys
     
             out_path = os.path.join(patient_out, os.path.basename(dose_path))
             
@@ -164,6 +172,9 @@ if __name__ == "__main__":
             
             ds2 = pydicom.dcmread(out_path)
             dose_check = ds2.pixel_array * float(ds2.DoseGridScaling)
+            
+            
+            
             print(dose_check.shape)
             print(dose_check.min(), dose_check.max())
     

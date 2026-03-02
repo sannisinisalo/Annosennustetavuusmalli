@@ -70,6 +70,7 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
                 distance_to_PTV = tio.ScalarImage(mask_path),
                 probability_map = tio.ScalarImage(mask_path)
                 ) 
+       
             
             if j == 0:
                 train_subjects_list.append(new_subject)
