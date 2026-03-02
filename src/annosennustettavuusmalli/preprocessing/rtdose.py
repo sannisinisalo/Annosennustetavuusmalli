@@ -122,10 +122,11 @@ if __name__ == "__main__":
             # --- RESAMPLAA DOSE ---
             resampler = sitk.ResampleImageFilter()
             resampler.SetReferenceImage(reference)
-            resampler.SetInterpolator(sitk.sitkNearestNeighbor)
+            resampler.SetInterpolator(sitk.sitkLinear)
             resampler.SetDefaultPixelValue(0.0)
     
             dose_resampled = resampler.Execute(dose_img)
+
             
             print("Resampled origin:", dose_resampled.GetOrigin())
             print("CT origin:", ct_img.GetOrigin())
@@ -153,10 +154,11 @@ if __name__ == "__main__":
             ds.HighBit = 31
             ds.PixelRepresentation = 0  # unsigned
             ds.DoseGridScaling = new_scaling
-            ds.SliceThickness = ct_img.GetSpacing()[2]
-            ds.GridFrameOffsetVector = [i * ct_img.GetSpacing()[2] for i in range(dose_array.shape[0])]
-            ds.ImagePositionPatient = list(ct_img.GetOrigin())
-            ds.PixelSpacing = [ct_img.GetSpacing()[1], ct_img.GetSpacing()[0]]  # DICOM järjestys
+            ds.PixelSpacing = [ct_spacing[1], ct_spacing[0]]  # HUOM DICOM järjestys!
+            ds.SliceThickness = dose_spacing[2]
+            ds.GridFrameOffsetVector = [
+                i * dose_spacing[2] for i in range(stored_values.shape[0])
+            ]
     
             out_path = os.path.join(patient_out, os.path.basename(dose_path))
             
