@@ -73,11 +73,13 @@ if __name__ == "__main__":
         print(f"\n[{idx}/{total}] Käsitellään potilas: {patient}")
     
         patient_in = INPUT_ROOT / patient
+        patient_in_ct = OUTPUT_ROOT / patient / "vanha ct"
         patient_out = OUTPUT_ROOT / patient / "dose"
         os.makedirs(patient_out, exist_ok=True)
     
         dose_path = find_dose_file(patient_in)
         ct_files = find_ct_files(patient_in)
+        
     
         try:
             # --- LUE CT ---
@@ -94,10 +96,6 @@ if __name__ == "__main__":
     
             dose_img = sitk.ReadImage(dose_path, sitk.sitkFloat32)
             dose_img = dose_img * dose_scaling
-
-            ct_img = sitk.DICOMOrient(ct_img, "LPS")
-            dose_img = sitk.DICOMOrient(dose_img, "LPS")
-
     
             # --- REFERENSSI ---
             dose_size = dose_img.GetSize()  # (X, Y, Z)
@@ -125,9 +123,7 @@ if __name__ == "__main__":
             ct_ipp = ct_ref.ImagePositionPatient         
             ct_ps  = ct_ref.PixelSpacing                 
             ct_th  = float(getattr(ct_ref, "SliceThickness", ct_spacing[2]))
-            ct_for = getattr(ct_ref, "FrameOfReferenceUID", None)
-            
-                       
+            ct_for = getattr(ct_ref, "FrameOfReferenceUID", None)                       
             
             # Luo referenssikuva
             new_size = [
@@ -139,7 +135,7 @@ if __name__ == "__main__":
                 ct_spacing[0],          
                 ct_spacing[1],          
                 2.0         
-            ]         
+            ]
             new_origin = [
                 ct_origin[0], 
                 ct_origin[1], 
@@ -148,7 +144,7 @@ if __name__ == "__main__":
 
             reference = sitk.Image(new_size, sitk.sitkFloat32)
             reference.SetSpacing(new_spacing)
-            reference.SetOrigin(new_origin)      
+            reference.SetOrigin(dose_origin)      
             reference.SetDirection(dose_direction)
     
             # --- RESAMPLAA DOSE ---
