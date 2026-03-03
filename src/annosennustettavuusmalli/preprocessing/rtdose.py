@@ -91,18 +91,20 @@ if __name__ == "__main__":
             dose_img = sitk.ReadImage(dose_path, sitk.sitkFloat32)
             dose_img = dose_img * dose_scaling
 
+            ct_img = sitk.DICOMOrient(ct_img, "LPS")
             dose_img = sitk.DICOMOrient(dose_img, "LPS")
+
     
             # --- REFERENSSI ---
             dose_size = dose_img.GetSize()  # (X, Y, Z)
             dose_spacing = dose_img.GetSpacing() # (sx, sy, sz)
             dose_origin = dose_img.GetOrigin()
             dose_direction = dose_img.GetDirection()
+            orig_slice_thickness = getattr(ds, "SliceThickness", dose_spacing[2])
+            orig_gfov = list(ds.GridFrameOffsetVector) if "GridFrameOffsetVector" in ds else None
             
-            ct_size = ct_img.GetSize() # (X, Y, Z)
-            ct_spacing = ct_img.GetSpacing()
-            ct_origin = ct_img.GetOrigin()
-            ct_direction = ct_img.GetDirection()
+            ct_spacing = ct_img.GetSpacing()  
+            ct_size = ct_img.GetSize()
             
             ct_positions = []
             for f in ct_files:
@@ -120,12 +122,23 @@ if __name__ == "__main__":
             ct_for = getattr(ct_ref, "FrameOfReferenceUID", None)
 
             
-            # Luo referenssikuva X/Y = CT, Z = dose
-            reference = sitk.Image(
-                [ct_size[0], ct_size[1], ct_size[2]], sitk.sitkFloat32
-                )
-            reference.SetSpacing([ct_spacing[0], ct_spacing[1], ct_spacing[2]])
-            reference.SetOrigin([ct_origin[0], ct_origin[1], ct_origin[2]])
+            # Luo referenssikuva
+            new_size = [
+                ct_size[0],        
+                ct_size[1],        
+                dose_size[2]       
+            ]
+
+            
+            new_spacing = [
+                ct_spacing[0],          
+                ct_spacing[1],          
+                dose_spacing[2]         
+            ]
+            
+            reference = sitk.Image(new_size, sitk.sitkFloat32)
+            reference.SetSpacing(new_spacing)
+            reference.SetOrigin(dose_origin)        # HUOM: dosen origin
             reference.SetDirection(dose_direction)
     
             # --- RESAMPLAA DOSE ---
@@ -156,16 +169,26 @@ if __name__ == "__main__":
             ds.DoseGridScaling = new_scaling
             
             # 1) Orientaatio ja sijainti
-            ds.ImageOrientationPatient = [float(v) for v in ct_iop]
-            ds.ImagePositionPatient = [float(v) for v in ct_ipp]
+            #ds.ImageOrientationPatient = [float(v) for v in ct_iop]
+            #ds.ImagePositionPatient = [float(v) for v in ct_ipp]
             
             # 2) Pikselikoko ja viipaleväli
-            ds.PixelSpacing = [float(ct_ps[0]), float(ct_ps[1])]  # [row, col] = [Y, X]
-            ds.SliceThickness = ct_th
+            ds.PixelSpacing = [float(new_spacing[1]), float(new_spacing[0])]   # [row, col] = [Y, X]
+            
+            ds.SliceThickness = orig_slice_thickness
+            if orig_gfov is not None:
+                ds.GridFrameOffsetVector = orig_gfov
+
+            origin = dose_origin  # sama kuin reference.SetOrigin
+            ds.ImagePositionPatient = [float(origin[0]), float(origin[1]), float(origin[2])]
+
+            if ct_for is not None:
+                ds.FrameOfReferenceUID = ct_for
+
             
             # 3) Z‑offsetit (GridFrameOffsetVector)
-            n_slices = stored_values.shape[0]
-            ds.GridFrameOffsetVector = [i * ct_th for i in range(n_slices)]
+            #n_slices = stored_values.shape[0]
+            #ds.GridFrameOffsetVector = [i * ct_th for i in range(n_slices)]
             
             # 4) FrameOfReferenceUID sama kuin CT:llä (tärkeä monelle viewerille)
             if ct_for is not None:
@@ -179,7 +202,10 @@ if __name__ == "__main__":
             print(
                 "Original GridFrameOffsetVector first/last:", 
                 ds.GridFrameOffsetVector[0], ds.GridFrameOffsetVector[-1]
-                )        
+                )      
+            print("dose_resampled size:", dose_resampled.GetSize())
+            print("dose_resampled spacing:", dose_resampled.GetSpacing())
+
             
             if not hasattr(ds, "file_meta") or ds.file_meta is None:
                 ds.file_meta = FileMetaDataset()
