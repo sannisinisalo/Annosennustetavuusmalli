@@ -13,48 +13,69 @@ annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on
 lisätty kaikki ROI:t.
 """
 
-
 import os
-import re
+from pathlib import Path
+
 import numpy as np
-import pydicom
-from rt_utils import RTStructBuilder
-from luokat import AllPatients
+from loguru import logger  # type: ignore
+from pydicom import FileDataset, dcmread
+from pydicom.uid import generate_uid
+from rt_utils import RTStructBuilder  # type: ignore
+
+from annosennustettavuusmalli.preprocessing.luokat import AllPatients  # type: ignore
 
 
-
-# CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on 
-# DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa
-def load_CT(path):
+def load_CT(path: Path | str) -> list[FileDataset]:
     """
-    Loading the CT-images and arranging them by the InstanceUID metadata.
+    Loading the CT-images and arranging them by the InstanceNumber metadata.
+
+    InstanceNumber on DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa.
+    Järjestetään kuvat ensin nousevaan järjestykseen InstanceNumberin mukaan, jonka
+    jälkeen listan järjestys käännetään päinvastaiseksi, jotta se vastaa odotettua orientaatiota.
 
     Parameters
     ----------
-    path : str
-        The path of the original CT-images.
+    path : str or Path
+        The path to the directory containing the CT DICOM series.
 
     Returns
     -------
-    slices : list
-        Arranged CT-images.
+    slices : list[FileDataset]
+        A list of the loaded CT images in DICOM form, sorted by InstanceNumber.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no CT slices are found in the specified directory.
 
     """
-    # Tuotetaan lista CT-kuvista, f silmukkamuuttuja, johon .dcm tiedostot tallentuvat
+
+    path = Path(path)
+    logger.debug(f"Loading CT images from: {path}")
+
+    # Tuotetaan lista CT-kuvista. Varmistetaan, että kyseessä on CT modality ja että kaikki kuvat kuuluvat samaan sarjaan SeriesInstanceUID:n avulla.
     slices = [
-        pydicom.dcmread(os.path.join(path, f))
-        for f in os.listdir(path)
-        if f.endswith(".dcm")
+        dcmread(f)
+        for f in path.glob("*.dcm")
+        if dcmread(f, stop_before_pixels=True).Modality == "CT"
     ]
 
-    # Otetaan ensimmäisen kuvan UID ja jätetään listaan ne tiedostot, joiden UID matchaa esnimmäisen kanssa
+    if not slices:
+        logger.warning(f"No CT slices found in directory: {path}")
+        raise FileNotFoundError(f"No CT slices found in directory: {path}")
+
+    # Otetaan ensimmäisen kuvan UID ja jätetään listaan ne tiedostot, joiden UID matchaa ensimmäisen kanssa
     series_uid = slices[0].SeriesInstanceUID
+    logger.debug(f"Found SeriesInstanceUID: {series_uid} in first CT slice.")
     slices = [s for s in slices if s.SeriesInstanceUID == series_uid]
+    logger.debug(f"Number of CT slices with matching SeriesInstanceUID: {len(slices)}")
 
     # Järjestetään listan tiedostot InstanceNumberin mukaan ensin nousevaan järjestykseen, jonka jälkeen
     # listan järjestys käännetään päinvastaiseksi
     slices.sort(key=lambda x: int(x.InstanceNumber))
+    logger.debug("CT slices sorted by InstanceNumber.")
     slices = slices[::-1]
+    logger.debug("CT slices order reversed to match expected orientation.")
 
     return slices
 
@@ -68,7 +89,7 @@ def normalize_axes(mask, ct_slices):
     ----------
     mask : numpy.ndarray
         The 3D array representing the mask.
-    ct_slices : list
+    ct_slices : list[FileDataset]
         A list of the loaded CT images in DICOM form
 
     Returns
@@ -276,7 +297,7 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
     os.makedirs(output_folder, exist_ok=True)
 
     # Generoidaan uusi SeriesInstanceUID maskisarjalle
-    series_uid = pydicom.uid.generate_uid()
+    series_uid = generate_uid()
 
     # Käydään läpi kaikki slicet
     for idx, (slice_img, ct) in enumerate(zip(mask, ct_slices)):
@@ -289,13 +310,15 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
         # Metadata maskille
         new_ds.SeriesDescription = "ROI MASK"
         new_ds.SeriesInstanceUID = series_uid  # sama kaikille slicille
-        new_ds.SOPInstanceUID = pydicom.uid.generate_uid()
+        new_ds.SOPInstanceUID = generate_uid()
         new_ds.InstanceNumber = idx + 1  # oikea järjestys
 
         # Päivitetään ImagePositionPatient Z-koordinaatti
         new_ds.ImagePositionPatient = list(ct.ImagePositionPatient)
-        new_ds.ImagePositionPatient[2] = ct.ImagePositionPatient[2] + idx * ct.SliceThickness
-        
+        new_ds.ImagePositionPatient[2] = (
+            ct.ImagePositionPatient[2] + idx * ct.SliceThickness
+        )
+
         new_ds.PixelSpacing = list(ct.PixelSpacing)
         new_ds.SliceThickness = ct.SliceThickness
 
@@ -312,40 +335,37 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
         # Tallennus
         out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
         new_ds.save_as(out_path)
-        
 
 
+# Tämä tehdään jo muualla. On siis tarpeeton, mutta jätetään tähän kommentoituna.
+# # Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
+# def get_patient_number(name) -> int:
+#     """
+#     Get the numeric value from the patient folder name for sorting purposes.
 
-# Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
-def get_patient_number(name) -> int:
-    """
-    Get the numeric value from the patient folder name for sorting purposes.
+#     Parameters
+#     ----------
+#     patient : Patient
+#         The patient object.
 
-    Parameters
-    ----------
-    patient : Patient
-        The patient object.
+#     Returns
+#     -------
+#     int
+#         The numeric value extracted from the patient folder name, or 0 if none found.
 
-    Returns
-    -------
-    int
-        The numeric value extracted from the patient folder name, or 0 if none found.
-
-    """
-    # Eristetään numero nimestä
-    m = re.search(r"(\d+)", name)
-    return int(m.group(1)) if m else 0
-
+#     """
+#     # Eristetään numero nimestä
+#     m = re.search(r"(\d+)", name)
+#     return int(m.group(1)) if m else 0
 
 
 # PÄÄOHJELMA
 
 if __name__ == "__main__":
-
     # Luodaan AllPatients-objekti
     all_patients = AllPatients(
-        processed_dataset="VN0ds",   # kansio muokattuja tiedostoja varten
-        original_dataset="VN0"       # alkuperäiset tiedostot
+        processed_dataset="VN0ds",  # kansio muokattuja tiedostoja varten
+        original_dataset="VN0",  # alkuperäiset tiedostot
     )
 
     # Käydään kaikki potilaat läpi numerojärjestyksessä
@@ -353,13 +373,17 @@ if __name__ == "__main__":
         print(f"Käsitellään {patient.patient_folder}...")
 
         # Polut luokkien kautta
-        ct_path = patient.org_ct_dir  # CT-kuvat tallennettuna "ct"-kansioon muokatuissa tiedostoissa
+        ct_path = (
+            patient.org_ct_dir
+        )  # CT-kuvat tallennettuna "ct"-kansioon muokatuissa tiedostoissa
         out_path = patient.mask_dir  # Maskit tallennetaan "maski"-kansioon
         struct_dir = patient.struct_dir  # RS-tiedostot sijaitsevat "struct"-kansiossa
 
         # Etsitään RS-tiedosto
         try:
-            struct_files = [f for f in os.listdir(patient.struct_dir) if f.endswith(".dcm")]            
+            struct_files = [
+                f for f in os.listdir(patient.struct_dir) if f.endswith(".dcm")
+            ]
             rs_path = os.path.join(patient.struct_dir, struct_files[0])
         except FileNotFoundError:
             print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
@@ -373,5 +397,5 @@ if __name__ == "__main__":
 
         # Tallennetaan maski DICOM-sarjana
         save_mask_as_dicom_series(mask, ct_slices, out_path)
-        
+
         print("Maski tallennettu")
