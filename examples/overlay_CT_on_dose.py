@@ -12,26 +12,33 @@ import SimpleITK as sitk
 import os
 
 # -----------------------------
-# 1. Lataa CT-sarja
+# 1. Lataa CT-sarja oikeassa järjestyksessä
 # -----------------------------
-ct_folder = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct"
-ct_files = [str((ct_folder + "\\" + f)) for f in sorted(os.listdir(ct_folder)) if f.endswith(".dcm")]
+ct_folder = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\vanha ct"
+ct_files_unsorted = [os.path.join(ct_folder, f) for f in os.listdir(ct_folder) if f.endswith(".dcm")]
 
+# Lue jokaisen tiedoston ImagePositionPatient (z-koordinaatti)
+positions = []
+for f in ct_files_unsorted:
+    ds = pydicom.dcmread(f, stop_before_pixels=True)
+    pos = ds.ImagePositionPatient  # [x, y, z]
+    positions.append((f, pos[2]))  # käytetään z-koordinaattia
+
+# Järjestä viipaleet vatsasta päähän (pienin z ensin, suurin z viimeiseksi)
+ct_files_sorted = [f for f, z in sorted(positions, key=lambda x: x[1])]
+
+# Lataa kuvat SimpleITK:lla
 reader = sitk.ImageSeriesReader()
-reader.SetFileNames(ct_files)
+reader.SetFileNames(ct_files_sorted)
 ct_img = reader.Execute()
-
-ct_arr = sitk.GetArrayFromImage(ct_img)   # (z, y, x)
-ct_spacing = ct_img.GetSpacing()
-ct_origin = ct_img.GetOrigin()
-ct_direction = ct_img.GetDirection()
+ct_arr = sitk.GetArrayFromImage(ct_img)  # (z, y, x)
 
 print("CT shape:", ct_arr.shape)
 
 # -----------------------------
 # 2. Lataa annos ja resamplaa CT:n ruudukkoon
 # -----------------------------
-dose_path = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\doseds\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
+dose_path = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\dose\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
 ds_dose = pydicom.dcmread(dose_path)
 
 dose_img = sitk.ReadImage(dose_path, sitk.sitkFloat32)
