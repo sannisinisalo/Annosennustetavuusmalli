@@ -14,7 +14,7 @@ import os
 # -----------------------------
 # 1. Lataa CT-sarja
 # -----------------------------
-ct_folder = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient2_VN0\ct"
+ct_folder = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maskids"
 ct_files = [str((ct_folder + "\\" + f)) for f in sorted(os.listdir(ct_folder)) if f.endswith(".dcm")]
 
 reader = sitk.ImageSeriesReader()
@@ -31,7 +31,7 @@ print("CT shape:", ct_arr.shape)
 # -----------------------------
 # 2. Lataa annos ja resamplaa CT:n ruudukkoon
 # -----------------------------
-dose_path = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient2_VN0\dose\RD.1.2.246.352.221.5243245925728214844.2197592380591182783.dcm"
+dose_path = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\doseds\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
 ds_dose = pydicom.dcmread(dose_path)
 
 dose_img = sitk.ReadImage(dose_path, sitk.sitkFloat32)
