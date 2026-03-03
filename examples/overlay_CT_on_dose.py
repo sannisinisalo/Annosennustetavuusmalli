@@ -38,7 +38,7 @@ print("CT shape:", ct_arr.shape)
 # -----------------------------
 # 2. Lataa annos ja resamplaa CT:n ruudukkoon
 # -----------------------------
-dose_path = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\dose\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
+dose_path = r"C:\Users\User01\GRADU\Aineisto\VN0\Patient1_VN0\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
 ds_dose = pydicom.dcmread(dose_path)
 
 dose_img = sitk.ReadImage(dose_path, sitk.sitkFloat32)

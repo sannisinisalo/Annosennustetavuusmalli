@@ -89,17 +89,17 @@ def show_comparison(mask1, mask2, slice_index=None):
 # -------------------------------------------------
 # 5. PÄÄOHJELMA
 # -------------------------------------------------
-folder1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct"
-folder2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maskids"
+folder1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\vanha ct"
+folder2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
 
 mask1, files1 = load_dicom_series(folder1)
 mask2, files2 = load_dicom_series(folder2)
 
-print("=== METADATA MASKI 1 (Nova) ===")
+print("=== METADATA MASKI 1 ===")
 meta1 = extract_metadata(files1)
 print(pd.Series(meta1))
 
-print("\n=== METADATA MASKI 2 (KYS) ===")
+print("\n=== METADATA MASKI 2 ===")
 meta2 = extract_metadata(files2)
 print(pd.Series(meta2))
 
