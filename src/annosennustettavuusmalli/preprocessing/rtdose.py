@@ -79,14 +79,6 @@ if __name__ == "__main__":
         dose_path = find_dose_file(patient_in)
         ct_files = find_ct_files(patient_in)
     
-        if dose_path is None:
-            print(" Dose-tiedostoa ei löytynyt → ohitetaan")
-            continue
-    
-        if len(ct_files) == 0:
-            print(" CT-viipaleita ei löytynyt → ohitetaan")
-            continue
-    
         try:
             # --- LUE CT ---
             ct_img = load_ct_series_from_files(ct_files)
@@ -100,8 +92,6 @@ if __name__ == "__main__":
             dose_img = dose_img * dose_scaling
 
             dose_img = sitk.DICOMOrient(dose_img, "LPS")
-
-            print(" Dose ladattu")
     
             # --- REFERENSSI ---
             dose_size = dose_img.GetSize()  # (X, Y, Z)
@@ -147,11 +137,6 @@ if __name__ == "__main__":
             dose_resampled = resampler.Execute(dose_img)
             
             dose_arr = sitk.GetArrayFromImage(dose_resampled)  # shape: (Z, Y, X)
-            
-            print("Resampled origin:", dose_resampled.GetOrigin())
-            print("CT origin:", ct_img.GetOrigin())
-            
-            print(" Resamplaus valmis")
     
             # --- TALLENNUS ---
             dose_array = sitk.GetArrayFromImage(dose_resampled)
@@ -191,7 +176,6 @@ if __name__ == "__main__":
             print("ct_img origin:", ct_img.GetOrigin())
             print("dose_resampled spacing:", dose_resampled.GetSpacing())
             print("ct_img spacing:", ct_img.GetSpacing())
-            print("first CT IPP:", ct_ipp)
             print(
                 "Original GridFrameOffsetVector first/last:", 
                 ds.GridFrameOffsetVector[0], ds.GridFrameOffsetVector[-1]
