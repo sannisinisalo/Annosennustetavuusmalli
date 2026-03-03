@@ -14,7 +14,7 @@ import os
 # -----------------------------
 # 1. Lataa CT-sarja
 # -----------------------------
-ct_folder = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maskids"
+ct_folder = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct"
 ct_files = [str((ct_folder + "\\" + f)) for f in sorted(os.listdir(ct_folder)) if f.endswith(".dcm")]
 
 reader = sitk.ImageSeriesReader()
@@ -49,20 +49,23 @@ dose_arr = sitk.GetArrayFromImage(dose_resampled)  # (z, y, x)
 print("Dose shape:", dose_arr.shape)
 
 # -----------------------------
-# 3. Visualisointi overlaynä
+# 3. Visualisointi overlaynä kaikille viipaleille
 # -----------------------------
-# Valitse viipale (esim. keskiviipale)
-slice_index = ct_arr.shape[0] // 2
+num_slices = ct_arr.shape[0]
 
-ct_slice = ct_arr[slice_index]
-dose_slice = dose_arr[slice_index]
+for slice_index in range(num_slices):
+    ct_slice = ct_arr[slice_index]
+    dose_slice = dose_arr[slice_index]
 
-# Normalisoi annos overlaytä varten
-dose_norm = dose_slice / dose_slice.max()
+    # Vältä jakoa nollalla
+    if dose_slice.max() > 0:
+        dose_norm = dose_slice / dose_slice.max()
+    else:
+        dose_norm = dose_slice  # kaikki nollia, ei skaalata
 
-plt.figure(figsize=(8, 8))
-plt.imshow(ct_slice, cmap="gray", interpolation="none")
-plt.imshow(dose_norm, cmap="inferno", alpha=0.4, interpolation="none")
-plt.title(f"CT + Dose overlay (slice {slice_index})")
-plt.axis("off")
-plt.show()
+    plt.figure(figsize=(8, 8))
+    plt.imshow(ct_slice, cmap="gray", interpolation="none")
+    plt.imshow(dose_norm, cmap="inferno", alpha=0.4, interpolation="none")
+    plt.title(f"CT + Dose overlay (slice {slice_index})")
+    plt.axis("off")
+    plt.show()
