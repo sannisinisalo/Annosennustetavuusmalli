@@ -187,6 +187,15 @@ if __name__ == "__main__":
                 ds.FrameOfReferenceUID = ct_for
             out_path = os.path.join(patient_out, os.path.basename(dose_path))
         
+            print("dose_resampled origin:", dose_resampled.GetOrigin())
+            print("ct_img origin:", ct_img.GetOrigin())
+            print("dose_resampled spacing:", dose_resampled.GetSpacing())
+            print("ct_img spacing:", ct_img.GetSpacing())
+            print("first CT IPP:", ct_ipp)
+            print(
+                "Original GridFrameOffsetVector first/last:", 
+                ds.GridFrameOffsetVector[0], ds.GridFrameOffsetVector[-1]
+                )        
             
             if not hasattr(ds, "file_meta") or ds.file_meta is None:
                 ds.file_meta = FileMetaDataset()
