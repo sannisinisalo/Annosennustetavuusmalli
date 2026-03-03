@@ -157,16 +157,16 @@ if __name__ == "__main__":
             dose_array = sitk.GetArrayFromImage(dose_resampled)
     
             new_scaling = 0.001
-            stored_values = np.round(dose_array / new_scaling).astype(np.uint32)
+            stored_values = np.round(dose_array / new_scaling).astype(np.uint16)
     
             ds.PixelData = stored_values.tobytes()
             ds.Rows = stored_values.shape[1]       # Y
             ds.Columns = stored_values.shape[2]    # X
             ds.NumberOfFrames = stored_values.shape[0]  # Z
             
-            ds.BitsAllocated = 32
-            ds.BitsStored = 32
-            ds.HighBit = 31
+            ds.BitsAllocated = 16
+            ds.BitsStored = 16
+            ds.HighBit = 15
             ds.PixelRepresentation = 0  # unsigned
             ds.DoseGridScaling = new_scaling
             
