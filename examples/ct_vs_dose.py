@@ -11,8 +11,8 @@ import SimpleITK as sitk
 
 # POLUT
 
-CT_DIR = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\vanha ct"
-DOSE_PATH = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\dose\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"    
+CT_DIR = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct"
+DOSE_PATH = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\doseds\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"    
 
 
 # APUFUNKTIOITA
