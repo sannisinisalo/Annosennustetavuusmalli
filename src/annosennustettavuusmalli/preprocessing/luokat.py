@@ -10,7 +10,6 @@ Alkuperäisille ja muokatuille tiedostoille tehty eri tiedostopolut.
 from dataclasses import dataclass
 from pathlib import Path
 import re
-from typing import List
 
 # Keskitetty juuripolku:
 BASE_DIR = Path(r"C:\Users\User01\GRADU\Aineisto")

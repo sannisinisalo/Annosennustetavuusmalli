@@ -80,6 +80,8 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
                 test_subjects_list.append(new_subject)
     
     print("Mask dtype:", new_subject['mask'][tio.DATA].dtype) # DEBUGLISÄYS
+    print("CT dtype:", new_subject['ct'][tio.DATA].dtype)
+    print("Dose dtype:", new_subject['dose'][tio.DATA].dtype)
     
     #rescale_mask = tio.RescaleIntensity(out_min_max=(-0.2, 1), in_min_max = (-1, 10), include = ['mask'])
     rescale_ct = tio.RescaleIntensity(

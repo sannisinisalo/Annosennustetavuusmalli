@@ -85,24 +85,24 @@ def dose_difference_analysis(dose1, dose2):
 # -------------------------------------------------
 # 5. PÄÄOHJELMA
 # -------------------------------------------------
-file1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\doseds\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
-file2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\dose\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
+file1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\dose\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
+file2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient60_VN0\dose\RD.1.2.246.352.221.5448679770797535778.17401886329480751763.dcm"
 
 dose1, ds1 = load_rtdose(file1)
 dose2, ds2 = load_rtdose(file2)
 
-print("=== METADATA RTDOSE 1 (Nova) ===")
+print("=== METADATA RTDOSE 1 ===")
 meta1 = extract_rtdose_metadata(ds1)
 print(pd.Series(meta1))
 
-print("\n=== METADATA RTDOSE 2 (KYS) ===")
+print("\n=== METADATA RTDOSE 2 ===")
 meta2 = extract_rtdose_metadata(ds2)
 print(pd.Series(meta2))
 
-print("\n=== ANNOSSTATISTIIKKA 1 (Nova) ===")
+print("\n=== ANNOSSTATISTIIKKA 1 ===")
 print(pd.Series(dose_statistics(dose1)))
 
-print("\n=== ANNOSSTATISTIIKKA 2 (KYS) ===")
+print("\n=== ANNOSSTATISTIIKKA 2 ===")
 print(pd.Series(dose_statistics(dose2)))
 
 

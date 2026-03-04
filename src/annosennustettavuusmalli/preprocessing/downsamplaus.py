@@ -21,12 +21,12 @@ from scipy.ndimage import zoom
 from luokat import BASE_DIR
 
 
-def _ensure_dir(path: str | Path) -> None:
+def ensure_dir(path: str | Path) -> None:
     """Create directory if it does not exist."""
     os.makedirs(path, exist_ok=True)
 
 
-def _find_patient_folders(source_root: str | Path) -> List[str]:
+def find_patient_folders(source_root: str | Path) -> List[str]:
     """Find all patient folders starting with 'Patient' and sort numerically."""
     candidates = [
         p for p in glob.glob(os.path.join(source_root, "*")) if os.path.isdir(p)
@@ -43,7 +43,7 @@ def _find_patient_folders(source_root: str | Path) -> List[str]:
     return sorted(patients, key=patient_sort_key)
 
 
-def _find_dicom_by_modality(folder: str, modality: str) -> List[str]:
+def find_dicom_by_modality(folder: str, modality: str) -> List[str]:
     """Find all DICOM files of a given modality in a folder."""
     files = [
         os.path.join(folder, f) 
@@ -83,8 +83,8 @@ if __name__ == "__main__":
     else:
         raise ValueError("Tuntematon dataset-parametri. Käytä: 'L', 'R', 'LAX', 'RAX'.")
 
-    _ensure_dir(DESTINATION_PATH)
-    patients = _find_patient_folders(SOURCE_PATH)
+    ensure_dir(DESTINATION_PATH)
+    patients = find_patient_folders(SOURCE_PATH)
     if not patients:
         print("Ei löytynyt potilaskansioita (Patient*).")
     else:
@@ -93,47 +93,33 @@ if __name__ == "__main__":
             print(f"Processing {patient_name}...")
 
             # Find DICOM files by modality
-            ct_files = _find_dicom_by_modality(p, "CT")
-            rd_files = _find_dicom_by_modality(p, "RTDOSE")
-            rp_files = _find_dicom_by_modality(p, "RTPLAN")
-            rs_files = _find_dicom_by_modality(p, "RTSTRUCT")
-
-            ct_slices = [dcmread(f) for f in ct_files]
+            ct_files = find_dicom_by_modality(p, "CT")
+            rd_files = find_dicom_by_modality(p, "RTDOSE")
+            rp_files = find_dicom_by_modality(p, "RTPLAN")
+            rs_files = find_dicom_by_modality(p, "RTSTRUCT")
 
             # Create output folders
             folders = {
                 "ct": os.path.join(DESTINATION_PATH, patient_name, "ct"),
                 "dose": os.path.join(
                     DESTINATION_PATH, patient_name, "dose"
-                    ), # alkuperäinen dose
+                    ),
                 "doseds": os.path.join(
                     DESTINATION_PATH, patient_name, "doseds"
-                    ), # uusi downsampled/copy dose
+                    ),
                 "plan": os.path.join(DESTINATION_PATH, patient_name, "plan"),
                 "struct": os.path.join(DESTINATION_PATH, patient_name, "struct"),
                 "mask": os.path.join(DESTINATION_PATH, patient_name, "maskids"),
             }
             for d in folders.values():
-                _ensure_dir(d)
+                ensure_dir(d)
 
             # Downsample CT slices
             for f in ct_files:
                 try:
                     ds = dcmread(f)
                     arr_down = zoom(ds.pixel_array, zoom=(0.5, 0.5), order=1)
-                    
-                    # --- Muunna float32-muotoon ---
-                    arr_down = arr_down.astype(np.float32)
                     ds.PixelData = arr_down.tobytes()
-                    ds.Rows, ds.Columns = arr_down.shape
-                    
-                    # --- Päivitä DICOM metadata ---
-                    ds.BitsAllocated = 32
-                    ds.BitsStored = 32
-                    ds.HighBit = 31
-                    ds.PixelRepresentation = 0  
-                    ds.PixelData = arr_down.tobytes()
-                    
                     ds.Rows, ds.Columns = arr_down.shape
                     if hasattr(ds, "PixelSpacing"):
                         ds.PixelSpacing = MultiValue(
@@ -152,44 +138,26 @@ if __name__ == "__main__":
                 os.path.join(dose_src_folder, f) 
                 for f in os.listdir(dose_src_folder)
                 if os.path.isfile(os.path.join(dose_src_folder, f))
-            ]
+                ]
             
             arr_dose_down = None
             ds_dose = None
             if dose_files:
                 try:
-                    ds_dose = dcmread(dose_files[0])                
+                    ds_dose = dcmread(dose_files[0])
                     arr_dose = ds_dose.pixel_array
-                    
                     # 2. Downsample Y/X (Z pysyy samana)
-                    scale_y, scale_x = 0.5, 0.5
-                    arr_dose_down = zoom(arr_dose, zoom=(1, 0.5, 0.5), order=0)
+                    arr_dose_down = zoom(arr_dose, zoom=(1, 0.5, 0.5), order=1)
                     ds_dose.Rows, ds_dose.Columns = (
                         arr_dose_down.shape[1], 
                         arr_dose_down.shape[2]
                         )
+                    dose_origin_z = ds_dose.ImagePositionPatient[2]
+                    dose_z_positions = dose_origin_z + np.array(ds_dose.GridFrameOffsetVector)
                     if hasattr(ds_dose, "PixelSpacing"):
                         ds_dose.PixelSpacing = MultiValue(
                             float, [float(x)*2 for x in ds_dose.PixelSpacing]
                             )
-                    # --- Korjataan ImagePositionPatient ---
-                    # Skaalataan X/Y origot
-                    orig = list(ds_dose.ImagePositionPatient)
-                    orig[0] *= scale_x  # X
-                    orig[1] *= scale_y  # Y
-            
-                    # Z-koordinaatit interpoloituna CT:ltä
-                    ct_z = [s.ImagePositionPatient[2] for s in ct_slices]
-                    num_slices = arr_dose_down.shape[0]
-                    if num_slices == len(ct_z):
-                        new_z = ct_z
-                    else:
-                        new_z = np.linspace(ct_z[0], ct_z[-1], num=num_slices)
-            
-                    # Luo uusi ImagePositionPatient jokaiselle slicelle
-                    # Tallennetaan ds_dose:een vain ensimmäinen, muille sliceille voi olla tarvittaessa erillinen DICOM-sarja
-                    ds_dose.ImagePositionPatient = [orig[0], orig[1], new_z[0]]                
-                    
                 except Exception as e:
                     warnings.warn(
                         f"{patient_name}: RD-tiedoston käsittely epäonnistui: {e}"
@@ -202,75 +170,46 @@ if __name__ == "__main__":
                 for f in os.listdir(mask_src_folder)
                 if os.path.isfile(os.path.join(mask_src_folder, f))
                 ]
+            arr_dose_down_flipped = arr_dose_down[::-1, :, :]
             
-            mask_down_slices = []
+            for i, f in enumerate(mask_files):
+                ds_mask = dcmread(f)
+                mask_orig = ds_mask.pixel_array
             
-            for idx, f in enumerate(mask_files):
-                try:
-                    ds_mask = dcmread(f)                    
-                    mask_orig = ds_mask.pixel_array
+                # Downsample X/Y
+                zoom_y = arr_dose_down_flipped.shape[1] / mask_orig.shape[0]
+                zoom_x = arr_dose_down_flipped.shape[2] / mask_orig.shape[1]
+                mask_down = zoom(mask_orig, zoom=(zoom_y, zoom_x), order=0)
             
-                    # Downsample mask samaan kokoon kuin dose
-                    zoom_y = arr_dose_down.shape[1] / mask_orig.shape[0]
-                    zoom_x = arr_dose_down.shape[2] / mask_orig.shape[1]
-                    mask_down = zoom(mask_orig, zoom=(zoom_y, zoom_x), order=0)
+                # Slice-reversointi: käännä index Z-akselilla
+                idx = len(mask_files) - 1 - i  # vastaa flipattu dose
+                # Sovitetaan dose tähän sliceen
+                # HUOM! Ei tehdä maskin mukaan multiplicaatiota, vaan indeksi vain järjestää
+                dose_slice = arr_dose_down_flipped[idx, :, :]
             
-                    ds_mask.PixelData = mask_down.tobytes()
-                    ds_mask.Rows, ds_mask.Columns = mask_down.shape
-                    
-                    if hasattr(ds_mask, "PixelSpacing"):
-                        ds_mask.PixelSpacing = MultiValue(
-                            float, [float(x)*2 for x in ds_mask.PixelSpacing]
-                            )
-                        
-                    if hasattr(ds_mask, "ImagePositionPatient"):
-                        # idx vastaa slicen paikkaa maskissa
-                        ds_mask.ImagePositionPatient[2] = ct_slices[idx].ImagePositionPatient[2]
+                # Tallenna maski kuten ennen
+                ds_mask.PixelData = mask_down.astype(np.int32).tobytes()
+                ds_mask.Rows, ds_mask.Columns = mask_down.shape
+                if hasattr(ds_mask, "PixelSpacing"):
+                    ds_mask.PixelSpacing = MultiValue(float, [float(x)*2 for x in ds_mask.PixelSpacing])
+                ds_mask.save_as(os.path.join(folders["mask"], os.path.basename(f)))
             
-                    # 4. Sovelletaan maski doseen slice-reversoinnilla
-                    if hasattr(ds_mask, "InstanceNumber") and arr_dose_down is not None:
-                        #idx = arr_dose_down.shape[0] - ds_mask.InstanceNumber
-                        mask_min = np.min(mask_down)
-                        arr_dose_down[ds_mask.InstanceNumber - 1, :, :] *= (
-                            np.isin(mask_down, mask_min, invert=True)
-                            )
-                    
-            
-                    # 5. Tallennetaan maski maskids-kansioon
-                    ds_mask.save_as(os.path.join(folders["mask"], os.path.basename(f)))
-                    
-                    mask_down_slices.append(ds_mask)
-                    
-                except Exception as e:
-                    warnings.warn(
-                        f"{patient_name}: Mask-tiedoston {os.path.basename(f)} käsittely epäonnistui: {e}"
-                        )
+            # Lopuksi tallenna flipattu dose
+            ds_dose.PixelData = arr_dose_down_flipped.tobytes()
+            ds_dose.Rows, ds_dose.Columns = arr_dose_down_flipped.shape[1], arr_dose_down_flipped.shape[2]
+            ds_dose.save_as(os.path.join(folders["doseds"], os.path.basename(dose_files[0])))
+
             # 6. Tallennetaan muokattu dose doseds-kansioon
             if ds_dose is not None and arr_dose_down is not None:
                 try:
-                    # --- MUUNNA FLOAT32 ---
-                    arr_dose_down = arr_dose_down.astype(np.float32)
-            
-                    # --- Päivitä metadata ---
-                    ds_dose.BitsAllocated = 32
-                    ds_dose.BitsStored = 32
-                    ds_dose.HighBit = 31
-                    ds_dose.PixelRepresentation = 0  # unsigned
-            
-                    # Jos et halua käyttää DoseGridScalingia
-                    if hasattr(ds_dose, "DoseGridScaling"):
-                        ds_dose.DoseGridScaling = 1.0
-            
                     ds_dose.PixelData = arr_dose_down.tobytes()
-            
                     ds_dose.save_as(
                         os.path.join(folders["doseds"], os.path.basename(dose_files[0]))
-                    )
-            
+                        )
                 except Exception as e:
                     warnings.warn(
                         f"{patient_name}: RD-tiedoston tallennus doseds-kansioon epäonnistui: {e}"
-                    )
+                        )
 
 
 
