@@ -79,16 +79,23 @@ if __name__ == "__main__":
     
         dose_path = find_dose_file(patient_in)
         ct_files = find_ct_files(patient_in)
+        z_positions = []
         
-    
+        for f in ct_files:
+            ds_ct = pydicom.dcmread(f, stop_before_pixels=True)
+            z_positions.append(ds_ct.ImagePositionPatient[2])
+        
+
         try:
             # --- LUE CT ---
             ct_img = load_ct_series_from_files(ct_files)
+            print("ct_img origin:", ct_img.GetOrigin())
             forced_spacing = list(ct_img.GetSpacing())
             forced_spacing[2] = 2.0
             ct_img.SetSpacing(forced_spacing)
-
-            print(f" CT ladattu ({ct_img.GetSize()[2]} viipaletta)")
+            print(f"CT ladattu ({ct_img.GetSize()[2]} viipaletta)")
+            print("ct_img spacing:", ct_img.GetSpacing())    
+            
     
             # --- LUE DOSE ---
             ds = pydicom.dcmread(dose_path)
@@ -101,6 +108,7 @@ if __name__ == "__main__":
             dose_size = dose_img.GetSize()  # (X, Y, Z)
             dose_spacing = dose_img.GetSpacing() # (sx, sy, sz)
             dose_origin = dose_img.GetOrigin()
+            print("Dose origin:", dose_origin)
             dose_direction = dose_img.GetDirection()
             orig_slice_thickness = getattr(ds, "SliceThickness", dose_spacing[2])
             orig_gfov = list(ds.GridFrameOffsetVector) if "GridFrameOffsetVector" in ds else None
@@ -108,6 +116,7 @@ if __name__ == "__main__":
             ct_size = ct_img.GetSize()
             ct_spacing = ct_img.GetSpacing()        
             ct_origin = ct_img.GetOrigin()
+            print("CT origin:", ct_origin)
             ct_direction = ct_img.GetDirection()
             
             ct_positions = []
@@ -144,7 +153,7 @@ if __name__ == "__main__":
 
             reference = sitk.Image(new_size, sitk.sitkFloat32)
             reference.SetSpacing(new_spacing)
-            reference.SetOrigin(dose_origin)      
+            reference.SetOrigin(new_origin)      
             reference.SetDirection(dose_direction)
     
             # --- RESAMPLAA DOSE ---
@@ -154,7 +163,9 @@ if __name__ == "__main__":
             resampler.SetDefaultPixelValue(0.0)
     
             dose_resampled = resampler.Execute(dose_img)
-
+            print("dose_resampled origin:", dose_resampled.GetOrigin())
+            print("dose_resampled spacing:", dose_resampled.GetSpacing())
+            print("dose_resampled size:", dose_resampled.GetSize())
             
             dose_arr = sitk.GetArrayFromImage(dose_resampled)  
     
@@ -176,25 +187,22 @@ if __name__ == "__main__":
             ds.DoseGridScaling = new_scaling
             
             ds.PixelSpacing = [float(new_spacing[1]), float(new_spacing[0])]
-            
             ds.SliceThickness = orig_slice_thickness
-            ds.GridFrameOffsetVector = orig_gfov
+            
+            new_gfov = [i * new_spacing[2] for i in range(ds.NumberOfFrames)]
+            ds.GridFrameOffsetVector = new_gfov
 
-            origin = dose_origin 
-            ds.ImagePositionPatient = [float(origin[0]), float(origin[1]), float(origin[2])]
+            ds.ImagePositionPatient = [
+                float(ct_origin[0]),
+                float(ct_origin[1]),
+                float(dose_origin[2])
+            ]
 
             if ct_for is not None:
                 ds.FrameOfReferenceUID = ct_for
 
             out_path = os.path.join(patient_out, os.path.basename(dose_path))
-            
-            print("Dose origin:", dose_origin)
-            print("CT origin:", ct_origin)        
-            print("dose_resampled origin:", dose_resampled.GetOrigin())
-            print("ct_img origin:", ct_img.GetOrigin())
-            print("dose_resampled spacing:", dose_resampled.GetSpacing())
-            print("ct_img spacing:", ct_img.GetSpacing())    
-            print("dose_resampled size:", dose_resampled.GetSize())
+
             
             if not hasattr(ds, "file_meta") or ds.file_meta is None:
                 ds.file_meta = FileMetaDataset()
