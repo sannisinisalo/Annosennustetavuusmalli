@@ -18,6 +18,7 @@ import os
 import pickle
 from tqdm import tqdm
 
+import time
 import sys
 import torch
 import torch.nn as nn
@@ -329,7 +330,7 @@ for hp_config_iter in hp_config:
 This is for training set checking. Visualizes 3x8 figure that includes ct, mask and dose for one 8-sized batch. Figure updates every 2 seconds.
 """
 
-import time
+
 
 plt.rcParams["figure.figsize"] = (10, 15)
 plt.figure()

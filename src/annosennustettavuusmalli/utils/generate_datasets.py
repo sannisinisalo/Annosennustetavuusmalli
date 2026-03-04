@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Tekijä: Akseli Leino
-Muokkaaja. Sanni Sinisalo
+Muokkaaja: Sanni Sinisalo
 """
 
 import re
@@ -9,6 +9,7 @@ import math
 import pickle
 from scipy.ndimage import zoom
 import numpy as np
+import torch
 
 import glob
 import os
@@ -16,7 +17,6 @@ import torchio as tio
 import random
 from pydicom import dcmread
 from .custom_transforms import DoseScalingTransform, PixelSizingTransform, CreateInputMask, CreateDistanceToPTV, ProbabilityMapTransform
-import torch
 
 
 def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))->tuple([tio.SubjectsDataset, tio.SubjectsDataset, tio.SubjectsDataset]):
@@ -61,15 +61,16 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
             new_subject = tio.Subject(
                 ct = ct_data,
                 mask = mask_data,
-                original_mask = mask_data,
+                original_mask = tio.ScalarImage(mask_path),
                 dose = dose_data,
                 name = subject,
                 dose_multiplier = dose_multiplier,
                 num_samples = int(num_samples/reduce_samples),
                 pixel_spacing = pixel_spacing,
-                distance_to_PTV = tio.ScalarImage(tensor=torch.zeros_like(mask_data.data)), # MUUTETTU, JOTTA MASKI SAISI JÄRKEVIÄ ARVOJA
-                probability_map = tio.ScalarImage(tensor=torch.zeros_like(mask_data.data))
-                ) # MUUTETTU, JOTTA MASKI SAISI JÄRKEVIÄ ARVOJA
+                distance_to_PTV = tio.ScalarImage(mask_path),
+                probability_map = tio.ScalarImage(mask_path)
+                ) 
+       
             
             if j == 0:
                 train_subjects_list.append(new_subject)
@@ -78,11 +79,22 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
             elif j == 2:
                 test_subjects_list.append(new_subject)
     
-    print("Mask dtype:", new_subject['mask'][tio.DATA].dtype) # DEBULISÄYS
+    print("Mask dtype:", new_subject['mask'][tio.DATA].dtype) # DEBUGLISÄYS
+    print("CT dtype:", new_subject['ct'][tio.DATA].dtype)
+    print("Dose dtype:", new_subject['dose'][tio.DATA].dtype)
     
     #rescale_mask = tio.RescaleIntensity(out_min_max=(-0.2, 1), in_min_max = (-1, 10), include = ['mask'])
-    rescale_ct = tio.RescaleIntensity(out_min_max=(0, 4), in_min_max = (-1024, 3072), include = ['ct'])
-    rand_affine = tio.transforms.RandomAffine(degrees = (0, 0, 10), translation = (30, 70, 0), image_interpolation = 'nearest', default_pad_value = 'otsu') # padding should equal to value outside of body, change if it's not minimum
+    rescale_ct = tio.RescaleIntensity(
+        out_min_max=(0, 4), 
+        in_min_max = (-1024, 3072), 
+        include = ['ct']
+    )
+    rand_affine = tio.transforms.RandomAffine(
+        degrees = (0, 0, 10), 
+        translation = (30, 70, 0), 
+        image_interpolation = 'nearest', 
+        default_pad_value = 'otsu'
+    ) # padding should equal to value outside of body, change if it's not minimum
     rescale_dose = DoseScalingTransform()
     rescale_pixels = PixelSizingTransform()
     create_final_mask = CreateInputMask()
@@ -92,9 +104,7 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
     # The order of the transforms is important! Padding of the size transformations are made with the assumption that data is already scaled. Thus, rescale transforms must be befor rescale pixels.
     # Also, create_final_mask must be AFTER resizing pixels, as it creates 'original_mask', which is not at the moment handled by PixelSizingTransform.
     
-    resample = tio.Resample('ct') # LISÄTTY, JOTTA DOSELLE SAI SMAN pixel_spacing KUIN CT:LLÄ JA MASKEILLA
     train_transforms = tio.Compose((
-        resample,
         rescale_dose, 
         rescale_ct, 
         rescale_pixels, 
@@ -104,7 +114,6 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
         rand_affine
         ))
     transforms = tio.Compose((
-        resample,
         rescale_dose, 
         rescale_ct, 
         rescale_pixels, 

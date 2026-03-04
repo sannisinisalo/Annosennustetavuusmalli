@@ -4,7 +4,7 @@ from torchvision.transforms.functional import affine
 from torchvision.transforms.functional import InterpolationMode
 import matplotlib.pyplot as plt
 from einops import rearrange
-from .integer_mask_to_binary import integer_mask_to_binary
+from annosennustettavuusmalli.utils.integer_mask_to_binary import integer_mask_to_binary
 import torch
 from scipy.ndimage import distance_transform_edt
 
@@ -19,16 +19,16 @@ class ProbabilityMapTransform(tio.transforms.Transform):
     """
     def apply_transform(self, subject: tio.Subject)->tio.Subject:
         mask = subject['mask'][tio.DATA]
-        probability_map = torch.empty_like(mask)
+        probability_map = torch.empty_like(mask, dtype=torch.float32)
         
         # Images are (c, w, h, d), we want to iterate depth.
         for i in range(probability_map.shape[3]):
             current_slice = mask[:, :, :, i]
         
             if torch.any(current_slice == 1):
-                probability_map[:, :, :, i] = 0.6
+                probability_map[:, :, :, i] = 0.75
             else:
-                probability_map[:, :, :, i] = 0.2
+                probability_map[:, :, :, i] = 0.25
         
         subject['probability_map'].set_data(probability_map)
         
@@ -42,7 +42,7 @@ class CreateDistanceToPTV(tio.transforms.Transform):
         mask = subject['mask'][tio.DATA]
         not_PTV_mask = mask != 1 # distance_transform_edt calcualates distance to 0, not 1. Thus we need mask that is NOT PTV.
         body_mask = mask != -1 # Outside of body is -1
-        slice_thickness_mm = 3 # Change this to your slice thickness - Cyberknife prostatoille 1
+        slice_thickness_mm = 2 # Change this to your slice thickness - Cyberknife prostatoille 1
         distance_to_PTV = torch.multiply(torch.tensor(distance_transform_edt(not_PTV_mask, sampling=(1,slice_thickness_mm,subject.pixel_spacing,subject.pixel_spacing))), body_mask)
         subject['distance_to_PTV'].set_data(distance_to_PTV/400) #400 is an arbitrary number to approximately normalize the distances to [0, 1]
         return subject

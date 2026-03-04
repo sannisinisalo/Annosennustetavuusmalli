@@ -12,7 +12,9 @@ import re
 import SimpleITK as sitk
 import pydicom
 import numpy as np
-from maski2 import BASEDIR
+from pydicom.dataset import FileMetaDataset
+from pydicom.uid import ExplicitVRLittleEndian, generate_uid
+from luokat import BASE_DIR
 
 
 def patient_number(name):
@@ -53,8 +55,8 @@ def load_ct_series_from_files(ct_files):
 
 
 if __name__ == "__main__":
-    INPUT_ROOT = BASEDIR / "VN0"
-    OUTPUT_ROOT = BASEDIR / "VN0ds"
+    INPUT_ROOT = BASE_DIR / "VN0"
+    OUTPUT_ROOT = BASE_DIR / "VN0ds"
     
     # POTILAAT NUMEROJÄRJESTYKSESSÄ
     patients = [
@@ -71,24 +73,29 @@ if __name__ == "__main__":
         print(f"\n[{idx}/{total}] Käsitellään potilas: {patient}")
     
         patient_in = INPUT_ROOT / patient
+        patient_in_ct = OUTPUT_ROOT / patient / "vanha ct"
         patient_out = OUTPUT_ROOT / patient / "dose"
         os.makedirs(patient_out, exist_ok=True)
     
         dose_path = find_dose_file(patient_in)
         ct_files = find_ct_files(patient_in)
-    
-        if dose_path is None:
-            print(" Dose-tiedostoa ei löytynyt → ohitetaan")
-            continue
-    
-        if len(ct_files) == 0:
-            print(" CT-viipaleita ei löytynyt → ohitetaan")
-            continue
-    
+        z_positions = []
+        
+        for f in ct_files:
+            ds_ct = pydicom.dcmread(f, stop_before_pixels=True)
+            z_positions.append(ds_ct.ImagePositionPatient[2])
+        
+
         try:
             # --- LUE CT ---
             ct_img = load_ct_series_from_files(ct_files)
-            print(f" CT ladattu ({ct_img.GetSize()[2]} viipaletta)")
+            print("ct_img origin:", ct_img.GetOrigin())
+            forced_spacing = list(ct_img.GetSpacing())
+            forced_spacing[2] = 2.0
+            ct_img.SetSpacing(forced_spacing)
+            print(f"CT ladattu ({ct_img.GetSize()[2]} viipaletta)")
+            print("ct_img spacing:", ct_img.GetSpacing())    
+            
     
             # --- LUE DOSE ---
             ds = pydicom.dcmread(dose_path)
@@ -96,25 +103,57 @@ if __name__ == "__main__":
     
             dose_img = sitk.ReadImage(dose_path, sitk.sitkFloat32)
             dose_img = dose_img * dose_scaling
-            print(" Dose ladattu")
     
             # --- REFERENSSI ---
             dose_size = dose_img.GetSize()  # (X, Y, Z)
             dose_spacing = dose_img.GetSpacing() # (sx, sy, sz)
             dose_origin = dose_img.GetOrigin()
+            print("Dose origin:", dose_origin)
             dose_direction = dose_img.GetDirection()
+            orig_slice_thickness = getattr(ds, "SliceThickness", dose_spacing[2])
+            orig_gfov = list(ds.GridFrameOffsetVector) if "GridFrameOffsetVector" in ds else None
             
-            ct_size = ct_img.GetSize() # (X, Y, Z)
-            ct_spacing = ct_img.GetSpacing()
+            ct_size = ct_img.GetSize()
+            ct_spacing = ct_img.GetSpacing()        
             ct_origin = ct_img.GetOrigin()
+            print("CT origin:", ct_origin)
             ct_direction = ct_img.GetDirection()
             
-            # Luo referenssikuva X/Y = CT, Z = dose
-            reference = sitk.Image(
-                [ct_size[0], ct_size[1], dose_size[2]], sitk.sitkFloat32
-                )
-            reference.SetSpacing([ct_spacing[0], ct_spacing[1], dose_spacing[2]])
-            reference.SetOrigin([ct_origin[0], ct_origin[1], dose_origin[2]])
+            ct_positions = []
+            for f in ct_files:
+                ds_ct = pydicom.dcmread(f, stop_before_pixels=True)
+                ct_positions.append(ds_ct.ImagePositionPatient[2])
+            
+            ct_positions = sorted(ct_positions)
+
+            ct_ref = pydicom.dcmread(ct_files[0], stop_before_pixels=True)
+            
+            ct_iop = ct_ref.ImageOrientationPatient      
+            ct_ipp = ct_ref.ImagePositionPatient         
+            ct_ps  = ct_ref.PixelSpacing                 
+            ct_th  = float(getattr(ct_ref, "SliceThickness", ct_spacing[2]))
+            ct_for = getattr(ct_ref, "FrameOfReferenceUID", None)                       
+            
+            # Luo referenssikuva
+            new_size = [
+                ct_size[0],        
+                ct_size[1],        
+                ct_size[2]       
+            ]
+            new_spacing = [
+                ct_spacing[0],          
+                ct_spacing[1],          
+                2.0         
+            ]
+            new_origin = [
+                ct_origin[0], 
+                ct_origin[1], 
+                dose_origin[2] 
+            ]
+
+            reference = sitk.Image(new_size, sitk.sitkFloat32)
+            reference.SetSpacing(new_spacing)
+            reference.SetOrigin(new_origin)      
             reference.SetDirection(dose_direction)
     
             # --- RESAMPLAA DOSE ---
@@ -124,7 +163,11 @@ if __name__ == "__main__":
             resampler.SetDefaultPixelValue(0.0)
     
             dose_resampled = resampler.Execute(dose_img)
-            print(" Resamplaus valmis")
+            print("dose_resampled origin:", dose_resampled.GetOrigin())
+            print("dose_resampled spacing:", dose_resampled.GetSpacing())
+            print("dose_resampled size:", dose_resampled.GetSize())
+            
+            dose_arr = sitk.GetArrayFromImage(dose_resampled)  
     
             # --- TALLENNUS ---
             dose_array = sitk.GetArrayFromImage(dose_resampled)
@@ -133,24 +176,48 @@ if __name__ == "__main__":
             stored_values = np.round(dose_array / new_scaling).astype(np.uint16)
     
             ds.PixelData = stored_values.tobytes()
-            ds.Rows = stored_values.shape[1]       # Y
-            ds.Columns = stored_values.shape[2]    # X
-            ds.NumberOfFrames = stored_values.shape[0]  # Z
+            ds.Rows = stored_values.shape[1]
+            ds.Columns = stored_values.shape[2]
+            ds.NumberOfFrames = stored_values.shape[0]
             
             ds.BitsAllocated = 16
             ds.BitsStored = 16
             ds.HighBit = 15
             ds.PixelRepresentation = 0  # unsigned
             ds.DoseGridScaling = new_scaling
-    
-    
+            
+            ds.PixelSpacing = [float(new_spacing[1]), float(new_spacing[0])]
+            ds.SliceThickness = orig_slice_thickness
+            
+            new_gfov = [i * new_spacing[2] for i in range(ds.NumberOfFrames)]
+            ds.GridFrameOffsetVector = new_gfov
+
+            ds.ImagePositionPatient = [
+                float(ct_origin[0]),
+                float(ct_origin[1]),
+                float(dose_origin[2])
+            ]
+
+            if ct_for is not None:
+                ds.FrameOfReferenceUID = ct_for
+
             out_path = os.path.join(patient_out, os.path.basename(dose_path))
-            ds.save_as(out_path)
+
+            
+            if not hasattr(ds, "file_meta") or ds.file_meta is None:
+                ds.file_meta = FileMetaDataset()
+            
+            ds.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+            ds.file_meta.MediaStorageSOPClassUID = ds.SOPClassUID
+            ds.file_meta.MediaStorageSOPInstanceUID = ds.SOPInstanceUID
+            ds.file_meta.ImplementationClassUID = generate_uid()
+            
+            ds.save_as(out_path, write_like_original=False)
             
             ds2 = pydicom.dcmread(out_path)
             dose_check = ds2.pixel_array * float(ds2.DoseGridScaling)
-            print(dose_check.shape)
-            print(dose_check.min(), dose_check.max())
+
+            
     
             print(" Tallennettu onnistuneesti")
     

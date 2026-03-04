@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Feb 18 10:37:54 2026
+Luotu Ke 18.02.2026
+Tekijä: Sanni Sinisalo
 
-@author: User01
+Koodi, jolla voi vertailla kahden eri maskin dimensioita ja metadataa
 """
 
 import os
@@ -75,7 +76,7 @@ def show_comparison(mask1, mask2, slice_index=None):
     axes[1].set_title("Maski 2")
 
     diff = mask1[slice_index] - mask2[slice_index]
-    axes[2].imshow(diff, cmap='bwr')
+    axes[2].imshow(diff, cmap='grey')
     axes[2].set_title("Erotus (Mask1 - Mask2)")
 
     for ax in axes:
@@ -88,17 +89,17 @@ def show_comparison(mask1, mask2, slice_index=None):
 # -------------------------------------------------
 # 5. PÄÄOHJELMA
 # -------------------------------------------------
-folder1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maskids"
-folder2 = r"C:\Users\User01\GRADU\ANON0075\ANON0075 downsample\mask"
+folder1 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\vanha ct"
+folder2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
 
 mask1, files1 = load_dicom_series(folder1)
 mask2, files2 = load_dicom_series(folder2)
 
-print("=== METADATA MASKI 1 (Nova) ===")
+print("=== METADATA MASKI 1 ===")
 meta1 = extract_metadata(files1)
 print(pd.Series(meta1))
 
-print("\n=== METADATA MASKI 2 (KYS) ===")
+print("\n=== METADATA MASKI 2 ===")
 meta2 = extract_metadata(files2)
 print(pd.Series(meta2))
 

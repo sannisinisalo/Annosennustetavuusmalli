@@ -2,7 +2,7 @@ import torch
 import torchio as tio
 from collections import defaultdict
 import numpy as np
-from .integer_mask_to_binary import integer_mask_to_binary
+from annosennustettavuusmalli.utils.integer_mask_to_binary import integer_mask_to_binary
 
 """
 Tekijä: Akseli Leino

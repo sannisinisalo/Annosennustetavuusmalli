@@ -16,24 +16,10 @@ lisätty kaikki ROI:t.
 
 import os
 import re
-from pathlib import Path
 import numpy as np
 import pydicom
 from rt_utils import RTStructBuilder
-import yaml
-
-
-# Haetaan polku config.yaml tiedostosta
-CURRENT_DIR = Path(__file__).resolve().parent
-CONFIG_PATH = CURRENT_DIR.parent / "config.yaml"
-
-with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-    config = yaml.load(f, Loader=yaml.FullLoader)
-
-vn0_path = config["data_paths"]["VN0_data"]
-vn0_path_clean = vn0_path.rstrip("*/")
-
-BASEDIR = Path(vn0_path_clean).parent
+from luokat import AllPatients
 
 
 
@@ -60,17 +46,17 @@ def load_CT(path):
         for f in os.listdir(path)
         if f.endswith(".dcm")
     ]
-    
-    # Otetaan ensimmäisen kuvan UID ja jätetään listaan ne tiedostot, joiden UID matchaa esnimmäisen kanssa 
+
+    # Otetaan ensimmäisen kuvan UID ja jätetään listaan ne tiedostot, joiden UID matchaa esnimmäisen kanssa
     series_uid = slices[0].SeriesInstanceUID
     slices = [s for s in slices if s.SeriesInstanceUID == series_uid]
-    
+
     # Järjestetään listan tiedostot InstanceNumberin mukaan ensin nousevaan järjestykseen, jonka jälkeen
     # listan järjestys käännetään päinvastaiseksi
-    slices.sort(key=lambda x: int(x.InstanceNumber)) 
-    slices = slices[::-1] 
-    
-    return slices 
+    slices.sort(key=lambda x: int(x.InstanceNumber))
+    slices = slices[::-1]
+
+    return slices
 
 
 # Normalisoidaan ROI-maskin akselit muotoon (Z, Y, X), jotta ne ovat samassa muodossa CT kuvien kanssa
@@ -101,7 +87,7 @@ def normalize_axes(mask, ct_slices):
 
     # Maskin alkuperäiset akselit
     shape = mask.shape
- 
+
     # Jos maskin akselit ovat suoraan oikeat eikä korjausta tarvita, tulostetaan teksti txt
     txt = "Maskin akselit: oletetaan (Z,Y,X)"
     if shape == (num_slices, rows, cols):
@@ -119,14 +105,14 @@ def normalize_axes(mask, ct_slices):
     ]:
         if len(shape) == 3:
             trial = np.transpose(mask, axes=perm)
-            
+
             # Tarkistetaan vielä tuottiko muutos halutun lopputuloksen
             if trial.shape == (num_slices, rows, cols):
                 return trial, f"Maskin akselit korjattu transpoosilla{perm} -> (Z,Y,X)"
 
 
 # ROI nimien määritys ja numeroiden määrääminen
-def ROI_names(roi_name):
+def map_roi_name_to_label(roi_name) -> int | None:
     """
     Maps a ROI name to a predefined number that are powers of 2.
 
@@ -143,58 +129,57 @@ def ROI_names(roi_name):
         If the ROI is not recognized or should be excluded.
 
     """
-    # Muuttaa ROI:n nimen pieniksi kirjaimiksi sekä poistaa turhat välilyönnit nimen edestä ja lopusta 
+    # Muuttaa ROI:n nimen pieniksi kirjaimiksi sekä poistaa turhat välilyönnit nimen edestä ja lopusta
     roi = roi_name.lower().strip()
-    
-    # Määritellään jokainen mallin haluama ROI ja sen nimet sekä sitä vastaavan lukuarvon 
-    if"sydän vasen" in roi or "sydan vasen" in roi:
+
+    # Määritellään jokainen mallin haluama ROI ja sen nimet sekä sitä vastaavan lukuarvon
+    if "sydän vasen" in roi or "sydan vasen" in roi:
         return None
-    
+
     if "#ptv" in roi:
         return None
-    
+
     if "keuhko sin-ptv 40gy" in roi:
         return None
-    
+
     if "body" in roi:
         return 0
 
     if "ptv iho" in roi or "ptv-iho" in roi:
         return 1
-    
+
     if "heart" in roi or "sydän" in roi or "sydan" in roi:
         return 2
-    
+
     if "keuhko dex" in roi or "lung_l" in roi:
-        return 4 
-    
+        return 4
+
     if "keuhko sin" in roi or "lung_r" in roi:
-        return 8  
-    
+        return 8
+
     if "rinta dex" in roi or "breast_r" in roi:
         return 16
-    
+
     if "lad" in roi or "a_lad" in roi:
         return 32
-    
+
     if "humerus head_l" in roi or "olkanivel sin" in roi:
         return 64
-    
+
     if "plexus" in roi or "brachial plexus" in roi or "brachial_plexus" in roi:
         return 128
-    
+
     if "esophagus" in roi or "ruokatorvi" in roi:
         return 256
-    
+
     if "trachea" in roi or "tracea" in roi:
         return 512
-    
+
     if "thyroid" in roi or "kilpirauhanen" in roi:
         return 1024
-    
+
     # Jos ROI ei vastaa mitään mainittua, ROI:lle ei anneta numeroa, vaan arvo None
     return None
-
 
 
 # Asetetaan ROI:t CT-kuvien päälle
@@ -220,57 +205,55 @@ def overlay_ROI(rt_path, ct_path):
 
     """
 
-    # Ladataan CT-kuvat käyttäen aikaisemmin määriteltyä Load_CT funktiota 
+    # Ladataan CT-kuvat käyttäen aikaisemmin määriteltyä Load_CT funktiota
     ct_slices = load_CT(ct_path)
     num_slices = len(ct_slices)
     rows = int(ct_slices[0].Rows)
     cols = int(ct_slices[0].Columns)
-    
+
     # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resamplata ROI:t CT:n koordinaatistoon
     rtstruct = RTStructBuilder.create_from(
         dicom_series_path=ct_path, rt_struct_path=rt_path
-        )
-        
+    )
+
     # Luodaan ensin tyhjä summamaski
     # Alustetaan tausta arvoksi ensin 0, tämä muutetaan myöhemmin arvoon -1
     sum_mask = np.zeros((num_slices, rows, cols), dtype=np.int32)
-        
+
     # Luodaan bool-taulukko, joka tosi, kun pikselissä vähintään yksi ROI
     any_mask = np.zeros((num_slices, rows, cols), dtype=bool)
-        
+
     # Listataan kaikki saatavilla olevat ROI:t
     roi_list = rtstruct.get_roi_names()
-        
-        
-    # Määritetään ROI listan halutuille ROI:lle ROI_names funktiossa määritetyt luvut (2:n potenssi)
+
+    # Määritetään ROI listan halutuille ROI:lle map_roi_name_to_label funktiossa määritetyt luvut (2:n potenssi)
     for roi_name in roi_list:
-        roi_value = ROI_names(roi_name)
+        roi_value = map_roi_name_to_label(roi_name)
         if roi_value is None:
             continue
-        
+
         try:
             mask = rtstruct.get_roi_mask_by_name(roi_name)
         except AttributeError:
             print(f"ROI '{roi_name}' ohitettu (ei ContourSequenceä)")
             continue
-            
+
         mask, txt = normalize_axes(mask, ct_slices)
         # print(f"{roi_name}: {txt}")
-            
+
         any_mask |= mask.astype(bool)
-            
-        sum_mask |= (mask.astype(np.int32) * roi_value)
-            
-    #Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
+
+        sum_mask |= mask.astype(np.int32) * roi_value
+
+    # Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
     sum_mask[~any_mask] = -1
-    
+
     # Palautetaan summamaski ja CT-lista
     return sum_mask, ct_slices
-    
 
 
 # Tallennetaan maski DICOM-pakkana
-def save_mask_as_dicom_series(mask, ct_slices, output_folder):
+def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
     """
     Saves the mask as a DICOM series using CT slice metadata.
 
@@ -300,24 +283,21 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
         new_ds = ct.copy()
 
         # Pixel data
-        new_ds.PixelData = slice_img.astype(np.int16).tobytes()
+        new_ds.PixelData = slice_img.astype(np.int32).tobytes()
         new_ds.Rows, new_ds.Columns = slice_img.shape
 
         # Metadata maskille
         new_ds.SeriesDescription = "ROI MASK"
-        new_ds.SeriesInstanceUID = series_uid # sama kaikille slicille
+        new_ds.SeriesInstanceUID = series_uid  # sama kaikille slicille
         new_ds.SOPInstanceUID = pydicom.uid.generate_uid()
-        new_ds.InstanceNumber = idx + 1 # oikea järjestys
+        new_ds.InstanceNumber = idx + 1  # oikea järjestys
 
         # Päivitetään ImagePositionPatient Z-koordinaatti
         new_ds.ImagePositionPatient = list(ct.ImagePositionPatient)
-        new_ds.ImagePositionPatient[2] = ct.ImagePositionPatient[2]
-
-        # Säilytetään geometria
-        if hasattr(ct, "SliceThickness"):
-            new_ds.SliceThickness = ct.SliceThickness
-        if hasattr(ct, "PixelSpacing"):
-            new_ds.PixelSpacing = ct.PixelSpacing
+        new_ds.ImagePositionPatient[2] = ct.ImagePositionPatient[2] + idx * ct.SliceThickness
+        
+        new_ds.PixelSpacing = list(ct.PixelSpacing)
+        new_ds.SliceThickness = ct.SliceThickness
 
         # Skaalausasetukset
         new_ds.RescaleIntercept = 0
@@ -325,9 +305,9 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 
         # DICOM-tyyppiasetukset
         new_ds.PixelRepresentation = 1
-        new_ds.BitsAllocated = 16
-        new_ds.BitsStored = 16
-        new_ds.HighBit = 15
+        new_ds.BitsAllocated = 32
+        new_ds.BitsStored = 32
+        new_ds.HighBit = 31
 
         # Tallennus
         out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
@@ -337,20 +317,20 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 
 
 # Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
-def patient_sort(name):
+def get_patient_number(name) -> int:
     """
-    Function that sorts patients by number, not by letter
+    Get the numeric value from the patient folder name for sorting purposes.
 
     Parameters
     ----------
-    name : str
-        The name of the patient folder.
+    patient : Patient
+        The patient object.
 
     Returns
     -------
     int
-        The numeric value extracted from the folder name, or 0 if none found.
-            
+        The numeric value extracted from the patient folder name, or 0 if none found.
+
     """
     # Eristetään numero nimestä
     m = re.search(r"(\d+)", name)
@@ -362,33 +342,28 @@ def patient_sort(name):
 
 if __name__ == "__main__":
 
-    # Kansio, jossa jokaisen potilaan kansio
-    patient_dir = BASEDIR / "VN0ds"
+    # Luodaan AllPatients-objekti
+    all_patients = AllPatients(
+        processed_dataset="VN0ds",   # kansio muokattuja tiedostoja varten
+        original_dataset="VN0"       # alkuperäiset tiedostot
+    )
 
-    # Etsitään kaikki potilaskansiot, jotka alkavat "Patient"
-    patients = [d for d in os.listdir(patient_dir) if d.startswith("Patient")]
+    # Käydään kaikki potilaat läpi numerojärjestyksessä
+    for patient in all_patients.sorted_by_number():
+        print(f"Käsitellään {patient.patient_folder}...")
 
-    # Luodaan maski
-    patients = sorted(patients, key=patient_sort)
+        # Polut luokkien kautta
+        ct_path = patient.org_ct_dir  # CT-kuvat tallennettuna "ct"-kansioon muokatuissa tiedostoissa
+        out_path = patient.mask_dir  # Maskit tallennetaan "maski"-kansioon
+        struct_dir = patient.struct_dir  # RS-tiedostot sijaitsevat "struct"-kansiossa
 
-    # Käydään kaikki potilaat läpi
-    for patient in patients:
-        print(f"Käsitellään {patient}...")
-
-        ct_path = patient_dir / patient / "vanha ct"
-        out_path = patient_dir / patient / "maski"
-
-        # Etsitään RS-tiedosto potilaan struct-kansiosta
-        struct_dir = patient_dir / patient / "struct"
-        rs_files = [f for f in os.listdir(struct_dir) if f.startswith("RS.")]
-        
-        if not rs_files:
-            print(f"RS-tiedostoa ei löytynyt potilaalta {patient}")
+        # Etsitään RS-tiedosto
+        try:
+            struct_files = [f for f in os.listdir(patient.struct_dir) if f.endswith(".dcm")]            
+            rs_path = os.path.join(patient.struct_dir, struct_files[0])
+        except FileNotFoundError:
+            print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
             continue  # hypätään tämän potilaan yli
-        
-        # Oletetaan, että halutaan ensimmäinen RS-tiedosto, jos niitä on useampi
-        rs_path = struct_dir / rs_files[0]
-
 
         # Luodaan maski
         mask, ct_slices = overlay_ROI(rs_path, ct_path)
