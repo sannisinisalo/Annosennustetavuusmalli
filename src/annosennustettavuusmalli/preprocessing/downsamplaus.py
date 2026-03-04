@@ -21,12 +21,12 @@ from scipy.ndimage import zoom
 from luokat import BASE_DIR
 
 
-def _ensure_dir(path: str | Path) -> None:
+def ensure_dir(path: str | Path) -> None:
     """Create directory if it does not exist."""
     os.makedirs(path, exist_ok=True)
 
 
-def _find_patient_folders(source_root: str | Path) -> List[str]:
+def find_patient_folders(source_root: str | Path) -> List[str]:
     """Find all patient folders starting with 'Patient' and sort numerically."""
     candidates = [
         p for p in glob.glob(os.path.join(source_root, "*")) if os.path.isdir(p)
@@ -43,7 +43,7 @@ def _find_patient_folders(source_root: str | Path) -> List[str]:
     return sorted(patients, key=patient_sort_key)
 
 
-def _find_dicom_by_modality(folder: str, modality: str) -> List[str]:
+def find_dicom_by_modality(folder: str, modality: str) -> List[str]:
     """Find all DICOM files of a given modality in a folder."""
     files = [
         os.path.join(folder, f) 
@@ -83,8 +83,8 @@ if __name__ == "__main__":
     else:
         raise ValueError("Tuntematon dataset-parametri. Käytä: 'L', 'R', 'LAX', 'RAX'.")
 
-    _ensure_dir(DESTINATION_PATH)
-    patients = _find_patient_folders(SOURCE_PATH)
+    ensure_dir(DESTINATION_PATH)
+    patients = find_patient_folders(SOURCE_PATH)
     if not patients:
         print("Ei löytynyt potilaskansioita (Patient*).")
     else:
@@ -93,10 +93,10 @@ if __name__ == "__main__":
             print(f"Processing {patient_name}...")
 
             # Find DICOM files by modality
-            ct_files = _find_dicom_by_modality(p, "CT")
-            rd_files = _find_dicom_by_modality(p, "RTDOSE")
-            rp_files = _find_dicom_by_modality(p, "RTPLAN")
-            rs_files = _find_dicom_by_modality(p, "RTSTRUCT")
+            ct_files = find_dicom_by_modality(p, "CT")
+            rd_files = find_dicom_by_modality(p, "RTDOSE")
+            rp_files = find_dicom_by_modality(p, "RTPLAN")
+            rs_files = find_dicom_by_modality(p, "RTSTRUCT")
 
             ct_slices = [dcmread(f) for f in ct_files]
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
                 "mask": os.path.join(DESTINATION_PATH, patient_name, "maskids"),
             }
             for d in folders.values():
-                _ensure_dir(d)
+                ensure_dir(d)
 
             # Downsample CT slices
             for f in ct_files:
