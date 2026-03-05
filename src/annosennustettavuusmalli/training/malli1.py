@@ -76,16 +76,6 @@ for hp_config_iter in hp_config:
         config["data_paths"][DATA], reduce_samples = 1
         )
 
-    # ------ DEBUG ------
-    # Testaa yksi subject ilman Queuea
-    #test_subject = train_set[0]
-    #print("CT shape:", test_subject.ct.shape)
-    #print("Mask shape:", test_subject.mask.shape)
-    #print("Dose shape:", test_subject.dose.shape)
-    #print("Mask unique values:", np.unique(test_subject.mask.data))
-    #print("Probability map unique values:", np.unique(test_subject.probability_map.data))
-    # ------ DEBUG ------
-    
     # Probability map probabilities are defined in custom_transforms -> ProbabilityMapTransform
 
     training_sampler = tio.sampler.WeightedSampler(
@@ -103,12 +93,13 @@ for hp_config_iter in hp_config:
         train_queue, 
         batch_size = hp_config_iter["batch_size"], 
         num_workers = 0) # num_workers must be 0. (due to TorchIO queue implementation(?))
-    
-    # ------ DEBUG ------
-    #print("Starting to fetch first batch...")
-    #batch = next(iter(train_loader))
-    #print(batch)
-    # ------ DEBUG ------
+        
+    print("Train set length:", len(train_set))
+    test_subject = train_set[0]
+    print("CT shape:", test_subject.ct.shape)
+    print("Mask unique:", np.unique(test_subject.mask.data))
+    print("Probability map unique:", np.unique(test_subject.probability_map.data))
+    print("Patch size:", hp_config_iter["patch_size"])
     
     random.seed() # Seed was set when splitting sets. Without seed reset, the mlflow naming always starts from the same name.
     
