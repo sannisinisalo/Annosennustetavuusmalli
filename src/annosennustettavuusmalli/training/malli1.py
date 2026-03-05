@@ -17,6 +17,7 @@ import re
 import os
 import pickle
 from tqdm import tqdm
+import numpy as np
 
 import time
 import sys
@@ -24,7 +25,6 @@ import torch
 import torch.nn as nn
 from collections import defaultdict
 from matplotlib import pyplot as plt
-import numpy as np
 import mlflow
 import random
 import torchio as tio
@@ -34,12 +34,10 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent)) 
 
 from annosennustettavuusmalli.models.unet3plus_3d import UNet3plus_3d
-from annosennustettavuusmalli.utils import (
-    evaluate_dataset,
-    evaluate_dose_metrics,
-    flatten_dict,
-    random_sample_hyperparameters,
-)
+from annosennustettavuusmalli.utils.random_sample_hyperparameters import random_sample_hyperparameters
+from annosennustettavuusmalli.utils.evaluate_dose_metrics import evaluate_dose_metrics
+from annosennustettavuusmalli.utils.evaluate_dataset import evaluate_dataset
+from annosennustettavuusmalli.utils.flatten_dict import flatten_dict
 from annosennustettavuusmalli.utils.generate_datasets import generate_datasets
 from annosennustettavuusmalli.utils.init_weights import init_weights_kaiming
 
@@ -80,17 +78,16 @@ for hp_config_iter in hp_config:
 
     # ------ DEBUG ------
     # Testaa yksi subject ilman Queuea
-    test_subject = train_set[0]
-    print("CT shape:", test_subject.ct.shape)
-    print("Mask shape:", test_subject.mask.shape)
-    print("Dose shape:", test_subject.dose.shape)
-    print("Mask unique values:", np.unique(test_subject.mask.data))
-    print(
-        "Probability map unique values:", np.unique(test_subject.probability_map.data)
-        )
+    #test_subject = train_set[0]
+    #print("CT shape:", test_subject.ct.shape)
+    #print("Mask shape:", test_subject.mask.shape)
+    #print("Dose shape:", test_subject.dose.shape)
+    #print("Mask unique values:", np.unique(test_subject.mask.data))
+    #print("Probability map unique values:", np.unique(test_subject.probability_map.data))
     # ------ DEBUG ------
     
     # Probability map probabilities are defined in custom_transforms -> ProbabilityMapTransform
+
     training_sampler = tio.sampler.WeightedSampler(
         hp_config_iter["patch_size"], probability_map="probability_map"
         )
@@ -108,9 +105,9 @@ for hp_config_iter in hp_config:
         num_workers = 0) # num_workers must be 0. (due to TorchIO queue implementation(?))
     
     # ------ DEBUG ------
-    print("Starting to fetch first batch...")
-    batch = next(iter(train_loader))
-    print(batch)
+    #print("Starting to fetch first batch...")
+    #batch = next(iter(train_loader))
+    #print(batch)
     # ------ DEBUG ------
     
     random.seed() # Seed was set when splitting sets. Without seed reset, the mlflow naming always starts from the same name.
