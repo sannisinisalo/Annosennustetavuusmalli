@@ -16,7 +16,7 @@ import os
 import torchio as tio
 import random
 from pydicom import dcmread
-from .custom_transforms import DoseScalingTransform, PixelSizingTransform, CreateInputMask, CreateDistanceToPTV, ProbabilityMapTransform
+from annosennustettavuusmalli.utils.custom_transforms import DoseScalingTransform, PixelSizingTransform, CreateInputMask, CreateDistanceToPTV, ProbabilityMapTransform
 
 
 def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))->tuple([tio.SubjectsDataset, tio.SubjectsDataset, tio.SubjectsDataset]):
@@ -57,6 +57,9 @@ def generate_datasets(path: str, reduce_samples:float, split:tuple = (0.7, 0.1))
             ct_data = tio.ScalarImage(ct_path)
             mask_data = tio.ScalarImage(mask_path)
             dose_data = tio.ScalarImage(dose_path)
+            # --- Muunnokset ---
+            ct_data.set_data(ct_data.data.float())
+            dose_data.set_data(dose_data.data.float())
             
             new_subject = tio.Subject(
                 ct = ct_data,
