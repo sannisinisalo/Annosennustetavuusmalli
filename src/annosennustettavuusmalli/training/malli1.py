@@ -93,14 +93,11 @@ for hp_config_iter in hp_config:
         train_queue, 
         batch_size = hp_config_iter["batch_size"], 
         num_workers = 0) # num_workers must be 0. (due to TorchIO queue implementation(?))
-        
+      
     print("Train set length:", len(train_set))
-    test_subject = train_set[0]
-    print("CT shape:", test_subject.ct.shape)
-    print("Mask unique:", np.unique(test_subject.mask.data))
-    print("Probability map unique:", np.unique(test_subject.probability_map.data))
-    print("Patch size:", hp_config_iter["patch_size"])
-    
+    print("Validation set length:", len(val_set))
+    print("Test set length:", len(test_set))
+
     random.seed() # Seed was set when splitting sets. Without seed reset, the mlflow naming always starts from the same name.
     
     # ------ DEBUG ------
