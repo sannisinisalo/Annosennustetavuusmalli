@@ -21,15 +21,11 @@ class Patient:
     patient_folder: Path      # esim. Patient1_VN0
     
     def __post_init__(self):
-        # Varmistetaan, että kaikki parametrit ovat Path-objekteja
         self.processed_dataset = Path(self.processed_dataset)
         self.original_dataset = Path(self.original_dataset)
         self.patient_folder = Path(self.patient_folder)
 
-    # -------------------------
     # PERUSPOLUT
-    # -------------------------
-
     @property
     def original_dir(self) -> Path:
         """Alkuperäinen potilaskansio, josta DICOM/RS/RD/RP haetaan."""
@@ -40,46 +36,50 @@ class Patient:
         """Muokattujen tiedostojen kansio (tulokset)."""
         return BASE_DIR / self.processed_dataset / self.patient_folder
 
-    # -------------------------
-    # TIEDOSTOJEN POLUT
-    # -------------------------
 
-    @property
-    def ct_dir(self) -> Path:
-        return self.modified_dir / "ct"
-    
+    # TIEDOSTOJEN POLUT
+    # Alkuperäisten CT-kuvien kansio
     @property
     def org_ct_dir(self) -> Path:
         return self.modified_dir / "vanha ct"
+    
+    # Modifioitujen CT-kuvien kansio
+    @property
+    def ct_dir(self) -> Path:
+        return self.modified_dir / "ct"
 
+    # Luotujen rakennemaskien kansio
     @property
     def mask_dir(self) -> Path:
         return self.modified_dir / "maski"
     
+    # Modifioitujen rakennemaskien kansio
     @property
     def maskds_dir(self) -> Path:
         return self.modified_dir / "maskids"
 
+    # Alkuperäisen dose:n kansio
     @property
     def dose_dir(self) -> Path:
         return self.modified_dir / "dose"
     
+    # Modifioidun dose:n kansio
     @property
     def doseds_dir(self) -> Path:
         return self.modified_dir / "doseds"
 
+    # Struct:in kansio
     @property
     def struct_dir(self) -> Path:
         return self.modified_dir / "struct"
 
+    # Plan:in kansio
     @property
     def plan_dir(self) -> Path:
         return self.modified_dir / "plan"
 
-    # -------------------------
-    # NUMERON HAKU JÄRJESTYSTÄ VARTEN
-    # -------------------------
 
+    # NUMERON HAKU JÄRJESTYSTÄ VARTEN
     @property
     def number(self) -> int:
         m = re.search(r"(\d+)", str(self.patient_folder))
@@ -91,7 +91,6 @@ class AllPatients:
     original_dataset: Path
 
     def __post_init__(self):
-        # Varmistetaan että Path
         self.processed_dataset = Path(self.processed_dataset)
         self.original_dataset = Path(self.original_dataset)
         self._patients = self._find_patients()   
