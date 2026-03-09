@@ -89,7 +89,7 @@ def normalize_axes(mask, ct_slices):
     ----------
     mask : numpy.ndarray
         The 3D array representing the mask.
-    ct_slices : list[FileDataset]
+    ct_slices : [FileDataset]
         A list of the loaded CT images in DICOM form
 
     Returns
@@ -293,7 +293,6 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
 
     """
     # Luodaan output-kansio, jos sitä ei vielä ole
-    # Luodaan output-kansio
     os.makedirs(output_folder, exist_ok=True)
 
     # Generoidaan uusi SeriesInstanceUID maskisarjalle
@@ -309,16 +308,16 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
 
         # Metadata maskille
         new_ds.SeriesDescription = "ROI MASK"
-        new_ds.SeriesInstanceUID = series_uid  # sama kaikille slicille
-        new_ds.SOPInstanceUID = generate_uid()
-        new_ds.InstanceNumber = idx + 1  # oikea järjestys
+        new_ds.SeriesInstanceUID = series_uid 
+        new_ds.SOPInstanceUID = pydicom.uid.generate_uid()
+        new_ds.InstanceNumber = idx + 1  
 
         # Päivitetään ImagePositionPatient Z-koordinaatti
         new_ds.ImagePositionPatient = list(ct.ImagePositionPatient)
         new_ds.ImagePositionPatient[2] = (
             ct.ImagePositionPatient[2] + idx * ct.SliceThickness
         )
-
+        
         new_ds.PixelSpacing = list(ct.PixelSpacing)
         new_ds.SliceThickness = ct.SliceThickness
 
@@ -336,36 +335,13 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
         out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
         new_ds.save_as(out_path)
 
-
-# Tämä tehdään jo muualla. On siis tarpeeton, mutta jätetään tähän kommentoituna.
-# # Järjestetään kansiot numerojärjestykseen, muuten tulisi aakkosjärjestyksessä
-# def get_patient_number(name) -> int:
-#     """
-#     Get the numeric value from the patient folder name for sorting purposes.
-
-#     Parameters
-#     ----------
-#     patient : Patient
-#         The patient object.
-
-#     Returns
-#     -------
-#     int
-#         The numeric value extracted from the patient folder name, or 0 if none found.
-
-#     """
-#     # Eristetään numero nimestä
-#     m = re.search(r"(\d+)", name)
-#     return int(m.group(1)) if m else 0
-
-
 # PÄÄOHJELMA
 
 if __name__ == "__main__":
     # Luodaan AllPatients-objekti
     all_patients = AllPatients(
-        processed_dataset="VN0ds",  # kansio muokattuja tiedostoja varten
-        original_dataset="VN0",  # alkuperäiset tiedostot
+        processed_dataset="VN0ds",
+        original_dataset="VN0"
     )
 
     # Käydään kaikki potilaat läpi numerojärjestyksessä
@@ -373,21 +349,19 @@ if __name__ == "__main__":
         print(f"Käsitellään {patient.patient_folder}...")
 
         # Polut luokkien kautta
-        ct_path = (
-            patient.org_ct_dir
-        )  # CT-kuvat tallennettuna "ct"-kansioon muokatuissa tiedostoissa
-        out_path = patient.mask_dir  # Maskit tallennetaan "maski"-kansioon
-        struct_dir = patient.struct_dir  # RS-tiedostot sijaitsevat "struct"-kansiossa
+        ct_path = patient.org_ct_dir 
+        out_path = patient.mask_dir 
+        struct_dir = patient.struct_dir 
 
         # Etsitään RS-tiedosto
         try:
             struct_files = [
                 f for f in os.listdir(patient.struct_dir) if f.endswith(".dcm")
-            ]
+            ]            
             rs_path = os.path.join(patient.struct_dir, struct_files[0])
         except FileNotFoundError:
             print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
-            continue  # hypätään tämän potilaan yli
+            continue 
 
         # Luodaan maski
         mask, ct_slices = overlay_ROI(rs_path, ct_path)

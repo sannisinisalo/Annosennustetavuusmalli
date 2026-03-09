@@ -1,3 +1,6 @@
+# Tekijä: Akseli  Leino
+# Muokkaaja: Sanni Sinisalo
+
 structures:
   PTV: 0
   Heart: 1
@@ -46,7 +49,7 @@ default: &DEFAULT
     nesterov: !!python/bool True
   primary_loss: "MSELoss" # Match losses with torch.nn loss classes
   secondary_loss: "L1Loss" # This is used only as metric
-  experiment_name: "Results 2/2026"
+  experiment_name: "Results 3/2026"
 
 manual_search:
   - <<: *DEFAULT
