@@ -13,48 +13,69 @@ annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on
 lisätty kaikki ROI:t.
 """
 
-
 import os
-import re
+from pathlib import Path
+
 import numpy as np
-import pydicom
-from rt_utils import RTStructBuilder
-from luokat import AllPatients
+from loguru import logger  # type: ignore
+from pydicom import FileDataset, dcmread
+from pydicom.uid import generate_uid
+from rt_utils import RTStructBuilder  # type: ignore
+
+from annosennustettavuusmalli.preprocessing.luokat import AllPatients  # type: ignore
 
 
-
-# CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on 
-# DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa
-def load_CT(path):
+def load_CT(path: Path | str) -> list[FileDataset]:
     """
-    Loading the CT-images and arranging them by the InstanceUID metadata.
+    Loading the CT-images and arranging them by the InstanceNumber metadata.
+
+    InstanceNumber on DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa.
+    Järjestetään kuvat ensin nousevaan järjestykseen InstanceNumberin mukaan, jonka
+    jälkeen listan järjestys käännetään päinvastaiseksi, jotta se vastaa odotettua orientaatiota.
 
     Parameters
     ----------
-    path : str
-        The path of the original CT-images.
+    path : str or Path
+        The path to the directory containing the CT DICOM series.
 
     Returns
     -------
-    slices : list
-        Arranged CT-images.
+    slices : list[FileDataset]
+        A list of the loaded CT images in DICOM form, sorted by InstanceNumber.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no CT slices are found in the specified directory.
 
     """
-    # Tuotetaan lista CT-kuvista, f silmukkamuuttuja, johon .dcm tiedostot tallentuvat
+
+    path = Path(path)
+    logger.debug(f"Loading CT images from: {path}")
+
+    # Tuotetaan lista CT-kuvista. Varmistetaan, että kyseessä on CT modality ja että kaikki kuvat kuuluvat samaan sarjaan SeriesInstanceUID:n avulla.
     slices = [
-        pydicom.dcmread(os.path.join(path, f))
-        for f in os.listdir(path)
-        if f.endswith(".dcm")
+        dcmread(f)
+        for f in path.glob("*.dcm")
+        if dcmread(f, stop_before_pixels=True).Modality == "CT"
     ]
 
-    # Otetaan ensimmäisen kuvan UID ja jätetään listaan ne tiedostot, joiden UID matchaa esnimmäisen kanssa
+    if not slices:
+        logger.warning(f"No CT slices found in directory: {path}")
+        raise FileNotFoundError(f"No CT slices found in directory: {path}")
+
+    # Otetaan ensimmäisen kuvan UID ja jätetään listaan ne tiedostot, joiden UID matchaa ensimmäisen kanssa
     series_uid = slices[0].SeriesInstanceUID
+    logger.debug(f"Found SeriesInstanceUID: {series_uid} in first CT slice.")
     slices = [s for s in slices if s.SeriesInstanceUID == series_uid]
+    logger.debug(f"Number of CT slices with matching SeriesInstanceUID: {len(slices)}")
 
     # Järjestetään listan tiedostot InstanceNumberin mukaan ensin nousevaan järjestykseen, jonka jälkeen
     # listan järjestys käännetään päinvastaiseksi
     slices.sort(key=lambda x: int(x.InstanceNumber))
+    logger.debug("CT slices sorted by InstanceNumber.")
     slices = slices[::-1]
+    logger.debug("CT slices order reversed to match expected orientation.")
 
     return slices
 
@@ -275,7 +296,7 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
     os.makedirs(output_folder, exist_ok=True)
 
     # Generoidaan uusi SeriesInstanceUID maskisarjalle
-    series_uid = pydicom.uid.generate_uid()
+    series_uid = generate_uid()
 
     # Käydään läpi kaikki slicet
     for idx, (slice_img, ct) in enumerate(zip(mask, ct_slices)):
@@ -313,13 +334,10 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
         # Tallennus
         out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
         new_ds.save_as(out_path)
-        
-
 
 # PÄÄOHJELMA
 
 if __name__ == "__main__":
-
     # Luodaan AllPatients-objekti
     all_patients = AllPatients(
         processed_dataset="VN0ds",
@@ -353,5 +371,5 @@ if __name__ == "__main__":
 
         # Tallennetaan maski DICOM-sarjana
         save_mask_as_dicom_series(mask, ct_slices, out_path)
-        
+
         print("Maski tallennettu")
