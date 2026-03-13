@@ -47,6 +47,8 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
+    os.makedirs("trained_models", exist_ok=True)
+    
     HYPERPARAMETERS = "manual_search" # default, manual_search or random_search
     DATA = "VN0_data"
     
@@ -174,6 +176,8 @@ def main():
     
         best_val_primary = 100000000000 # Arbitrarily large number that loss is (hopefully) never going to be exceed
         last_improved = 0
+        
+        
         
         """
         Training loop
@@ -318,23 +322,23 @@ def main():
     
     
     
-    plt.rcParams["figure.figsize"] = (10, 15)
-    plt.figure()
+    #plt.rcParams["figure.figsize"] = (10, 15)
+    #plt.figure()
     
     
-    for image in train_loader:
+    #for image in train_loader:
         
-        fig, axs = plt.subplots(8, 3)
+    #    fig, axs = plt.subplots(8, 3)
         
-        for j, (ax1, ax2, ax3) in enumerate(axs):
-            ax1.imshow(image['mask'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
-            ax2.imshow(image['ct'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
-            ax2.set_title(image['name'][j])
-            ax3.imshow(image['dose'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
+    #    for j, (ax1, ax2, ax3) in enumerate(axs):
+    #        ax1.imshow(image['mask'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
+    #        ax2.imshow(image['ct'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
+    #        ax2.set_title(image['name'][j])
+    #        ax3.imshow(image['dose'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
       
-        plt.show()
-        time.sleep(2)
-        plt.close()
+    #    plt.show()
+    #    time.sleep(2)
+    #    plt.close()
 
 if __name__ == "__main__":
     main()
