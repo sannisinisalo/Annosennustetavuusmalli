@@ -48,13 +48,24 @@ pip install -e ".[dev]"
 
 #### Rakennemaskin luominen (`src/annosennustettavuusmalli/preprocessing/maski2/`)
 - Rakennemaski muodostetaan potilaan CT-kuvista ja RTStruct-tiedostosta.
+- Paketit:
+    - Tiedostot ovat DICOM muodossa, ja niiden lukemiseen käyteään pydicom-pakettia.
+    - rt_utils kirjaston RTStructBuilder:illa muunnetaan RTStruct-tiedoston sisältämät kontuurit voxelipohjaisiksi maskeiksi.
+    - Maskien matemaattiseen käsittelyyn käytetään numpy kirjastoa.
 
 #### RTDose tiedoston koon muuttaminen (`src/annosennustettavuusmalli/preprocessing/rtdose/`)
-- Muutetaan RTDose samaan resoluutioon kuin potilaan CT-kuvat
+- Muutetaan RTDose samaan resoluutioon kuin potilaan CT-kuvat.
+- Paketit:
+    - DICOM:it luetaan pydicom:illa.
+    - SimpleITK kirjastolla tehdään kuvan käsittely ja resamplaus.
+    - numpy kirjastolla tehdään matriisilaskenta ja pikseliarvojen muuntaminen.
 
 #### Downsamplaaminen (`src/annosennustettavuusmalli/preprocessing/downsamplaus/`)
 - Pienennetään tiedostojen resoluutio eli downsamplataan 512x512 --> 256x256
 - Koodilla DOwnsamplataan potilaiden CT-kuvat, maskit ja muokatut RTDose tiedostot
+- Paketit:
+    - DICOM:it luetaan pydicom:illa ja numpy:lla tehdään matriisilaskenta
+    - Downsamplaus tapahtuu scipy.ndimage paketin zoom-komennolla
 
 ### Kansiorakenne
 - Esikäsittelyn koodit hakevat tiedostot luokat.py luokkarakenteen kautta
@@ -79,18 +90,24 @@ pip install -e ".[dev]"
 
 
 ### Mallin kouluttaminen
-
-
-
-### Apuskriptit
-
-#### DICOM-kuvatiedostojen visualisoiminen  (`examples/dicom_file/`)
-
-#### RTDose tiedostojen visualisoiminen  (`examples/dose_file/`)
-
-
-
-
+- Mallin kouluttaminen tapahtuu malli1.py koodilla (`src/annosennustettavuusmalli/training/malli1/`)
+- malli1.py hakee config.yaml tiedostosta tiedostopolut ja hyperparametrit
+- Paketit:
+    - Malli rakentaminen kouluttaminen tapahtuu PyTorch kirjastolla
+    - torchio:lla käsitellään data ja muodostetaan datajono
+    - mlflow kirjastoa käytetään koulutsvaiheessa lokien kirjoittamiseen ja tallentamiseen 
+- Kouluttamisen vaiheet:
+    1. Ladataan potilasdata ja jaetaan se eri datajoukoihin (koulutus, testaus ja validointi) 
+    2. Luodaan UNet3+ verkko, optimointifunktio ja sakkofunktiot
+    3. Aloitetaan kouluttaminen koulutussilmukassa ja määritetään miten oppimisnopeus muuttuu koulutusen edetessä 
+        4. Yhden epokin silmukassa ennustetaan batchille annosjakauma
+        5. Annosjakaumaa verrataan oikeaan tulokseen ja painotetaan tulos virheen perusteella
+        6. Sakkofunktioiden avulla lasketaan gradientit painojen muutamikseksi
+        7. Optimointifunktiolla päivitetään painot
+    8. Epokin jälkeen mallia validoidaan validointijoukolla
+    9. Tallennetaan paras malli sekä muut metriikat
+    10. Testataan malli testausjoukolla 
+    11. Visualisoidaan mallia
 
 
 
