@@ -309,7 +309,7 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
         # Metadata maskille
         new_ds.SeriesDescription = "ROI MASK"
         new_ds.SeriesInstanceUID = series_uid 
-        new_ds.SOPInstanceUID = pydicom.uid.generate_uid()
+        new_ds.SOPInstanceUID = generate_uid()
         new_ds.InstanceNumber = idx + 1  
 
         # Päivitetään ImagePositionPatient Z-koordinaatti

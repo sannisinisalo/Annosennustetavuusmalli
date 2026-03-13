@@ -67,28 +67,6 @@ pip install -e ".[dev]"
     - DICOM:it luetaan pydicom:illa ja numpy:lla tehdään matriisilaskenta
     - Downsamplaus tapahtuu scipy.ndimage paketin zoom-komennolla
 
-### Kansiorakenne
-- Esikäsittelyn koodit hakevat tiedostot luokat.py luokkarakenteen kautta
-- Mallin käyttää confgi.yaml tiedostoa
-- Potilaat on jaettu hoitokohteen perusteella omiin kansioihin:
-    - 'VN0ds' eli potilaalta on hoidettu vain vasen rinta
-    - 'VN+ds' eli potilaalta on hoidettu vasen rinta sekä kainalon tai kaulan alueen imusolmukkeita
-    - 'ON0ds' eli potilaalta on hoidettu vain oikea rinta
-    - 'ON+ds' eli potilaalta on hoidettu oikea rinta sekä kainalon tai kaulan alueen imusolmukkeita
-- Pääte ds viittaa downsamplaukseen eli esikäsiteltyihin tiedostoihin.
-- Kansiorakenne on ollut seuraava: 
-    - Peruspolku on kirjattu luokat.py tiedostoon BASE_DIR kohtaan ja config.yaml tiedosotoon data_paths kohtaan
-    - Peruspolku vie kansioon, jonka alla on potilaskansiot nimillä Patient1_VN0, Patient2_VN0, Patient3_VN0, jne. 
-    - Potilaskansioiden alla on erillisiä kansioita, oma kansio jokaiselle eri tyypin tiedostolle:
-        - Alkuperäiset CT-kuvat kansiossa  'vanha ct'
-        - RTStruct tiedosto kansiossa 'struct'
-        - maski2.py koodilla luotu rakennemaski kansiossa 'maski'
-        - rtdose.py koodilla muokattu RTDose tiedosto kansiossa 'dose'
-        - Downsamplatut CT-kuvat kansiossa 'ct'
-        - Downsamplattu maski kansiossa 'maskids'
-        - Downsamplattu RTDose kansiossa 'doseds'
-
-
 ### Mallin kouluttaminen
 - Mallin kouluttaminen tapahtuu malli1.py koodilla (`src/annosennustettavuusmalli/training/malli1/`)
 - malli1.py hakee config.yaml tiedostosta tiedostopolut ja hyperparametrit
@@ -109,7 +87,26 @@ pip install -e ".[dev]"
     10. Testataan malli testausjoukolla 
     11. Visualisoidaan mallia
 
-
+### Kansiorakenne
+- Esikäsittelyn koodit hakevat tiedostot luokat.py luokkarakenteen kautta
+- Mallin käyttää confgi.yaml tiedostoa
+- Potilaat on jaettu hoitokohteen perusteella omiin kansioihin:
+    - 'VN0ds' eli potilaalta on hoidettu vain vasen rinta
+    - 'VN+ds' eli potilaalta on hoidettu vasen rinta sekä kainalon tai kaulan alueen imusolmukkeita
+    - 'ON0ds' eli potilaalta on hoidettu vain oikea rinta
+    - 'ON+ds' eli potilaalta on hoidettu oikea rinta sekä kainalon tai kaulan alueen imusolmukkeita
+- Pääte ds viittaa downsamplaukseen eli esikäsiteltyihin tiedostoihin.
+- Kansiorakenne on ollut seuraava: 
+    - Peruspolku on kirjattu luokat.py tiedostoon BASE_DIR kohtaan ja config.yaml tiedosotoon data_paths kohtaan
+    - Peruspolku vie kansioon, jonka alla on potilaskansiot nimillä Patient1_VN0, Patient2_VN0, Patient3_VN0, jne. 
+    - Potilaskansioiden alla on erillisiä kansioita, oma kansio jokaiselle eri tyypin tiedostolle:
+        - Alkuperäiset CT-kuvat kansiossa  'vanha ct'
+        - RTStruct tiedosto kansiossa 'struct'
+        - maski2.py koodilla luotu rakennemaski kansiossa 'maski'
+        - rtdose.py koodilla muokattu RTDose tiedosto kansiossa 'dose'
+        - Downsamplatut CT-kuvat kansiossa 'ct'
+        - Downsamplattu maski kansiossa 'maskids'
+        - Downsamplattu RTDose kansiossa 'doseds'
 
 
 
