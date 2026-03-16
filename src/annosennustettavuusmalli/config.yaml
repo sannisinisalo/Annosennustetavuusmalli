@@ -15,7 +15,7 @@ structures:
   Thyroid: 10
 
 data_paths:
-  VN0_data: "C:/Users/User01/GRADU/Aineisto/VN0ds/*/"
+  VN0_data: "C:/Users/User01/GRADU/Aineisto/TESTI/*/"
   VN+_data: "C:/Users/User01/GRADU/Aineisto/VN+ds/*/"
   ON0_data: "C:/Users/User01/GRADU/Aineisto/ON0ds/*/"
   ON+_data: "C:/Users/User01/GRADU/Aineisto/ON+ds/*/"
@@ -27,7 +27,7 @@ train_loader_config:
   
 default: &DEFAULT
   gradient_accumulation: 1
-  batch_size: 1
+  batch_size: 8
   patch_size: !!python/tuple [256, 256, 1]
   early_stopping_patience: 1
   in_channels: 3
