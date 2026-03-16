@@ -220,8 +220,8 @@ if __name__ == "__main__":
                 except Exception as e:
                     warnings.warn(
                         f"{patient_name}: RD-tiedoston tallennus doseds-kansioon epäonnistui: {e}"
-                    )
-
+                    )       
+                    
             # Kopioidaan RS ja RP muuttumattomina 
             for f in rp_files:
                 try:

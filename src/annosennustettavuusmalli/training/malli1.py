@@ -319,26 +319,24 @@ def main():
     """
     This is for training set checking. Visualizes 3x8 figure that includes ct, mask and dose for one 8-sized batch. Figure updates every 2 seconds.
     """
+
+    #plt.rcParams["figure.figsize"] = (10, 15)
+    #plt.figure()
     
     
-    
-    plt.rcParams["figure.figsize"] = (10, 15)
-    plt.figure()
-    
-    
-    for image in train_loader:
+    #for image in train_loader:
         
-        fig, axs = plt.subplots(8, 3)
+    #    fig, axs = plt.subplots(8, 3)
         
-        for j, (ax1, ax2, ax3) in enumerate(axs):
-            ax1.imshow(image['mask'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
-            ax2.imshow(image['ct'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
-            ax2.set_title(image['name'][j])
-            ax3.imshow(image['dose'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
+    #    for j, (ax1, ax2, ax3) in enumerate(axs):
+    #        ax1.imshow(image['mask'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
+    #        ax2.imshow(image['ct'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
+    #        ax2.set_title(image['name'][j])
+    #        ax3.imshow(image['dose'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
      
-        plt.show()
-        time.sleep(2)
-        plt.close()
+    #    plt.show()
+    #    time.sleep(2)
+    #    plt.close()
 
 if __name__ == "__main__":
     main()
