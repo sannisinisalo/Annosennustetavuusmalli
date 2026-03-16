@@ -16,7 +16,7 @@ import SimpleITK as sitk
 from pydicom.dataset import FileMetaDataset
 from pydicom.uid import ExplicitVRLittleEndian, generate_uid
 
-from annosennustettavuusmalli.preprocessing.luokat import BASE_DIR  # type: ignore
+from annosennustettavuusmalli.preprocessing.luokat import BASE_DIR 
 
 
 def patient_number(name):
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     INPUT_ROOT = BASE_DIR / "VN0"
     OUTPUT_ROOT = BASE_DIR / "VN0ds"
 
-    # POTILAAT NUMEROJÄRJESTYKSESSÄ
+    # Potilaan numerojärjestyksessä
     patients = [
         p
         for p in os.listdir(INPUT_ROOT)
@@ -86,7 +86,7 @@ if __name__ == "__main__":
             z_positions.append(ds_ct.ImagePositionPatient[2])
 
         try:
-            # --- LUE CT ---
+            # Luetaan CT
             ct_img = load_ct_series_from_files(ct_files)
             print("ct_img origin:", ct_img.GetOrigin())
             forced_spacing = list(ct_img.GetSpacing())
@@ -95,16 +95,16 @@ if __name__ == "__main__":
             print(f"CT ladattu ({ct_img.GetSize()[2]} viipaletta)")
             print("ct_img spacing:", ct_img.GetSpacing())
 
-            # --- LUE DOSE ---
+            # Luetaan dose
             ds = pydicom.dcmread(dose_path)
             dose_scaling = float(ds.DoseGridScaling)
 
             dose_img = sitk.ReadImage(dose_path, sitk.sitkFloat32)
             dose_img = dose_img * dose_scaling
 
-            # --- REFERENSSI ---
-            dose_size = dose_img.GetSize()  # (X, Y, Z)
-            dose_spacing = dose_img.GetSpacing()  # (sx, sy, sz)
+            # Luodaan referenssi
+            dose_size = dose_img.GetSize()  
+            dose_spacing = dose_img.GetSpacing()  
             dose_origin = dose_img.GetOrigin()
             print("Dose origin:", dose_origin)
             dose_direction = dose_img.GetDirection()
@@ -136,7 +136,6 @@ if __name__ == "__main__":
             ct_th = float(getattr(ct_ref, "SliceThickness", ct_spacing[2]))
             ct_for = getattr(ct_ref, "FrameOfReferenceUID", None)
 
-            # Luo referenssikuva
             new_size = [ct_size[0], ct_size[1], ct_size[2]]
             new_spacing = [ct_spacing[0], ct_spacing[1], 2.0]
             new_origin = [ct_origin[0], ct_origin[1], dose_origin[2]]
@@ -146,7 +145,7 @@ if __name__ == "__main__":
             reference.SetOrigin(new_origin)
             reference.SetDirection(dose_direction)
 
-            # --- RESAMPLAA DOSE ---
+            # Resamplataan dose
             resampler = sitk.ResampleImageFilter()
             resampler.SetReferenceImage(reference)
             resampler.SetInterpolator(sitk.sitkLinear)
@@ -159,7 +158,7 @@ if __name__ == "__main__":
 
             dose_arr = sitk.GetArrayFromImage(dose_resampled)
 
-            # --- TALLENNUS ---
+            # Tallennetaan tiedostot
             dose_array = sitk.GetArrayFromImage(dose_resampled)
 
             new_scaling = 0.001
@@ -173,7 +172,7 @@ if __name__ == "__main__":
             ds.BitsAllocated = 16
             ds.BitsStored = 16
             ds.HighBit = 15
-            ds.PixelRepresentation = 0  # unsigned
+            ds.PixelRepresentation = 0  
             ds.DoseGridScaling = new_scaling
 
             ds.PixelSpacing = [float(new_spacing[1]), float(new_spacing[0])]
