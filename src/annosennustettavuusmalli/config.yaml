@@ -15,7 +15,7 @@ structures:
   Thyroid: 10
 
 data_paths:
-  VN0_data: "C:/Users/User01/GRADU/Aineisto/TESTI/*/"
+  VN0_data: "C:/Users/User01/GRADU/Aineisto/VN0ds/*/"
   VN+_data: "C:/Users/User01/GRADU/Aineisto/VN+ds/*/"
   ON0_data: "C:/Users/User01/GRADU/Aineisto/ON0ds/*/"
   ON+_data: "C:/Users/User01/GRADU/Aineisto/ON+ds/*/"
@@ -38,7 +38,7 @@ default: &DEFAULT
   pool_size: 2
   skip_filters: 64
   act_func: "ReLU" # Match with torch.nn activation function classes
-  EPOCHS: 4
+  EPOCHS: 20
   warmup_period: 4 # NOTE: This should always be gradient_accumulation*integer, otherwise it messes up lr scheduling
   warm_restart_every: 12 # NOTE: This should always be gradient_accumulation*integer
   optimizer:
