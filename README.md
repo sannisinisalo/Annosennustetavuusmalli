@@ -1,6 +1,6 @@
 # Annosennustetavuusmalli
 
-Tämä python paketti sisältää tekoälypohjaisen annossennustettavuusmalln kaarimoduloidun rintasyövän hoitoa varten. Malli on kehitetty Keski-Suomen sairaalan Novan tarpeisiin. Projekti on osa Sanni Sinisalon gradua. Gradun pohjana toimii Kuopion yliopistollisessa sairaalassa (KYS) kirjoitettu koodi, jonka on kirjoittanut Akseli Leino väitöskirjansa yhteydessä.
+Tämä python paketti sisältää tekoälypohjaisen annossennustettavuusmalln kaarimoduloidun rintasyövän hoitoa varten. Malli on kehitetty Keski-Suomen sairaalan Novan tarpeisiin. Projekti on osa Sanni Sinisalon gradua. Gradun pohjana toimii Kuopion yliopistollisessa sairaalassa (KYS) kirjoitettu koodi, jonka on kirjoittanut Akseli Leino.
 
 Mallin koodia muokataan tarvittaessa, jotta se saadaan toimimaan. Malli koulutetaan Novan potilasdatalla. Rakennemaskin muodostamisen koodi on kehitetty Gradun aikana, koska Novalla ei ollut käytössä ohjelmistoa, jolla KYS:issä rakennemaski luotiin.
 
@@ -115,7 +115,7 @@ Tämä projekti on sisältää koodia, joka on kirjoitettu alla listattujen henk
 - Sanni Sinisalo
 - Akseli Leino 
 
-Akseli Leino on tehnyt tai hänen tekemä koodi on ollut pohjana osalle repositoriossa oleville koodeille. 
+Akseli Leino on tehnyt osan repositorion koodeista ja hänen tekemä koodi on ollut osalle pohjana, joita on muokattu tutkielmaa varten. 
 Erillisten koodien alussa on tieto kuka koodin on alunperin tehnyt ja mahdollisesti kenen toimesta sitä on muokattu.
 
 Katso lisätietoja `LICENSE`-tiedostosta.

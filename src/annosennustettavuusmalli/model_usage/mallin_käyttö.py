@@ -26,8 +26,8 @@ from annosennustettavuusmalli.utils.custom_transforms import (
 
 
 # Polut
-CASE_PATH = r"/path/to/patient_folder"
-MODEL_PATH = r"/path/to/model.pth"
+CASE_PATH = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0"
+MODEL_PATH = r"C:\Users\User01\GRADU\GitHub-koodit\Annosennustetavuusmalli\src\annosennustettavuusmalli\training\trained_models\.pth"
 
 device = torch.device("cpu")
 
