@@ -14,17 +14,16 @@ import glob
 import fnmatch
 from pydicom import dcmread
 import re
-import os
 import pickle
 from tqdm import tqdm
 import numpy as np
-
 import time
+from matplotlib import pyplot as plt
 import sys
+import os
 import torch
 import torch.nn as nn
 from collections import defaultdict
-from matplotlib import pyplot as plt
 import mlflow
 import random
 import torchio as tio
