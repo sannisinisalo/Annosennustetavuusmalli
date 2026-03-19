@@ -4,10 +4,11 @@ Luotu Ma 26.1.2026
 Tekijä: Akseli Leino
 Muokkaaja: Sanni Sinisalo
 
-Ensimmäinen testi Akselin annosennustettavuusmallin ajamiseen. 
 Koodiin tehdyt muokkaukset:
-    - Jupyter notebookille ominaiset osat muutettu python-toimiviksi Spyderissä
+    - Jupyter notebookille ominaiset osat muutettu Python-toimiviksi Spyderissä
     - Tiedostopolut muutettu toimiviksi
+    - Lisätty if __name__ == "__main__" rakenne
+    - Lopun visualisointi kommentoiti pois käytöstä toistaiseksi
 """
 import math
 import glob
@@ -103,11 +104,6 @@ def main():
     
         random.seed() # Seed was set when splitting sets. Without seed reset, the mlflow naming always starts from the same name.
         
-        # ------ DEBUG ------
-        if mlflow.active_run() is not None:
-            mlflow.end_run()    
-        mlflow.start_run()
-        # ------ DEBUG ------
         
         # Initialize model
         model = UNet3plus_3d(
