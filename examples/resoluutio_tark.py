@@ -1,35 +1,35 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Feb 26 10:14:58 2026
+Luotu to 26.02.2026
+Tekijä: Sanni Sinisalo
 
-@author: User01
+Koodi, jolla voidaan lukea ja listat potilaiden tiedostojen resoluutio, pixel_spacing ja slice_thickness
 """
 
 import os
 import re
 import pydicom
 
-# Polku pääkansioon
+
 base_path = r"C:\Users\User01\GRADU\Aineisto\VN0ds"
 
 def extract_patient_number(folder_name):
-    """Palauttaa potilaan numeron PatientX_VN0 -muodossa"""
+    """
+    Palauttaa potilaan numeron PatientX_VN0 -muodossa
+    """
     match = re.search(r'Patient(\d+)_VN0', folder_name)
-    return int(match.group(1)) if match else float('inf')  # jos ei löydy, laitetaan loppuun
+    return int(match.group(1)) if match else float('inf') 
 
-# Hae kaikki potilaskansiot
 all_patients = [f for f in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, f))]
 
-# Järjestetään numeron mukaan
 all_patients.sort(key=extract_patient_number)
 
-# Käydään läpi jokainen potilas
 for patient_folder in all_patients:
     patient_path = os.path.join(base_path, patient_folder)
     
     print(f"\nPotilas: {patient_folder}")
     
-    for subfolder in ['ct', 'maskids']:
+    for subfolder in ['ct', 'maskids', 'doseds']:
         subfolder_path = os.path.join(patient_path, subfolder)
         
         if os.path.exists(subfolder_path) and os.listdir(subfolder_path):
