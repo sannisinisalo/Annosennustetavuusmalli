@@ -9,11 +9,14 @@ Koodi, jolla kehitettyä mallia visualisoidaan
 import os
 import torch
 import torchio as tio
-import numpy as np
 from pydicom import dcmread
 from einops import rearrange
 from scipy.ndimage import zoom
 from torchvision.transforms.functional import affine, InterpolationMode
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent)) 
 
 from annosennustettavuusmalli.models.unet3plus_3d import UNet3plus_3d
 from annosennustettavuusmalli.utils.custom_transforms import (
@@ -27,7 +30,7 @@ from annosennustettavuusmalli.utils.custom_transforms import (
 
 # Polut
 CASE_PATH = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0"
-MODEL_PATH = r"C:\Users\User01\GRADU\GitHub-koodit\Annosennustetavuusmalli\src\annosennustettavuusmalli\training\trained_models\.pth"
+MODEL_PATH = r"C:\Users\User01\GRADU\GitHub-koodit\Annosennustetavuusmalli\src\annosennustettavuusmalli\training\trained_models\gregarious-chimp-691_epoch_16.pth"
 
 device = torch.device("cpu")
 
@@ -90,7 +93,7 @@ dataset = tio.SubjectsDataset([subject], transform=transforms)
 
 # Alustetaan malli
 model = UNet3plus_3d(
-    in_channels=2,
+    in_channels=3,
     out_channels=1,
     filters=[64, 128, 256, 512, 1024],
     kernel_size=3,
@@ -119,9 +122,15 @@ with torch.no_grad():
             ct = batch["ct"][tio.DATA].float().to(device)
             mask = batch["mask"][tio.DATA].float().to(device)
 
+            distance = batch["distance_to_PTV"][tio.DATA].float().to(device)
+            probability = batch["probability_map"][tio.DATA].float().to(device)
+
             locations = batch[tio.LOCATION]
 
-            inputs = torch.cat((ct, mask), dim=1)
+            inputs = torch.cat(
+                (ct, distance, probability),
+                dim=1
+            )
 
             outputs = model(inputs).main_output
 

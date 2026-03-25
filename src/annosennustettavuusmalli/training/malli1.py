@@ -322,6 +322,7 @@ def main():
     #for image in train_loader:
         
     #    fig, axs = plt.subplots(8, 3)
+    
         
     #    for j, (ax1, ax2, ax3) in enumerate(axs):
     #        ax1.imshow(image['mask'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
