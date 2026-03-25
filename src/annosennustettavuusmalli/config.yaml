@@ -1,3 +1,6 @@
+# Tekijä: Akseli  Leino
+# Muokkaaja: Sanni Sinisalo
+
 structures:
   PTV: 0
   Heart: 1
@@ -24,9 +27,9 @@ train_loader_config:
   
 default: &DEFAULT
   gradient_accumulation: 1
-  batch_size: 1
+  batch_size: 8
   patch_size: !!python/tuple [256, 256, 1]
-  early_stopping_patience: 1
+  early_stopping_patience: 10
   in_channels: 3
   out_channels: 1
   filters: [64, 128, 256, 512, 1024]
@@ -35,7 +38,7 @@ default: &DEFAULT
   pool_size: 2
   skip_filters: 64
   act_func: "ReLU" # Match with torch.nn activation function classes
-  EPOCHS: 1
+  EPOCHS: 20
   warmup_period: 4 # NOTE: This should always be gradient_accumulation*integer, otherwise it messes up lr scheduling
   warm_restart_every: 12 # NOTE: This should always be gradient_accumulation*integer
   optimizer:
@@ -46,7 +49,7 @@ default: &DEFAULT
     nesterov: !!python/bool True
   primary_loss: "MSELoss" # Match losses with torch.nn loss classes
   secondary_loss: "L1Loss" # This is used only as metric
-  experiment_name: "Results 2/2026"
+  experiment_name: "Results 3/2026"
 
 manual_search:
   - <<: *DEFAULT
