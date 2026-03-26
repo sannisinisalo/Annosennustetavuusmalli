@@ -177,7 +177,17 @@ def main():
         """
         Training loop
         """
-        for epoch in range(1, hp_config_iter["EPOCHS"] + 1):
+        
+        start_epoch = 1
+
+        checkpoint_path = BASE_DIR / "trained_models" / "gregarious-chimp-691_epoch_16.pth"
+        
+        if os.path.exists(checkpoint_path):
+            print("Loading checkpoint:", checkpoint_path)
+            model.load_state_dict(torch.load(checkpoint_path))
+            start_epoch = 17
+            
+        for epoch in range(start_epoch, hp_config_iter["EPOCHS"] + 1):
     
             # This is for cosine annealing decay over time
             if (
@@ -232,6 +242,7 @@ def main():
                     )
                 accumulated_loss.backward()
     
+
                 if (i + 1) % hp_config_iter["gradient_accumulation"] == 0:
                     optimizer.step()
                     optimizer.zero_grad()
