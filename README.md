@@ -1,6 +1,6 @@
-# Annosennustetavuusmalli
+# Annosennustettavuusmalli
 
-Tämä python paketti sisältää tekoälypohjaisen annossennustettavuusmalln kaarimoduloidun rintasyövän hoitoa varten. Malli on kehitetty Keski-Suomen sairaalan Novan tarpeisiin. Projekti on osa Sanni Sinisalon gradua. Gradun pohjana toimii Kuopion yliopistollisessa sairaalassa (KYS) kirjoitettu koodi, jonka on kirjoittanut Akseli Leino.
+Tämä python paketti sisältää tekoälypohjaisen annosennustettavuusmallin kaarimoduloidun rintasyövän hoitoa varten. Malli on kehitetty Keski-Suomen sairaalan Novan tarpeisiin. Projekti on osa Sanni Sinisalon gradua. Gradun pohjana toimii Kuopion yliopistollisessa sairaalassa (KYS) kirjoitettu koodi, jonka on kirjoittanut Akseli Leino.
 
 Mallin koodia muokataan tarvittaessa, jotta se saadaan toimimaan. Malli koulutetaan Novan potilasdatalla. Rakennemaskin muodostamisen koodi on kehitetty Gradun aikana, koska Novalla ei ollut käytössä ohjelmistoa, jolla KYS:issä rakennemaski luotiin.
 
@@ -43,14 +43,14 @@ pip install -e ".[dev]"
 
 ### Aineiston esikäsittely
 
-- Rakennemaskien luonti ja RTDose tiedostojen koiden muuttaminen eivät ole riippuvaisia toisitaan eli niiden ajamisen järjestyksellä ei ole väliä. 
-- Tiedostojen resoluutioiden pientämisen eli downsamplaamisen tulisi olla esikästittleyn viimeinen vaihe.
+- Rakennemaskien luonti ja RTDose tiedostojen koiden muuttaminen eivät ole riippuvaisia toisistaan eli niiden ajamisen järjestyksellä ei ole väliä. 
+- Tiedostojen resoluutioiden pienentämisen eli downsamplaamisen tulisi olla esikäsittelyn viimeinen vaihe.
 
 #### Rakennemaskin luominen (`src/annosennustettavuusmalli/preprocessing/maski2/`)
 - Rakennemaski muodostetaan potilaan CT-kuvista ja RTStruct-tiedostosta.
 - Paketit:
-    - Tiedostot ovat DICOM muodossa, ja niiden lukemiseen käyteään pydicom-pakettia.
-    - rt_utils kirjaston RTStructBuilder:illa muunnetaan RTStruct-tiedoston sisältämät kontuurit voxelipohjaisiksi maskeiksi.
+    - Tiedostot ovat DICOM muodossa, ja niiden lukemiseen käytetään pydicom-pakettia.
+    - rt_utils kirjaston RTStructBuilder:illa muunnetaan RTStruct-tiedoston sisältämät kontuurit vokseli-pohjaisiksi maskeiksi.
     - Maskien matemaattiseen käsittelyyn käytetään numpy kirjastoa.
 
 #### RTDose tiedoston koon muuttaminen (`src/annosennustettavuusmalli/preprocessing/rtdose/`)
@@ -62,7 +62,7 @@ pip install -e ".[dev]"
 
 #### Downsamplaaminen (`src/annosennustettavuusmalli/preprocessing/downsamplaus/`)
 - Pienennetään tiedostojen resoluutio eli downsamplataan 512x512 --> 256x256
-- Koodilla DOwnsamplataan potilaiden CT-kuvat, maskit ja muokatut RTDose tiedostot
+- Koodilla dwnsamplataan potilaiden CT-kuvat, maskit ja muokatut RTDose tiedostot
 - Paketit:
     - DICOM:it luetaan pydicom:illa ja numpy:lla tehdään matriisilaskenta
     - Downsamplaus tapahtuu scipy.ndimage paketin zoom-komennolla
@@ -73,14 +73,14 @@ pip install -e ".[dev]"
 - Paketit:
     - Malli rakentaminen kouluttaminen tapahtuu PyTorch kirjastolla
     - torchio:lla käsitellään data ja muodostetaan datajono
-    - mlflow kirjastoa käytetään koulutsvaiheessa lokien kirjoittamiseen ja tallentamiseen 
+    - mlflow kirjastoa käytetään koulutusvaiheessa lokien kirjoittamiseen ja tallentamiseen 
 - Kouluttamisen vaiheet:
-    1. Ladataan potilasdata ja jaetaan se eri datajoukoihin (koulutus, testaus ja validointi) 
+    1. Ladataan potilasdata ja jaetaan se eri datajoukkoihin (koulutus, testaus ja validointi) 
     2. Luodaan UNet3+ verkko, optimointifunktio ja sakkofunktiot
-    3. Aloitetaan kouluttaminen koulutussilmukassa ja määritetään miten oppimisnopeus muuttuu koulutusen edetessä 
+    3. Aloitetaan kouluttaminen koulutussilmukassa ja määritetään, miten oppimisnopeus muuttuu koulutuksen edetessä 
         4. Yhden epokin silmukassa ennustetaan batchille annosjakauma
         5. Annosjakaumaa verrataan oikeaan tulokseen ja painotetaan tulos virheen perusteella
-        6. Sakkofunktioiden avulla lasketaan gradientit painojen muutamikseksi
+        6. Sakkofunktioiden avulla lasketaan gradientit painojen muuttamiseksi
         7. Optimointifunktiolla päivitetään painot
     8. Epokin jälkeen mallia validoidaan validointijoukolla
     9. Tallennetaan paras malli sekä muut metriikat
@@ -97,10 +97,10 @@ pip install -e ".[dev]"
     - 'ON+ds' eli potilaalta on hoidettu oikea rinta sekä kainalon tai kaulan alueen imusolmukkeita
 - Pääte ds viittaa downsamplaukseen eli esikäsiteltyihin tiedostoihin.
 - Kansiorakenne on ollut seuraava: 
-    - Peruspolku on kirjattu luokat.py tiedostoon BASE_DIR kohtaan ja config.yaml tiedosotoon data_paths kohtaan
+    - Peruspolku on kirjattu luokat.py tiedostoon BASE_DIR kohtaan ja config.yaml tiedostoon data_paths kohtaan
     - Peruspolku vie kansioon, jonka alla on potilaskansiot nimillä Patient1_VN0, Patient2_VN0, Patient3_VN0, jne. 
     - Potilaskansioiden alla on erillisiä kansioita, oma kansio jokaiselle eri tyypin tiedostolle:
-        - Alkuperäiset CT-kuvat kansiossa  'vanha ct'
+        - Alkuperäiset CT-kuvat kansiossa 'vanha ct'
         - RTStruct tiedosto kansiossa 'struct'
         - maski2.py koodilla luotu rakennemaski kansiossa 'maski'
         - rtdose.py koodilla muokattu RTDose tiedosto kansiossa 'dose'
@@ -115,8 +115,8 @@ Tämä projekti on sisältää koodia, joka on kirjoitettu alla listattujen henk
 - Sanni Sinisalo
 - Akseli Leino 
 
-Akseli Leino on tehnyt osan repositorion koodeista ja hänen tekemä koodi on ollut osalle pohjana, joita on muokattu tutkielmaa varten. 
-Erillisten koodien alussa on tieto kuka koodin on alunperin tehnyt ja mahdollisesti kenen toimesta sitä on muokattu.
+Akseli Leino on tehnyt osan repositorion koodeista, ja hänen tekemä koodi on ollut osalle pohjana, joita on muokattu tutkielmaa varten. 
+Erillisten koodien alussa on tieto, kuka koodin on alun perin tehnyt ja mahdollisesti kenen toimesta sitä on muokattu.
 
 Katso lisätietoja `LICENSE`-tiedostosta.
 
