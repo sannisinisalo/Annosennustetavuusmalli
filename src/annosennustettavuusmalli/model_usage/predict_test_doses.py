@@ -1,58 +1,40 @@
 # -*- coding: utf-8 -*-
 """
-Luotu Ke 01.04.2026
-Tekijä: Sanni Sinisalo
+Created on Wed Apr  1 13:01:31 2026
 
-Testisetin tallentamiseen 
+@author: User01
 """
 
 import torch
-import numpy as np
 import yaml
 from pathlib import Path
 import torchio as tio
+import sys
+
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
 from annosennustettavuusmalli.models.unet3plus_3d import UNet3plus_3d
 from annosennustettavuusmalli.utils.generate_datasets import generate_datasets
 
 def main():
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     BASE_DIR = Path(__file__).parent
-    
     save_dir = BASE_DIR / "predicted_doses"
     save_dir.mkdir(exist_ok=True)
-    
+
     config_file = BASE_DIR.parent / "config.yaml"
-    
     with open(config_file, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-
     DATA = "VN0_data"
 
     # Luo datasetit
-    train_set, val_set, test_set = generate_datasets(
+    _, _, test_set = generate_datasets(
         config["data_paths"][DATA],
         reduce_samples=1
     )
-
     print("Test set size:", len(test_set))
-    
-    # Tulosta testipotilaiden nimet
-    #print("\nTest patients:")
-    #test_names = []
-    #for subject in test_set:
-    #    name = subject["name"]
-    #    print(name)
-    #    test_names.append(name)
-    # Tallenna nimet tiedostoon
-    #with open(save_dir / "test_patient_names.txt", "w") as f:
-    #    for name in test_names:
-    #        f.write(name + "\n")
-    #print("\nTest patient names saved.")
 
-    # Sama hyperparametrirakenne kuin trainingissa
+    # Hyperparametrit mallille
     hp_config_iter = config["manual_search"][0]
 
     # Luo malli
@@ -69,68 +51,54 @@ def main():
     ).to(device)
 
     # Lataa koulutettu malli
-    model_path = r"C:\Users\User01\GRADU\GitHub-koodit\Annosennustetavuusmalli\src\annosennustettavuusmalli\training\trained_models\gregarious-chimp-691_epoch_16.pth"
-
-    model.load_state_dict(
-        torch.load(model_path, map_location=device)
-    )
-
+    model_path = r"C:\Users\User01\GRADU\trained_models\gregarious-chimp-691_epoch_16.pth"
+    model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
 
+    # Patchien koko (muutettavissa, pienempi = vähemmän muistia)
+    patch_size = (64, 64, 32)
+
     with torch.no_grad():
-
-        for i, subject in enumerate(test_set):
-
-            input_ct = subject["ct"][tio.DATA].float().unsqueeze(0)
-            input_mask = subject["mask"][tio.DATA].float().unsqueeze(0)
-            input_dist = subject["distance_to_PTV"][tio.DATA].float().unsqueeze(0)
-
-            input_ = torch.cat(
-                (input_ct, input_mask, input_dist),
-                dim=1
-            ).to(device)
-
-            pred = model(input_)
-
-            predicted_dose = (
-                pred.main_output
-                .squeeze()
-                .cpu()
-                .numpy()
-            )
-            
+        for subject in test_set:
             patient_name = subject["name"]
             patient_dir = save_dir / patient_name
             patient_dir.mkdir(exist_ok=True)
 
-            clinical_dose = (
-                subject["dose"][tio.DATA]
-                .squeeze()
-                .numpy()
-            )
+            # Grid-sampler jakaa potilaan patchiin
+            sampler = tio.sampler.GridSampler(subject, patch_size)
+            patch_loader = torch.utils.data.DataLoader(sampler, batch_size=1)
 
-            mask = (
-                subject["mask"][tio.DATA]
-                .squeeze()
-                .numpy()
-            )
+            print(f"Predicting patches for {patient_name}... Total patches: {len(patch_loader)}")
 
-            np.save(
-                patient_dir / "pred.npy",
-                predicted_dose
-            )
-            
-            np.save(
-                patient_dir / "clin.npy",
-                clinical_dose
-            )
-            
-            np.save(
-                patient_dir / "mask.npy",
-                mask
-            )
+            for j, patch in enumerate(patch_loader):
+                
+                # Lataa vain patch float32 ja GPU:lle
+                input_patch = torch.cat([
+                    patch['ct'][tio.DATA].float(),
+                    patch['mask'][tio.DATA].float(),
+                    patch['distance_to_PTV'][tio.DATA].float()
+                ], dim=1).to(device)
 
-            print(f"Saved patient {i}")
+                # Ennusta patch
+                pred_patch = model(input_patch).main_output.squeeze().cpu()
+                
+                bb = patch['ct'][tio.LOCATION]
+                torch.save(
+                    {
+                        "pred": pred_patch,
+                        "location": bb
+                    },
+                    patient_dir / f"patch_{j}.pt"
+                )
+
+                # Tallenna patch suoraan levyyn
+                torch.save(pred_patch, patient_dir / f"patch_{j}.pt")
+
+            # Tallennetaan alkuperäinen annos ja maski tarvittaessa
+            torch.save(subject["dose"][tio.DATA].squeeze().float(), patient_dir / "clin.pt")
+            torch.save(subject["mask"][tio.DATA].squeeze().int(), patient_dir / "mask.pt")
+
+            print(f"Saved all patches for {patient_name}")
 
     print("All predictions saved.")
 
