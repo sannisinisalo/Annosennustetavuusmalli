@@ -7,19 +7,20 @@ Luokkarakenne yhdistämään ja vähentämään toistoa preprocessing koodeissa.
 Alkuperäisille ja muokatuille tiedostoille tehty eri tiedostopolut.
 """
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
 
 # Keskitetty juuripolku:
 BASE_DIR = Path(r"C:\Users\User01\GRADU\Aineisto")
 
+
 @dataclass
 class Patient:
-    processed_dataset: Path   # esim. "VN0ds", mihin tulokset tallennetaan
-    original_dataset: Path    # esim. "VN0", mistä lähdetiedostot haetaan
-    patient_folder: Path      # esim. Patient1_VN0
-    
+    processed_dataset: Path  # esim. "VN0ds", mihin tulokset tallennetaan
+    original_dataset: Path  # esim. "VN0", mistä lähdetiedostot haetaan
+    patient_folder: Path  # esim. Patient1_VN0
+
     def __post_init__(self):
         self.processed_dataset = Path(self.processed_dataset)
         self.original_dataset = Path(self.original_dataset)
@@ -36,13 +37,12 @@ class Patient:
         """Muokattujen tiedostojen kansio (tulokset)."""
         return BASE_DIR / self.processed_dataset / self.patient_folder
 
-
     # TIEDOSTOJEN POLUT
     # Alkuperäisten CT-kuvien kansio
     @property
     def org_ct_dir(self) -> Path:
         return self.modified_dir / "vanha ct"
-    
+
     # Modifioitujen CT-kuvien kansio
     @property
     def ct_dir(self) -> Path:
@@ -52,7 +52,7 @@ class Patient:
     @property
     def mask_dir(self) -> Path:
         return self.modified_dir / "maski"
-    
+
     # Modifioitujen rakennemaskien kansio
     @property
     def maskds_dir(self) -> Path:
@@ -62,7 +62,7 @@ class Patient:
     @property
     def dose_dir(self) -> Path:
         return self.modified_dir / "dose"
-    
+
     # Modifioidun dose:n kansio
     @property
     def doseds_dir(self) -> Path:
@@ -78,12 +78,12 @@ class Patient:
     def plan_dir(self) -> Path:
         return self.modified_dir / "plan"
 
-
     # NUMERON HAKU JÄRJESTYSTÄ VARTEN
     @property
     def number(self) -> int:
         m = re.search(r"(\d+)", str(self.patient_folder))
         return int(m.group(1)) if m else 0
+
 
 @dataclass
 class AllPatients:
@@ -93,7 +93,7 @@ class AllPatients:
     def __post_init__(self):
         self.processed_dataset = Path(self.processed_dataset)
         self.original_dataset = Path(self.original_dataset)
-        self._patients = self._find_patients()   
+        self._patients = self._find_patients()
 
     def _find_patients(self):
         dataset_path = BASE_DIR / self.processed_dataset
@@ -103,7 +103,7 @@ class AllPatients:
             Patient(
                 processed_dataset=self.processed_dataset,
                 original_dataset=self.original_dataset,
-                patient_folder=p.name
+                patient_folder=p,
             )
             for p in patient_dirs
         ]
