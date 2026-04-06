@@ -7,8 +7,8 @@ Tekijä: Sanni Sinisalo
 Koodi RTDose tiedoston upsamplaamiseen.
 """
 
-import os
 import re
+from pathlib import Path
 
 import numpy as np
 import pydicom
@@ -16,7 +16,7 @@ import SimpleITK as sitk
 from pydicom.dataset import FileMetaDataset
 from pydicom.uid import ExplicitVRLittleEndian, generate_uid
 
-from annosennustettavuusmalli.preprocessing.luokat import BASE_DIR 
+from annosennustettavuusmalli.preprocessing.data import BASE_DIR  # type: ignore
 
 
 def patient_number(name):
@@ -24,20 +24,20 @@ def patient_number(name):
     return int(m.group()) if m else 999999
 
 
-def find_dose_file(folder):
-    for f in os.listdir(folder):
-        if f.startswith("RD") and f.endswith(".dcm"):
-            return folder / f
+def find_dose_file(folder: Path):
+    for f in folder.iterdir():
+        if f.is_file() and f.name.startswith("RD") and f.name.endswith(".dcm"):
+            return f
     return None
 
 
-def find_ct_files(folder):
+def find_ct_files(folder: Path):
     """
     Palauttaa listan CT-viipaleista (täydet polut)
     """
     ct_files = []
-    for f in os.listdir(folder):
-        if f.endswith(".dcm") and not f.startswith("RD"):
+    for f in folder.iterdir():
+        if f.is_file() and f.name.endswith(".dcm") and not f.name.startswith("RD"):
             try:
                 ds = pydicom.dcmread(folder / f, stop_before_pixels=True)
                 if ds.Modality == "CT":
@@ -63,8 +63,8 @@ if __name__ == "__main__":
     # Potilaan numerojärjestyksessä
     patients = [
         p
-        for p in os.listdir(INPUT_ROOT)
-        if os.path.isdir(INPUT_ROOT / p) and p.lower().startswith("patient")
+        for p in INPUT_ROOT.iterdir()
+        if p.is_dir() and p.name.lower().startswith("patient")
     ]
     patients.sort(key=patient_number)
     total = len(patients)
@@ -75,7 +75,8 @@ if __name__ == "__main__":
         patient_in = INPUT_ROOT / patient
         patient_in_ct = OUTPUT_ROOT / patient / "vanha ct"
         patient_out = OUTPUT_ROOT / patient / "dose"
-        os.makedirs(patient_out, exist_ok=True)
+
+        patient_out.mkdir(parents=True, exist_ok=True)
 
         dose_path = find_dose_file(patient_in)
         ct_files = find_ct_files(patient_in)
@@ -103,8 +104,8 @@ if __name__ == "__main__":
             dose_img = dose_img * dose_scaling
 
             # Luodaan referenssi
-            dose_size = dose_img.GetSize()  
-            dose_spacing = dose_img.GetSpacing()  
+            dose_size = dose_img.GetSize()
+            dose_spacing = dose_img.GetSpacing()
             dose_origin = dose_img.GetOrigin()
             print("Dose origin:", dose_origin)
             dose_direction = dose_img.GetDirection()
@@ -172,7 +173,7 @@ if __name__ == "__main__":
             ds.BitsAllocated = 16
             ds.BitsStored = 16
             ds.HighBit = 15
-            ds.PixelRepresentation = 0  
+            ds.PixelRepresentation = 0
             ds.DoseGridScaling = new_scaling
 
             ds.PixelSpacing = [float(new_spacing[1]), float(new_spacing[0])]
@@ -190,7 +191,7 @@ if __name__ == "__main__":
             if ct_for is not None:
                 ds.FrameOfReferenceUID = ct_for
 
-            out_path = os.path.join(patient_out, os.path.basename(dose_path))
+            out_path = patient_out / dose_path.name
 
             if not hasattr(ds, "file_meta") or ds.file_meta is None:
                 ds.file_meta = FileMetaDataset()

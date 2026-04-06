@@ -22,7 +22,7 @@ from pydicom import FileDataset, dcmread
 from pydicom.uid import generate_uid
 from rt_utils import RTStructBuilder  # type: ignore
 
-from annosennustettavuusmalli.preprocessing.luokat import AllPatients  # type: ignore
+from annosennustettavuusmalli.preprocessing.data import AllPatients  # type: ignore
 
 
 def load_CT(path: Path | str) -> list[FileDataset]:
@@ -274,7 +274,9 @@ def overlay_ROI(rt_path, ct_path):
 
 
 # Tallennetaan maski DICOM-pakkana
-def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
+def save_mask_as_dicom_series(
+    mask: np.ndarray, ct_slices: list, output_folder: str | Path
+) -> None:
     """
     Saves the mask as a DICOM series using CT slice metadata.
 
@@ -284,7 +286,7 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
         A 3D array (Z, Y, X) containing the mask data to be saved.
     ct_slices : list
         A list of the loaded CT images in DICOM form.
-    output_folder : str
+    output_folder : str | Path
         Path to the folder where the DICOM mask series will be saved.
 
     Returns
@@ -292,8 +294,9 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
     None.
 
     """
+    output_folder = Path(output_folder)
     # Luodaan output-kansio, jos sitä ei vielä ole
-    os.makedirs(output_folder, exist_ok=True)
+    output_folder.mkdir(parents=True, exist_ok=True)
 
     # Generoidaan uusi SeriesInstanceUID maskisarjalle
     series_uid = generate_uid()
@@ -308,16 +311,16 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
 
         # Metadata maskille
         new_ds.SeriesDescription = "ROI MASK"
-        new_ds.SeriesInstanceUID = series_uid 
+        new_ds.SeriesInstanceUID = series_uid
         new_ds.SOPInstanceUID = generate_uid()
-        new_ds.InstanceNumber = idx + 1  
+        new_ds.InstanceNumber = idx + 1
 
         # Päivitetään ImagePositionPatient Z-koordinaatti
         new_ds.ImagePositionPatient = list(ct.ImagePositionPatient)
         new_ds.ImagePositionPatient[2] = (
             ct.ImagePositionPatient[2] + idx * ct.SliceThickness
         )
-        
+
         new_ds.PixelSpacing = list(ct.PixelSpacing)
         new_ds.SliceThickness = ct.SliceThickness
 
@@ -335,33 +338,31 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
         out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
         new_ds.save_as(out_path)
 
+
 # PÄÄOHJELMA
 
 if __name__ == "__main__":
     # Luodaan AllPatients-objekti
-    all_patients = AllPatients(
-        processed_dataset="VN0ds",
-        original_dataset="VN0"
-    )
+    all_patients = AllPatients(processed_dataset="VN0ds", original_dataset="VN0")
 
     # Käydään kaikki potilaat läpi numerojärjestyksessä
     for patient in all_patients.sorted_by_number():
         print(f"Käsitellään {patient.patient_folder}...")
 
         # Polut luokkien kautta
-        ct_path = patient.org_ct_dir 
-        out_path = patient.mask_dir 
-        struct_dir = patient.struct_dir 
+        ct_path = patient.org_ct_dir
+        out_path = patient.mask_dir
+        struct_dir = patient.struct_dir
 
         # Etsitään RS-tiedosto
         try:
             struct_files = [
                 f for f in os.listdir(patient.struct_dir) if f.endswith(".dcm")
-            ]            
+            ]
             rs_path = os.path.join(patient.struct_dir, struct_files[0])
         except FileNotFoundError:
             print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
-            continue 
+            continue
 
         # Luodaan maski
         mask, ct_slices = overlay_ROI(rs_path, ct_path)
