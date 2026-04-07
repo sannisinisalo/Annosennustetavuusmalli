@@ -14,6 +14,7 @@ lisätty kaikki ROI:t.
 """
 
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from loguru import logger  # type: ignore
@@ -52,6 +53,7 @@ def load_CT(path: Path | str) -> list[FileDataset]:
     """
 
     path = Path(path)
+
     logger.debug(f"Loading CT images from: {path}")
 
     # Tuotetaan lista CT-kuvista. Varmistetaan, että kyseessä on CT modality ja että kaikki kuvat kuuluvat samaan sarjaan SeriesInstanceUID:n avulla.
@@ -82,7 +84,9 @@ def load_CT(path: Path | str) -> list[FileDataset]:
 
 
 # Normalisoidaan ROI-maskin akselit muotoon (Z, Y, X), jotta ne ovat samassa muodossa CT kuvien kanssa
-def normalize_axes(mask, ct_slices):
+def normalize_axes(
+    mask: np.ndarray, ct_slices: list[FileDataset]
+) -> Optional[tuple[np.ndarray, str]]:
     """
     Normalizes the axes of the ROI mask array tho match the CT-images axes (Z, Y, X).
 
@@ -134,7 +138,7 @@ def normalize_axes(mask, ct_slices):
 
 
 # ROI nimien määritys ja numeroiden määrääminen
-def map_roi_name_to_label(roi_name) -> int | None:
+def map_roi_name_to_label(roi_name: str) -> Optional[int]:
     """
     Maps a ROI name to a predefined number that are powers of 2.
 
@@ -205,7 +209,7 @@ def map_roi_name_to_label(roi_name) -> int | None:
 
 
 # Asetetaan ROI:t CT-kuvien päälle
-def overlay_ROI(rt_path, ct_path):
+def overlay_ROI(rt_path: str | Path, ct_path: str | Path):
     """
     overlays the ROIs on top of the CT-images.
 
@@ -235,7 +239,7 @@ def overlay_ROI(rt_path, ct_path):
 
     # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resamplata ROI:t CT:n koordinaatistoon
     rtstruct = RTStructBuilder.create_from(
-        dicom_series_path=ct_path, rt_struct_path=rt_path
+        dicom_series_path=str(ct_path), rt_struct_path=str(rt_path)
     )
 
     # Luodaan ensin tyhjä summamaski
@@ -251,6 +255,7 @@ def overlay_ROI(rt_path, ct_path):
     # Määritetään ROI listan halutuille ROI:lle map_roi_name_to_label funktiossa määritetyt luvut (2:n potenssi)
     for roi_name in roi_list:
         roi_value = map_roi_name_to_label(roi_name)
+
         if roi_value is None:
             continue
 
@@ -260,7 +265,12 @@ def overlay_ROI(rt_path, ct_path):
             print(f"ROI '{roi_name}' ohitettu (ei ContourSequenceä)")
             continue
 
-        mask, txt = normalize_axes(mask, ct_slices)
+        normalised_axes = normalize_axes(mask, ct_slices)
+        if normalised_axes is None:
+            print(f"ROI '{roi_name}' ohitettu (ei onnistuttu normalisoimaan)")
+            continue
+        else:
+            mask, _ = normalised_axes
         # print(f"{roi_name}: {txt}")
 
         any_mask |= mask.astype(bool)
@@ -276,7 +286,7 @@ def overlay_ROI(rt_path, ct_path):
 
 # Tallennetaan maski DICOM-pakkana
 def save_mask_as_dicom_series(
-    mask: np.ndarray, ct_slices: list, output_folder: str | Path
+    mask: np.ndarray, ct_slices: list[FileDataset], output_folder: str | Path
 ) -> None:
     """
     Saves the mask as a DICOM series using CT slice metadata.
@@ -285,7 +295,7 @@ def save_mask_as_dicom_series(
     ----------
     mask : numpy.ndarray
         A 3D array (Z, Y, X) containing the mask data to be saved.
-    ct_slices : list
+    ct_slices : list[FileDataset]
         A list of the loaded CT images in DICOM form.
     output_folder : str | Path
         Path to the folder where the DICOM mask series will be saved.
@@ -296,6 +306,7 @@ def save_mask_as_dicom_series(
 
     """
     output_folder = Path(output_folder)
+
     # Luodaan output-kansio, jos sitä ei vielä ole
     output_folder.mkdir(parents=True, exist_ok=True)
 
@@ -353,22 +364,15 @@ if __name__ == "__main__":
         # Polut luokkien kautta
         ct_path = patient.ds_org_ct_dir
         out_path = patient.ds_maski_dir
-        struct_dir = patient.ds_struct_dir
 
         # Etsitään RS-tiedosto
-        try:
-            struct_files = [
-                f
-                for f in patient.ds_struct_dir.iterdir()
-                if f.is_file() and f.suffix == ".dcm"
-            ]
-            rs_path = patient.ds_struct_dir / struct_files[0]
-        except (FileNotFoundError, IndexError):
+        rs_file = patient.rs_files[0] if patient.rs_files else None
+        if rs_file is None:
             print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
             continue
 
         # Luodaan maski
-        mask, ct_slices = overlay_ROI(rs_path, ct_path)
+        mask, ct_slices = overlay_ROI(rs_file, ct_path)
 
         # Tulostetaan maskin tyyppi ja muoto
         print(type(mask), mask.shape)
