@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""
+Luotu Ke 01.04.2026
+Tekijä: Sanni Sinisalo
+
+Koodi, jossa käytetään mallia ennustamaan annosjakauma testipotilaille
+"""
 
 import torch
 import yaml
