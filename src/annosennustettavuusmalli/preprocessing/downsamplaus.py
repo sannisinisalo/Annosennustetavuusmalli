@@ -13,12 +13,13 @@ import re
 import warnings
 from pathlib import Path
 from typing import List
+
 import numpy as np
 from pydicom import dcmread
 from pydicom.multival import MultiValue
-from scipy.ndimage import zoom 
+from scipy.ndimage import zoom
 
-from annosennustettavuusmalli.preprocessing.luokat import BASE_DIR  
+from annosennustettavuusmalli.preprocessing.luokat import BASE_DIR
 
 
 def ensure_dir(path: str | Path) -> None:
@@ -68,10 +69,25 @@ def find_dicom_by_modality(folder: str, modality: str) -> List[str]:
 
 
 if __name__ == "__main__":
+    from argparse import ArgumentParser
+
+    argparser = ArgumentParser(
+        description="Downsample DICOM files for ANNOSENNUSTETTAVUUSMALLI"
+    )
+    argparser.add_argument(
+        "-d",
+        "--dataset",
+        type=str,
+        required=True,
+        choices=["L", "R", "LAX", "RAX"],
+        help="Valitse datasetti: 'L', 'R', 'LAX', 'RAX'",
+    )
+    args = argparser.parse_args()
+
     print("PROCESSING...")
 
     # Valitse datasetti: "L", "R", "LAX", "RAX"
-    dataset = "L"
+    dataset = args.dataset.upper()
 
     # Mapataan datasetti lähde- ja kohdekansiohin
     if dataset == "L":
@@ -186,7 +202,7 @@ if __name__ == "__main__":
                 mask_down = zoom(mask_orig, zoom=(zoom_y, zoom_x), order=0)
 
                 # Slice-reversointi: käännä index Z-akselilla
-                idx = len(mask_files) - 1 - i  
+                idx = len(mask_files) - 1 - i
                 # Sovitetaan dose tähän sliceen
                 # HUOM! Ei tehdä maskin mukaan multiplicaatiota, vaan indeksi vain järjestää
                 dose_slice = arr_dose_down_flipped[idx, :, :]
@@ -220,9 +236,9 @@ if __name__ == "__main__":
                 except Exception as e:
                     warnings.warn(
                         f"{patient_name}: RD-tiedoston tallennus doseds-kansioon epäonnistui: {e}"
-                    )       
-                    
-            # Kopioidaan RS ja RP muuttumattomina 
+                    )
+
+            # Kopioidaan RS ja RP muuttumattomina
             for f in rp_files:
                 try:
                     ds = dcmread(f, stop_before_pixels=True)
