@@ -16,7 +16,7 @@ import SimpleITK as sitk
 from pydicom.dataset import FileMetaDataset
 from pydicom.uid import ExplicitVRLittleEndian, generate_uid
 
-from annosennustettavuusmalli.preprocessing.data import BASE_DIR  # type: ignore
+from annosennustettavuusmalli.preprocessing.luokat import BASE_DIR  # type: ignore
 
 
 def patient_number(name):

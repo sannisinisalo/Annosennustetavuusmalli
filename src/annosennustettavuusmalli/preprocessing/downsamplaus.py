@@ -17,7 +17,7 @@ from pydicom import FileDataset, dcmread
 from pydicom.multival import MultiValue
 from scipy.ndimage import zoom  # type: ignore
 
-from annosennustettavuusmalli.preprocessing.data import (
+from annosennustettavuusmalli.preprocessing.luokat import (
     BASE_DIR,
     AllPatients,
 )

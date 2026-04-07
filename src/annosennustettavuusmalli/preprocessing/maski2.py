@@ -22,7 +22,7 @@ from pydicom import FileDataset, dcmread
 from pydicom.uid import generate_uid
 from rt_utils import RTStructBuilder  # type: ignore
 
-from annosennustettavuusmalli.preprocessing.data import (
+from annosennustettavuusmalli.preprocessing.luokat import (
     AllPatients,
 )
 
