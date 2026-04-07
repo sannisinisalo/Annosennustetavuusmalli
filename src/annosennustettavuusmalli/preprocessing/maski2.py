@@ -373,3 +373,4 @@ if __name__ == "__main__":
         save_mask_as_dicom_series(mask, ct_slices, out_path)
 
         print("Maski tallennettu")
+        

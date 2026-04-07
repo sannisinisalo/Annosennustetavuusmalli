@@ -120,6 +120,8 @@ class AllPatients:
     def sorted_by_number(self):
         return sorted(self._patients, key=lambda p: p.number)
 
+
+
 @dataclass(frozen=True)
 class DoseMetricsConfig:
     organ_config: dict = None

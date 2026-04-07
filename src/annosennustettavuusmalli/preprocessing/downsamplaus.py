@@ -217,14 +217,14 @@ if __name__ == "__main__":
                 ds_mask.save_as(os.path.join(folders["mask"], os.path.basename(f)))
 
             # Lopuksi tallenna flipattu dose
-            ds_dose.PixelData = arr_dose_down_flipped.tobytes()
-            ds_dose.Rows, ds_dose.Columns = (
-                arr_dose_down_flipped.shape[1],
-                arr_dose_down_flipped.shape[2],
-            )
-            ds_dose.save_as(
-                os.path.join(folders["doseds"], os.path.basename(dose_files[0]))
-            )
+            #ds_dose.PixelData = arr_dose_down_flipped.tobytes()
+            #ds_dose.Rows, ds_dose.Columns = (
+            #    arr_dose_down_flipped.shape[1],
+            #    arr_dose_down_flipped.shape[2],
+            #)
+            #ds_dose.save_as(
+            #    os.path.join(folders["doseds"], os.path.basename(dose_files[0]))
+            #)
 
             # 6. Tallennetaan muokattu dose doseds-kansioon
             if ds_dose is not None and arr_dose_down is not None:
