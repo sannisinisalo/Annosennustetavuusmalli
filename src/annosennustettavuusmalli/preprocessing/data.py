@@ -22,6 +22,9 @@ class Patient:
     original_root: Path  # esim. "VN0", mistä lähdetiedostot haetaan
     patient_folder: Path  # esim. Patient1_VN0
     processed_root: Path  # esim. "VN0ds", mihin tulokset tallennetaan
+    basedir: Path = (
+        BASE_DIR  # Keskitetty juuripolku, johon kaikki suhteelliset polut perustuvat
+    )
 
     def __post_init__(self):
         self.original_root = Path(self.original_root)
@@ -33,12 +36,12 @@ class Patient:
     @property
     def original_dir(self) -> Path:
         """Alkuperäinen potilaskansio, josta DICOM/RS/RD/RP haetaan."""
-        return BASE_DIR / self.original_root / self.patient_folder.name
+        return self.basedir / self.original_root / self.patient_folder.name
 
     @property
     def modified_dir(self) -> Path:
         """Muokattujen tiedostojen kansio (tulokset)."""
-        return BASE_DIR / self.processed_root / self.patient_folder.name
+        return self.basedir / self.processed_root / self.patient_folder.name
 
     # TIEDOSTOLISTAUS
     def _find_dicom_by_modality(self, modality: str) -> list[Path]:
