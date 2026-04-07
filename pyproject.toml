@@ -2,6 +2,16 @@
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+annosennustetavuusmalli = ["py.typed", "config/config.yaml"]
+
 [project]
 name = "annosennustetavuusmalli"
 version = "0.1.0"
@@ -25,14 +35,10 @@ dependencies = [
 ]
 
 [tool.uv.workspace]
-members = [
-    ".",
-]
+members = ["."]
 
 [tool.uv.sources]
 annosennustetavuusmalli = { workspace = true }
 
 [dependency-groups]
-dev = [
-    "annosennustetavuusmalli",
-]
+dev = ["annosennustetavuusmalli"]
