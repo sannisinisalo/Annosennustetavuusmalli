@@ -2,6 +2,10 @@ import torch
 import math
 import warnings
 
+"""
+Tekijä: Akseli Leino
+"""
+
 def calculate_dx(dose: torch.Tensor, mask: torch.Tensor, organ_config: dict, volume_percentage: float) -> dict:
     """
     Calculate the Dx metric (dose received by x% of the specified volume) for each organ specified in the config.

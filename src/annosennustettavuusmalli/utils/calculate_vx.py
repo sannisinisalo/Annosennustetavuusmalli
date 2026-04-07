@@ -1,5 +1,9 @@
 import torch
 
+"""
+Tekijä: Akseli Leino
+"""
+
 def calculate_vx(dose, mask, organ_config, threshold):
     """Calculates the percentage of volume receiving at least dose X for each organ.
 

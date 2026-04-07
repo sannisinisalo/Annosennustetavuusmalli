@@ -1,6 +1,10 @@
 import torch
 import numpy as np
 
+"""
+Tekijä: Akseli Leino
+"""
+
 def calculate_dvhs(dose, mask, organ_config, num_bins = 601, dose_max = 60):
     """Calculate cumulative dose-volume histograms (DVHs) for each organ.
 
