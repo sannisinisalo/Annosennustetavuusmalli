@@ -13,7 +13,6 @@ annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on
 lisätty kaikki ROI:t.
 """
 
-import os
 from pathlib import Path
 
 import numpy as np
@@ -22,7 +21,9 @@ from pydicom import FileDataset, dcmread
 from pydicom.uid import generate_uid
 from rt_utils import RTStructBuilder  # type: ignore
 
-from annosennustettavuusmalli.preprocessing.data import AllPatients  # type: ignore
+from annosennustettavuusmalli.preprocessing.data import (
+    AllPatients,
+)
 
 
 def load_CT(path: Path | str) -> list[FileDataset]:
@@ -335,7 +336,7 @@ def save_mask_as_dicom_series(
         new_ds.HighBit = 31
 
         # Tallennus
-        out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
+        out_path = output_folder / f"mask_{idx:04d}.dcm"
         new_ds.save_as(out_path)
 
 
@@ -343,24 +344,26 @@ def save_mask_as_dicom_series(
 
 if __name__ == "__main__":
     # Luodaan AllPatients-objekti
-    all_patients = AllPatients(processed_dataset="VN0ds", original_dataset="VN0")
+    all_patients = AllPatients(processed_root=Path("VN0ds"), original_root=Path("VN0"))
 
     # Käydään kaikki potilaat läpi numerojärjestyksessä
     for patient in all_patients.sorted_by_number():
         print(f"Käsitellään {patient.patient_folder}...")
 
         # Polut luokkien kautta
-        ct_path = patient.org_ct_dir
-        out_path = patient.mask_dir
-        struct_dir = patient.struct_dir
+        ct_path = patient.ds_org_ct_dir
+        out_path = patient.ds_maski_dir
+        struct_dir = patient.ds_struct_dir
 
         # Etsitään RS-tiedosto
         try:
             struct_files = [
-                f for f in os.listdir(patient.struct_dir) if f.endswith(".dcm")
+                f
+                for f in patient.ds_struct_dir.iterdir()
+                if f.is_file() and f.suffix == ".dcm"
             ]
-            rs_path = os.path.join(patient.struct_dir, struct_files[0])
-        except FileNotFoundError:
+            rs_path = patient.ds_struct_dir / struct_files[0]
+        except (FileNotFoundError, IndexError):
             print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
             continue
 

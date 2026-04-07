@@ -10,14 +10,14 @@ Tiedostojen koon pienentämiseen käytetty koodi
 import re
 import warnings
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy as np
-from pydicom import dcmread
+from pydicom import FileDataset, dcmread
 from pydicom.multival import MultiValue
 from scipy.ndimage import zoom  # type: ignore
 
-from annosennustettavuusmalli.preprocessing.data import (  # type :ignore
+from annosennustettavuusmalli.preprocessing.data import (
     BASE_DIR,
     AllPatients,
 )
@@ -87,6 +87,112 @@ def get_data_paths(dataset: str, base_dir: Path = BASE_DIR) -> tuple[Path, Path]
         raise ValueError("Tuntematon dataset-parametri. Käytä: 'L', 'R', 'LAX', 'RAX'.")
 
 
+def downsample_ct_file(ct_file: Path) -> Optional[FileDataset]:
+    """
+    Downsamplaa CT-tiedoston puoleen alkuperäisestä resoluutiosta X/Y-suunnassa.
+    Palauttaa downsamplatun DICOM datasetin, tai None jos käsittely epäonnistuu.
+    """
+
+    try:
+        ds = dcmread(ct_file)
+
+        arr_down = np.array(zoom(ds.pixel_array, zoom=(0.5, 0.5), order=1))
+
+        ds.PixelData = arr_down.tobytes()
+
+        ds.Rows, ds.Columns = arr_down.shape
+
+        if hasattr(ds, "PixelSpacing"):
+            ds.PixelSpacing = MultiValue(float, [float(x) * 2 for x in ds.PixelSpacing])
+
+        return ds
+    except Exception as e:
+        warnings.warn(f"CT-tiedoston {ct_file.name} käsittely epäonnistui: {e}")
+        return None
+
+
+def downsample_dose_file(
+    dose_file: Path, zoom_factor: float = 0.5
+) -> Optional[FileDataset]:
+    """
+    Downsamplaa RTDOSE-tiedoston puoleen alkuperäisestä resoluutiosta X/Y-suunnassa (Z pysyy samana).
+
+    Palauttaa downsamplatun DICOM datasetin, tai None jos käsittely epäonnistuu.
+    """
+    arr_dose_down = None
+    ds_dose = None
+
+    try:
+        ds_dose = dcmread(dose_file)
+
+        arr_dose_down = np.array(
+            zoom(ds_dose.pixel_array, zoom=(1, zoom_factor, zoom_factor), order=1)
+        )
+
+        # Flipataan Z-akselilla, jotta slice-indeksi vastaa CT:n kanssa (slice 0 on alhaalla, ei päällä)
+        arr_dose_down_flipped = arr_dose_down[::-1, :, :]
+
+        ds_dose.PixelData = arr_dose_down_flipped.tobytes()
+
+        ds_dose.Rows, ds_dose.Columns = (
+            arr_dose_down_flipped.shape[1],
+            arr_dose_down_flipped.shape[2],
+        )
+
+        # Tarvitaanko näitä?
+        # dose_origin_z = ds_dose.ImagePositionPatient[2]
+        # dose_z_positions = dose_origin_z + np.array(ds_dose.GridFrameOffsetVector)
+
+        if hasattr(ds_dose, "PixelSpacing"):
+            # Tuplataan PixelSpacing-arvot, koska resoluutio puolitetaan
+            ds_dose.PixelSpacing = MultiValue(
+                float, [float(x) * 1 / zoom_factor for x in ds_dose.PixelSpacing]
+            )
+
+        return ds_dose
+    except Exception as e:
+        warnings.warn(f"RTDOSE-tiedoston {dose_file.name} käsittely epäonnistui: {e}")
+        return None
+
+
+def downsample_mask_file(
+    mask_file: Path, target_shape: tuple[int, int]
+) -> Optional[FileDataset]:
+    """
+    Downsamplaa maskitiedoston puoleen alkuperäisestä resoluutiosta X/Y-suunnassa, ja slice-reversoi Z-akselilla.
+
+    Palauttaa downsamplatun DICOM datasetin, tai None jos käsittely epäonnistuu.
+    """
+    try:
+        ds_mask = dcmread(mask_file)
+        mask_orig = ds_mask.pixel_array
+
+        zoom_y = target_shape[0] / mask_orig.shape[0]
+        zoom_x = target_shape[1] / mask_orig.shape[1]
+
+        mask_down = np.array(zoom(mask_orig, zoom=(zoom_y, zoom_x), order=0))
+
+        # Slice-reversointi: käännä index Z-akselilla
+        mask_down_flipped = mask_down[::-1, :, :]
+
+        ds_mask.PixelData = mask_down_flipped.astype(np.int32).tobytes()
+        ds_mask.Rows, ds_mask.Columns = mask_down_flipped.shape
+
+        if hasattr(ds_mask, "PixelSpacing"):
+            ds_mask.PixelSpacing = MultiValue(
+                float,
+                [
+                    float(ds_mask.PixelSpacing[0]) / zoom_y,
+                    float(ds_mask.PixelSpacing[1]) / zoom_x,
+                ],
+            )
+
+        return ds_mask
+    except Exception as e:
+        warnings.warn(f"Maskitiedoston {mask_file.name} käsittely epäonnistui: {e}")
+        return None
+
+
 if __name__ == "__main__":
     from argparse import ArgumentParser
 
@@ -121,103 +227,39 @@ if __name__ == "__main__":
 
         # Downsamplataan CT-kuvat
         for f in p.ct_files:
-            try:
-                ds = dcmread(f)
-                arr_down = zoom(ds.pixel_array, zoom=(0.5, 0.5), order=1)
-                ds.PixelData = arr_down.tobytes() if hasattr(arr_down, "tobytes")
-                ds.Rows, ds.Columns = arr_down.shape
-                if hasattr(ds, "PixelSpacing"):
-                    ds.PixelSpacing = MultiValue(
-                        float, [float(x) * 2 for x in ds.PixelSpacing]
-                    )
-                ds.save_as(p.ds_ct_dir / f.name)
-            except Exception as e:
-                warnings.warn(
-                    f"{patient_name}: CT-tiedoston {f.name} käsittely epäonnistui: {e}"
-                )
+            ds_ct = downsample_ct_file(f)
+            if ds_ct is not None:
+                ds_ct.save_as(p.ds_ct_dir / f.name)
 
         # Downsamplataan RTDOSE
         # 1. Ladataan alkuperäinen dose
-        dose_src_folder = p.ds_dose_dir
-        dose_files = [
-            f for f in dose_src_folder.iterdir() if f.is_file() and f.suffix == ".dcm"
-        ]
-
-        arr_dose_down = None
-        ds_dose = None
-        if dose_files:
-            try:
-                ds_dose = dcmread(dose_files[0])
-                arr_dose = ds_dose.pixel_array
-                # 2. Downsamplataan Y/X (Z pysyy samana)
-                arr_dose_down = zoom(arr_dose, zoom=(1, 0.5, 0.5), order=1)
-                ds_dose.Rows, ds_dose.Columns = (
-                    arr_dose_down.shape[1],
-                    arr_dose_down.shape[2],
-                )
-                dose_origin_z = ds_dose.ImagePositionPatient[2]
-                dose_z_positions = dose_origin_z + np.array(
-                    ds_dose.GridFrameOffsetVector
-                )
-                if hasattr(ds_dose, "PixelSpacing"):
-                    ds_dose.PixelSpacing = MultiValue(
-                        float, [float(x) * 2 for x in ds_dose.PixelSpacing]
-                    )
-            except Exception as e:
-                warnings.warn(
-                    f"{patient_name}: RD-tiedoston käsittely epäonnistui: {e}"
-                )
+        ds_dose = (
+            downsample_dose_file(p.rd_files[0], zoom_factor=0.5) if p.rd_files else None
+        )
+        if ds_dose is not None:
+            ds_dose.save_as(p.ds_dose_dir / p.rd_files[0].name)
 
         # 3. Ladataan maskit ja downsamplataan samaan kokoon
-        mask_src_folder = p.ds_mask_dir
-        mask_files = [
-            f for f in mask_src_folder.iterdir() if f.is_file() and f.suffix == ".dcm"
-        ]
-        arr_dose_down_flipped = arr_dose_down[::-1, :, :]
+        if ds_dose is None:
+            warnings.warn(
+                f"{patient_name}: Dose-tiedosto puuttuu, maskien downsamplaus ohitetaan."
+            )
+            continue
 
-        for i, f in enumerate(mask_files):
-            ds_mask = dcmread(f)
-            mask_orig = ds_mask.pixel_array
+        y_shape = ds_dose.pixel_array.shape[1]
+        x_shape = ds_dose.pixel_array.shape[2]
 
-            # Downsamplataan X/Y
-            zoom_y = arr_dose_down_flipped.shape[1] / mask_orig.shape[0]
-            zoom_x = arr_dose_down_flipped.shape[2] / mask_orig.shape[1]
-            mask_down = zoom(mask_orig, zoom=(zoom_y, zoom_x), order=0)
+        for i, f in enumerate(p.maski_files):
+            ds_mask = downsample_mask_file(f, target_shape=(y_shape, x_shape))
+            if ds_mask is not None:
+                ds_mask.save_as(p.ds_maski_dir / f.name)
 
-            # Slice-reversointi: käännä index Z-akselilla
-            idx = len(mask_files) - 1 - i
-            # Sovitetaan dose tähän sliceen
-            # HUOM! Ei tehdä maskin mukaan multiplicaatiota, vaan indeksi vain järjestää
-            dose_slice = arr_dose_down_flipped[idx, :, :]
-
-            # Tallenna maski kuten ennen
-            ds_mask.PixelData = mask_down.astype(np.int32).tobytes()
-            ds_mask.Rows, ds_mask.Columns = mask_down.shape
-            if hasattr(ds_mask, "PixelSpacing"):
-                ds_mask.PixelSpacing = MultiValue(
-                    float, [float(x) * 2 for x in ds_mask.PixelSpacing]
-                )
-            ds_mask.save_as(p.ds_mask_dir / f.name)
-
-        # Lopuksi tallenna flipattu dose
-        ds_dose.PixelData = arr_dose_down_flipped.tobytes()
-        ds_dose.Rows, ds_dose.Columns = (
-            arr_dose_down_flipped.shape[1],
-            arr_dose_down_flipped.shape[2],
-        )
-        ds_dose.save_as(p.ds_doseds_dir / dose_files[0].name)
-
-        # 6. Tallennetaan muokattu dose doseds-kansioon
-        if ds_dose is not None and arr_dose_down is not None:
-            try:
-                ds_dose.PixelData = arr_dose_down.tobytes()
-                ds_dose.save_as(
-                    p.ds_doseds_dir / dose_files[0].name
-                )
-            except Exception as e:
-                warnings.warn(
-                    f"{patient_name}: RD-tiedoston tallennus doseds-kansioon epäonnistui: {e}"
-                )
+            # # TARVITAANKO TÄTÄ? --- IGNORE ---
+            # # Slice-reversointi: käännä index Z-akselilla
+            # idx = len(p.maski_files) - 1 - i
+            # # Sovitetaan dose tähän sliceen
+            # # HUOM! Ei tehdä maskin mukaan multiplicaatiota, vaan indeksi vain järjestää
+            # dose_slice = ds_dose.pixel_array[idx, :, :]
 
         # Kopioidaan RS ja RP muuttumattomina
         for f in p.rp_files:
