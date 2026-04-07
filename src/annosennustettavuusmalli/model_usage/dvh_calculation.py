@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 Luotu Ti 07.04.2026
 Tekijä: Sanni Sinisalo
@@ -14,22 +13,17 @@ import sys
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
+from annosennustettavuusmalli.preprocessing.luokat import DoseMetricsConfig
 from annosennustettavuusmalli.utils.calculate_dvhs import calculate_dvhs
 from annosennustettavuusmalli.utils.plot_dvh_dict import plot_dvhs
+
+# Konfiguraatio
+config = DoseMetricsConfig()
 
 # Polut
 base_dir = Path("predicted_doses")
 plot_dir = base_dir / "dvh_plots"
 plot_dir.mkdir(exist_ok=True)
-
-# Organit ja tunnukset
-organ_config = {
-    "PTV": 1,
-    "Heart": 2,
-    "Contralateral lung": 3,
-    "Ipsilateral lung": 4,
-    "Contralateral breast": 5,
-}
 
 # Loop potilaille
 for patient_dir in base_dir.iterdir():
@@ -52,9 +46,8 @@ for patient_dir in base_dir.iterdir():
     clin = torch.load(clin_file).squeeze()
     mask = torch.load(mask_file).squeeze()
 
-    # DVH
-    dvh_pred = calculate_dvhs(pred, mask, organ_config)
-    dvh_clin = calculate_dvhs(clin, mask, organ_config)
+    dvh_pred = calculate_dvhs(pred, mask, config.organ_config)
+    dvh_clin = calculate_dvhs(clin, mask, config.organ_config)
 
     fig, ax = plt.subplots(figsize=(8,6))
     plot_dvhs(ax, dvh_clin, linestyle='-')
