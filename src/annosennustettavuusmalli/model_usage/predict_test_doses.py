@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Apr  1 13:01:31 2026
+Luotu Ke 01.04.2026
+Tekijä: Sanni Sinisalo
 
-@author: User01
+Koodi, jossa käytetään mallia ennustamaan annosjakauma testipotilaille
 """
 
 import sys
@@ -20,23 +21,40 @@ from annosennustettavuusmalli.utils.generate_datasets import generate_datasets
 
 
 def main():
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     BASE_DIR = Path(__file__).parent
     save_dir = BASE_DIR / "predicted_doses"
     save_dir.mkdir(exist_ok=True)
 
+<<<<<<< HEAD
     config = load_default_config()
 
     DATA = "VN0_data"
 
     # Luo datasetit
     _, _, test_set = generate_datasets(config["data_paths"][DATA], reduce_samples=1)
+=======
+    config_file = BASE_DIR.parent / "config.yaml"
+
+    with open(config_file, "r") as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+
+    DATA = "VN0_data"
+
+    # Dataset
+    _, _, test_set = generate_datasets(
+        config["data_paths"][DATA],
+        reduce_samples=1
+    )
+
+>>>>>>> main
     print("Test set size:", len(test_set))
 
-    # Hyperparametrit mallille
+    # Mallin hyperparametrit
     hp_config_iter = config["manual_search"][0]
 
-    # Luo malli
     model = UNet3plus_3d(
         in_channels=hp_config_iter["in_channels"],
         out_channels=hp_config_iter["out_channels"],
@@ -49,26 +67,44 @@ def main():
         patch_size=hp_config_iter["patch_size"],
     ).to(device)
 
+<<<<<<< HEAD
     # Lataa koulutettu malli
     model_path = (
         r"C:\Users\User01\GRADU\trained_models\gregarious-chimp-691_epoch_16.pth"
     )
     model.load_state_dict(torch.load(model_path, map_location=device))
+=======
+    # Lataa malli
+    model_path = r"C:\Users\User01\GRADU\trained_models\gregarious-chimp-691_epoch_16.pth"
+
+    model.load_state_dict(
+        torch.load(model_path, map_location=device)
+    )
+
+>>>>>>> main
     model.eval()
 
-    # Patchien koko (muutettavissa, pienempi = vähemmän muistia)
     patch_size = (64, 64, 32)
 
     with torch.no_grad():
+
         for subject in test_set:
+
             patient_name = subject["name"]
+
+            print(f"\nProcessing {patient_name}")
+
             patient_dir = save_dir / patient_name
             patient_dir.mkdir(exist_ok=True)
 
-            # Grid-sampler jakaa potilaan patchiin
-            sampler = tio.sampler.GridSampler(subject, patch_size)
-            patch_loader = torch.utils.data.DataLoader(sampler, batch_size=1)
+            # Luo patch-sampler
+            sampler = tio.GridSampler(
+                subject,
+                patch_size,
+                patch_overlap=(16, 16, 8)
+            )
 
+<<<<<<< HEAD
             print(
                 f"Predicting patches for {patient_name}... Total patches: {len(patch_loader)}"
             )
@@ -90,22 +126,66 @@ def main():
                 bb = patch["ct"][tio.LOCATION]
                 torch.save(
                     {"pred": pred_patch, "location": bb}, patient_dir / f"patch_{j}.pt"
+=======
+            patch_loader = torch.utils.data.DataLoader(
+                sampler,
+                batch_size=1
+            )
+
+            # Tämä tekee reconstructionin automaattisesti
+            aggregator = tio.GridAggregator(sampler)
+
+            for patches_batch in patch_loader:
+
+                input_patch = torch.cat([
+                    patches_batch['ct'][tio.DATA].float(),
+                    patches_batch['mask'][tio.DATA].float(),
+                    patches_batch['distance_to_PTV'][tio.DATA].float()
+                ], dim=1).to(device)
+
+                pred_patch = model(
+                    input_patch
+                ).main_output
+
+                # Lisää reconstructioniin
+                aggregator.add_batch(
+                    pred_patch.cpu(),
+                    patches_batch[tio.LOCATION]
+>>>>>>> main
                 )
 
-                # Tallenna patch suoraan levyyn
-                torch.save(pred_patch, patient_dir / f"patch_{j}.pt")
+            # Tässä muodostuu koko annos
+            pred_full = aggregator.get_output_tensor()
 
+<<<<<<< HEAD
             # Tallennetaan alkuperäinen annos ja maski tarvittaessa
             torch.save(
                 subject["dose"][tio.DATA].squeeze().float(), patient_dir / "clin.pt"
             )
             torch.save(
                 subject["mask"][tio.DATA].squeeze().int(), patient_dir / "mask.pt"
+=======
+            # Tallennus
+            torch.save(
+                pred_full,
+                patient_dir / "pred.pt"
+>>>>>>> main
             )
 
-            print(f"Saved all patches for {patient_name}")
+            torch.save(
+                subject["dose"][tio.DATA].squeeze().float(),
+                patient_dir / "clin.pt"
+            )
 
-    print("All predictions saved.")
+            torch.save(
+                subject["mask"][tio.DATA].squeeze().int(),
+                patient_dir / "mask.pt"
+            )
+
+            print(f"Saved {patient_name}")
+
+    print("\nAll predictions saved.")
+
 
 
 if __name__ == "__main__":

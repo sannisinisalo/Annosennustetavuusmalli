@@ -12,7 +12,7 @@ structures:
   Brachial plexus: 7
   Esophagus: 8
   Trachea: 9
-  Thyroid: 10
+  Thyroid: 11
 
 data_paths:
   VN0_data: "C:/Users/User01/GRADU/Aineisto/VN0ds/*/"
