@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+"""
+Tekijä: Akseli Leino
+"""
+
 def plot_dvhs(ax_to_plot, dvhs):
     """Plots DVH to given axis.
 
