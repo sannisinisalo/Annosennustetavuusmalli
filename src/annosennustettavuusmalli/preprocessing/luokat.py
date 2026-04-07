@@ -10,6 +10,7 @@ Alkuperäisille ja muokatuille tiedostoille tehty eri tiedostopolut.
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 import pydicom
 
@@ -189,40 +190,41 @@ class AllPatients:
     def sorted_by_number(self) -> list[Patient]:
         return sorted(self._patients, key=lambda p: p.number)
 
+
 @dataclass(frozen=True)
 class DoseMetricsConfig:
-    organ_config: dict = None
-    dx_percentages: list = None
-    vx_thresholds: list = None
-    vx_organs: list = None
+    organ_config: Optional[dict] = None
+    dx_percentages: Optional[list] = None
+    vx_thresholds: Optional[list] = None
+    vx_organs: Optional[list] = None
 
     def __post_init__(self):
-        object.__setattr__(self, 'organ_config', self.organ_config or {
-            "PTV": 1,
-            "Heart": 2,
-            "Contralateral lung": 3,
-            "Ipsilateral lung": 4,
-            "Contralateral breast": 5,
-        })
         object.__setattr__(
-            self, 
-            'dx_percentages', 
-            self.dx_percentages or 
-            [98.5, 95, 90, 75, 50, 25, 10, 2]
+            self,
+            "organ_config",
+            self.organ_config
+            or {
+                "PTV": 1,
+                "Heart": 2,
+                "Contralateral lung": 3,
+                "Ipsilateral lung": 4,
+                "Contralateral breast": 5,
+            },
         )
         object.__setattr__(
-            self, 
-            'vx_thresholds', 
-            self.vx_thresholds or 
-            [35, 16, 8, 4]
+            self,
+            "dx_percentages",
+            self.dx_percentages or [98.5, 95, 90, 75, 50, 25, 10, 2],
         )
+        object.__setattr__(self, "vx_thresholds", self.vx_thresholds or [35, 16, 8, 4])
         object.__setattr__(
-            self, 
-            'vx_organs', 
-            self.vx_organs or 
-            ["Heart", "Ipsilateral lung", "Contralateral lung", "Contralateral breast"]
+            self,
+            "vx_organs",
+            self.vx_organs
+            or [
+                "Heart",
+                "Ipsilateral lung",
+                "Contralateral lung",
+                "Contralateral breast",
+            ],
         )
-        
-        
-        
-        
