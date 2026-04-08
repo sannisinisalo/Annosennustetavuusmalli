@@ -8,11 +8,12 @@ Koodissa myös vaihtoehtona tallentaa kuvat PNG-muodossa haluttuun kansioon.
 """
 
 import os
-import pydicom
+
 import matplotlib.pyplot as plt
 import numpy as np
+import pydicom
 
-kansio = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient10_VN0\maski"
+kansio = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient8_VN0\maski"
 # tallennusk = r"C:\Users\User01\GRADU\tiedostot\MASKI1_tuloksia"
 
 dicom_lista = []
@@ -44,9 +45,9 @@ for z, tiedosto, ds in dicom_lista:
     plt.imshow(ds.pixel_array, cmap="gray")
     plt.title(f"{tiedosto} (z={z})")
     plt.axis("off")
-    
+
     # Tallenna kuva PNG-muodossa
     # tallennus_polku = os.path.join(tallennusk, f"{tiedosto}.png")
     # plt.savefig(tallennus_polku, bbox_inches='tight', pad_inches=0)
-    
+
     plt.show()
