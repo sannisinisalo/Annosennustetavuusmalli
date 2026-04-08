@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 
 import pydicom
+from loguru import logger  # type: ignore
 
 # Keskitetty juuripolku:
 BASE_DIR = Path(r"C:\Users\User01\GRADU\Aineisto")
@@ -169,7 +170,9 @@ class AllPatients:
 
     def ensure_paths(self, path: Path):
         """Varmistaa, että annettu polku on olemassa, muuten luo sen."""
-        output_path = self.base_dir / path
+        logger.debug(f"Ensuring path exists: {path}")
+
+        output_path = self.base_dir / path.name
 
         if not output_path.exists():
             output_path.mkdir(parents=True, exist_ok=True)
