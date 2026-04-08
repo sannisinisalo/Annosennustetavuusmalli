@@ -357,27 +357,46 @@ if __name__ == "__main__":
     # Luodaan AllPatients-objekti
     all_patients = AllPatients(processed_root=Path("VN0ds"), original_root=Path("VN0"))
 
-    # Käydään kaikki potilaat läpi numerojärjestyksessä
-    for patient in all_patients.sorted_by_number():
+    run = "all"  # "all" tai "single" (testiä varten)
+
+    if run == "single":
+        # Käsitellään vain yksi potilas testimielessä
+        patient = all_patients.sorted_by_number()[0]
         print(f"Käsitellään {patient.patient_folder}...")
 
-        # Polut luokkien kautta
         ct_path = patient.ds_org_ct_dir
         out_path = patient.ds_maski_dir
 
-        # Etsitään RS-tiedosto
         rs_file = patient.rs_files[0] if patient.rs_files else None
         if rs_file is None:
             print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
-            continue
+        else:
+            mask, ct_slices = overlay_ROI(rs_file, ct_path)
+            save_mask_as_dicom_series(mask, ct_slices, out_path)
+            print("Maski tallennettu")
 
-        # Luodaan maski
-        mask, ct_slices = overlay_ROI(rs_file, ct_path)
+    elif run == "all":
+        # Käydään kaikki potilaat läpi numerojärjestyksessä
+        for patient in all_patients.sorted_by_number():
+            print(f"Käsitellään {patient.patient_folder}...")
 
-        # Tulostetaan maskin tyyppi ja muoto
-        print(type(mask), mask.shape)
+            # Polut luokkien kautta
+            ct_path = patient.ds_org_ct_dir
+            out_path = patient.ds_maski_dir
 
-        # Tallennetaan maski DICOM-sarjana
-        save_mask_as_dicom_series(mask, ct_slices, out_path)
+            # Etsitään RS-tiedosto
+            rs_file = patient.rs_files[0] if patient.rs_files else None
+            if rs_file is None:
+                print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
+                continue
 
-        print("Maski tallennettu")
+            # Luodaan maski
+            mask, ct_slices = overlay_ROI(rs_file, ct_path)
+
+            # Tulostetaan maskin tyyppi ja muoto
+            print(type(mask), mask.shape)
+
+            # Tallennetaan maski DICOM-sarjana
+            save_mask_as_dicom_series(mask, ct_slices, out_path)
+
+            print("Maski tallennettu")
