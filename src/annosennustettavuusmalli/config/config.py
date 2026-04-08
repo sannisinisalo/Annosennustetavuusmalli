@@ -1,4 +1,4 @@
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 
 import yaml  # type: ignore
@@ -9,6 +9,15 @@ from annosennustettavuusmalli.utils.random_sample_hyperparameters import (
 )
 
 default_config_file = Path(__file__).parent / "config.yaml"
+
+
+def load_config(config_file: Path = default_config_file) -> dict:
+    """Loads the configuration from the config.yaml file and returns it as a dictionary."""
+
+    with open(config_file, "r") as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+
+    return config
 
 
 @dataclass
@@ -42,25 +51,6 @@ class Hyperparameters:
         return cls(**{k: v for k, v in data.items() if k in field_names})
 
 
-@dataclass
-class Configuration:
-    structures: dict
-    data_paths: dict
-    train_loader_config: dict
-    default: dict
-    random_search: dict
-    manual_search: dict
-
-
-def load_config(config_file: Path = default_config_file) -> dict:
-    """Loads the configuration from the config.yaml file and returns it as a dictionary."""
-
-    with open(config_file, "r") as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-
-    return config
-
-
 def get_hyperparameters(
     search_type: str, config: dict = load_config()
 ) -> list[Hyperparameters] | Hyperparameters:
@@ -85,6 +75,31 @@ def get_hyperparameters(
         raise ValueError(
             f"Unknown search type: {search_type}. Use 'default', 'random_search' or 'manual_search'."
         )
+
+
+@dataclass
+class Configuration:
+    file: Path = default_config_file
+    structures: dict = field(init=False)
+    data_paths: dict = field(init=False)
+    train_loader_config: dict = field(init=False)
+    default: Hyperparameters = field(init=False)
+    random_search: list[Hyperparameters] = field(init=False)
+    manual_search: Hyperparameters = field(init=False)
+
+    def __post_init__(self):
+        self.config = load_config(self.file)
+        self.structures = self.config["structures"]
+        self.data_paths = self.config["data_paths"]
+        self.train_loader_config = self.config["train_loader_config"]
+        self.default = Hyperparameters.from_dict(self.config["default"])
+        self.random_search = [
+            Hyperparameters.from_dict(
+                random_sample_hyperparameters(self.config["random_search"])
+            )
+            for _ in range(self.config["random_search"]["random_samples"])
+        ]
+        self.manual_search = Hyperparameters.from_dict(self.config["manual_search"])
 
 
 if __name__ == "__main__":
