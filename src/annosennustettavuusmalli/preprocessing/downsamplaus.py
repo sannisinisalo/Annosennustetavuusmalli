@@ -165,31 +165,38 @@ def downsample_mask_file(
     """
     try:
         ds_mask = dcmread(mask_file)
+
+        # Tämä on 2D slice (Y, X)
         mask_orig = ds_mask.pixel_array
 
+        # Downsample X/Y
         zoom_y = target_shape[0] / mask_orig.shape[0]
         zoom_x = target_shape[1] / mask_orig.shape[1]
 
-        mask_down = np.array(zoom(mask_orig, zoom=(zoom_y, zoom_x), order=0))
+        mask_down = zoom(
+            mask_orig,
+            zoom=(zoom_y, zoom_x),
+            order=0  # tärkeä maskille
+        )
 
-        # Slice-reversointi: käännä index Z-akselilla
-        mask_down_flipped = mask_down[::-1, :, :]
+        ds_mask.PixelData = mask_down.astype(np.int32).tobytes()
 
-        ds_mask.PixelData = mask_down_flipped.astype(np.int32).tobytes()
-        ds_mask.Rows, ds_mask.Columns = mask_down_flipped.shape
+        ds_mask.Rows = mask_down.shape[0]
+        ds_mask.Columns = mask_down.shape[1]
 
+        # TÄRKEÄ: sama kuin alkuperäinen
         if hasattr(ds_mask, "PixelSpacing"):
             ds_mask.PixelSpacing = MultiValue(
                 float,
-                [
-                    float(ds_mask.PixelSpacing[0]) / zoom_y,
-                    float(ds_mask.PixelSpacing[1]) / zoom_x,
-                ],
+                [float(x) * 2 for x in ds_mask.PixelSpacing]
             )
 
         return ds_mask
+
     except Exception as e:
-        warnings.warn(f"Maskitiedoston {mask_file.name} käsittely epäonnistui: {e}")
+        warnings.warn(
+            f"Maskitiedoston {mask_file.name} käsittely epäonnistui: {e}"
+        )
         return None
 
 
@@ -207,7 +214,7 @@ if __name__ == "__main__":
         choices=["L", "R", "LAX", "RAX"],
         help="Valitse datasetti: 'L', 'R', 'LAX', 'RAX'",
     )
-    args = argparser.parse_args()
+    args = argparser.parse_args(["-d", "L"])
 
     print("PROCESSING...")
 
