@@ -14,6 +14,7 @@ from typing import Optional
 
 import pydicom
 from loguru import logger  # type: ignore
+from pydicom.dataset import FileDataset  # type: ignore
 
 # Keskitetty juuripolku:
 BASE_DIR = Path(r"C:\Users\User01\GRADU\Aineisto")
@@ -57,7 +58,7 @@ class Patient:
                         dicom_files.append(f)
                 except Exception:
                     pass
-        return dicom_files
+        return sorted(dicom_files)
 
     @property
     def ct_files(self) -> list[Path]:
@@ -65,19 +66,79 @@ class Patient:
         return self._find_dicom_by_modality("CT")
 
     @property
-    def rd_files(self) -> list[Path]:
+    def ct_slices(self) -> list[FileDataset]:
+        """Lista alkuperäisistä CT-viipaleista DICOM-dataset muodossa"""
+        ct_files = self.ct_files
+
+        try:
+            ct_slices = [pydicom.dcmread(f) for f in ct_files]
+            series_uid = ct_slices[0].SeriesInstanceUID
+            logger.debug(f"Found SeriesInstanceUID: {series_uid} in first CT slice.")
+            ct_slices = [
+                s
+                for s in ct_slices
+                if getattr(s, "SeriesInstanceUID", None) == series_uid
+            ]
+            logger.info(
+                f"Loaded {len(ct_slices)} CT slices with SeriesInstanceUID: {series_uid}"
+            )
+            ct_slices = sorted(
+                ct_slices, key=lambda x: int(x.InstanceNumber), reverse=True
+            )  # Käännetään järjestys, jotta slice 1 on viimeisenä
+
+        except Exception as e:
+            logger.warning(f"Failed to read CT files into DICOM datasets: {e}")
+            ct_slices = []
+
+        return ct_slices
+
+    @property
+    def rd_file(self) -> Optional[Path]:
         """Lista alkuperäisistä RTDOSE-tiedostoista (täydet polut)"""
-        return self._find_dicom_by_modality("RTDOSE")
+        files = self._find_dicom_by_modality("RTDOSE")
+        if not files:
+            logger.warning(
+                f"No RTDOSE files found for patient {self.patient_folder.name}"
+            )
+
+        elif len(files) > 1:
+            logger.warning(
+                f"Multiple RTDOSE files found for patient {self.patient_folder.name}: {[f.name for f in files]}. Using the first one: {files[0].name}"
+            )
+
+        return files[0] if files else None
 
     @property
-    def rp_files(self) -> list[Path]:
+    def rp_file(self) -> Optional[Path]:
         """Lista alkuperäisistä RTPLAN-tiedostoista (täydet polut)"""
-        return self._find_dicom_by_modality("RTPLAN")
+        files = self._find_dicom_by_modality("RTPLAN")
+        if not files:
+            logger.warning(
+                f"No RTPLAN files found for patient {self.patient_folder.name}"
+            )
+
+        elif len(files) > 1:
+            logger.warning(
+                f"Multiple RTPLAN files found for patient {self.patient_folder.name}: {[f.name for f in files]}. Using the first one: {files[0].name}"
+            )
+
+        return files[0] if files else None
 
     @property
-    def rs_files(self) -> list[Path]:
+    def rs_file(self) -> Optional[Path]:
         """Lista alkuperäisistä RTSTRUCT-tiedostoista (täydet polut)"""
-        return self._find_dicom_by_modality("RTSTRUCT")
+        files = self._find_dicom_by_modality("RTSTRUCT")
+        if not files:
+            logger.warning(
+                f"No RTSTRUCT files found for patient {self.patient_folder.name}"
+            )
+
+        elif len(files) > 1:
+            logger.warning(
+                f"Multiple RTSTRUCT files found for patient {self.patient_folder.name}: {[f.name for f in files]}. Using the first one: {files[0].name}"
+            )
+
+        return files[0] if files else None
 
     @property
     def maski_files(self) -> list[Path]:
@@ -199,8 +260,11 @@ class AllPatients:
     def patients(self) -> list[Patient]:
         return self._patients
 
-    def sorted_by_number(self) -> list[Patient]:
+    def sort_by_number(self) -> list[Patient]:
         return sorted(self._patients, key=lambda p: p.number)
+
+    def __len__(self):
+        return len(self._patients)
 
 
 @dataclass(frozen=True)

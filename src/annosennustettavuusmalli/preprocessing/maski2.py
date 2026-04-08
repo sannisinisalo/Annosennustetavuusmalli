@@ -361,13 +361,13 @@ if __name__ == "__main__":
 
     if run == "single":
         # Käsitellään vain yksi potilas testimielessä
-        patient = all_patients.sorted_by_number()[0]
+        patient = all_patients.sort_by_number()[0]
         print(f"Käsitellään {patient.patient_folder}...")
 
         ct_path = patient.original_dir
-        out_path = patient.ds_maski_dir
+        out_path = patient.maski_dir
 
-        rs_file = patient.rs_files[0] if patient.rs_files else None
+        rs_file = patient.rs_file if patient.rs_file else None
         if rs_file is None:
             print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
         else:
@@ -377,7 +377,7 @@ if __name__ == "__main__":
 
     elif run == "all":
         # Käydään kaikki potilaat läpi numerojärjestyksessä
-        for patient in all_patients.sorted_by_number():
+        for patient in all_patients.sort_by_number():
             print(f"Käsitellään {patient.patient_folder}...")
 
             # Polut luokkien kautta
@@ -385,7 +385,7 @@ if __name__ == "__main__":
             out_path = patient.maski_dir
 
             # Etsitään RS-tiedosto
-            rs_file = patient.rs_files[0] if patient.rs_files else None
+            rs_file = patient.rs_file if patient.rs_file else None
             if rs_file is None:
                 print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
                 continue

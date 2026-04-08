@@ -173,10 +173,12 @@ def downsample_mask_file(
         zoom_y = target_shape[0] / mask_orig.shape[0]
         zoom_x = target_shape[1] / mask_orig.shape[1]
 
-        mask_down = zoom(
-            mask_orig,
-            zoom=(zoom_y, zoom_x),
-            order=0  # tärkeä maskille
+        mask_down = np.array(
+            zoom(
+                mask_orig,
+                zoom=(zoom_y, zoom_x),
+                order=0,  # tärkeä maskille
+            )
         )
 
         ds_mask.PixelData = mask_down.astype(np.int32).tobytes()
@@ -187,16 +189,13 @@ def downsample_mask_file(
         # TÄRKEÄ: sama kuin alkuperäinen
         if hasattr(ds_mask, "PixelSpacing"):
             ds_mask.PixelSpacing = MultiValue(
-                float,
-                [float(x) * 2 for x in ds_mask.PixelSpacing]
+                float, [float(x) * 2 for x in ds_mask.PixelSpacing]
             )
 
         return ds_mask
 
     except Exception as e:
-        warnings.warn(
-            f"Maskitiedoston {mask_file.name} käsittely epäonnistui: {e}"
-        )
+        warnings.warn(f"Maskitiedoston {mask_file.name} käsittely epäonnistui: {e}")
         return None
 
 
@@ -241,10 +240,10 @@ if __name__ == "__main__":
         # Downsamplataan RTDOSE
         # 1. Ladataan alkuperäinen dose
         ds_dose = (
-            downsample_dose_file(p.rd_files[0], zoom_factor=0.5) if p.rd_files else None
+            downsample_dose_file(p.rd_file, zoom_factor=0.5) if p.rd_file else None
         )
-        if ds_dose is not None:
-            ds_dose.save_as(p.ds_dose_dir / p.rd_files[0].name)
+        if ds_dose is not None and p.rd_file is not None:
+            ds_dose.save_as(p.ds_dose_dir / p.rd_file.name)
 
         # 3. Ladataan maskit ja downsamplataan samaan kokoon
         if ds_dose is None:
@@ -269,21 +268,17 @@ if __name__ == "__main__":
             # dose_slice = ds_dose.pixel_array[idx, :, :]
 
         # Kopioidaan RS ja RP muuttumattomina
-        for f in p.rp_files:
-            try:
-                ds = dcmread(f, stop_before_pixels=True)
-                ds.save_as(p.ds_plan_dir / f.name)
-            except Exception as e:
-                warnings.warn(
-                    f"{patient_name}: RP-tiedoston kopiointi epäonnistui: {e}"
-                )
-        for f in p.rs_files:
-            try:
-                ds = dcmread(f, stop_before_pixels=True)
-                ds.save_as(p.ds_struct_dir / f.name)
-            except Exception as e:
-                warnings.warn(
-                    f"{patient_name}: RS-tiedoston kopiointi epäonnistui: {e}"
-                )
+        try:
+            ds = dcmread(p.rp_file, stop_before_pixels=True) if p.rp_file else None
+            if ds is not None and p.rp_file is not None:
+                ds.save_as(p.ds_plan_dir / p.rp_file.name)
+        except Exception as e:
+            warnings.warn(f"{patient_name}: RP-tiedoston kopiointi epäonnistui: {e}")
+        try:
+            ds = dcmread(p.rs_file, stop_before_pixels=True) if p.rs_file else None
+            if ds is not None and p.rs_file is not None:
+                ds.save_as(p.ds_struct_dir / p.rs_file.name)
+        except Exception as e:
+            warnings.warn(f"{patient_name}: RS-tiedoston kopiointi epäonnistui: {e}")
 
     print("DONE")
