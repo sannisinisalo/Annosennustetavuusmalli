@@ -170,7 +170,7 @@ class AllPatients:
 
     def ensure_paths(self, path: Path):
         """Varmistaa, että annettu polku on olemassa, muuten luo sen."""
-        logger.debug(f"Ensuring path exists: {path}")
+        logger.debug(f"Ensuring path exists: {path.name}")
 
         output_path = self.base_dir / path.name
 
