@@ -11,7 +11,6 @@ Koodiin tehdyt muokkaukset:
     - Lopun visualisointi kommentoiti pois käytöstä toistaiseksi
 """
 
-import os
 import random
 import sys
 from collections import defaultdict
@@ -24,16 +23,17 @@ import torchio as tio
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
-from annosennustettavuusmalli.config.config import load_default_config
+from annosennustettavuusmalli.config.config import (
+    Configuration,
+    get_hyperparameters,
+    load_config,
+)
 from annosennustettavuusmalli.models.unet3plus_3d import UNet3plus_3d
 from annosennustettavuusmalli.utils.evaluate_dataset import evaluate_dataset
 from annosennustettavuusmalli.utils.evaluate_dose_metrics import evaluate_dose_metrics
 from annosennustettavuusmalli.utils.flatten_dict import flatten_dict
 from annosennustettavuusmalli.utils.generate_datasets import generate_datasets
 from annosennustettavuusmalli.utils.init_weights import init_weights_kaiming
-from annosennustettavuusmalli.utils.random_sample_hyperparameters import (
-    random_sample_hyperparameters,
-)
 
 
 def main():
@@ -41,30 +41,29 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    os.makedirs("trained_models", exist_ok=True)
+    # Luo tallennuskansio malleille, jos sitä ei vielä ole
+    # Kansio luodaan
+    trained_models_dir = Path(__file__).parent / "trained_models"
+    trained_models_dir.mkdir(exist_ok=True)
 
     HYPERPARAMETERS = "manual_search"  # default, manual_search or random_search
     DATA = "VN0_data"
 
     BASE_DIR = Path(__file__).parent
 
-    config = load_default_config()
+    config = Configuration(**load_config())
 
-    if HYPERPARAMETERS == "default":
-        hp_config = [config["default"]]
-    elif HYPERPARAMETERS == "random_search":
-        hp_config = [
-            random_sample_hyperparameters(config["random_search"])
-            for _ in range(config["random_search"]["random_samples"])
-        ]
-    elif HYPERPARAMETERS == "manual_search":
-        hp_config = config["manual_search"]
+    hp_config = get_hyperparameters(HYPERPARAMETERS)
+
+    if isinstance(hp_config, list):
+        mlflow.set_experiment(hp_config[0].experiment_name)
     else:
-        raise ValueError("Invalid HYPERPARAMETERS value in config.yaml")
-
-    mlflow.set_experiment(hp_config[0]["experiment_name"])
+        mlflow.set_experiment(hp_config.experiment_name)
 
     # Looping through all defined hyperparamter combinations
+    if not isinstance(hp_config, list):
+        hp_config = [hp_config]
+
     for hp_config_iter in hp_config:
         dose_metrics_val = {}
         dose_metrics_test = {}
@@ -73,24 +72,24 @@ def main():
         # epochs*n. This can be set to 1 so epoch = full epoch. This can be used to increase number of checkpoints. Note also that .yaml
         # configurations are reduced epochs. So if reduce_epochs = 4, training for 10 full epochs is 40 epochs in yaml.
         train_set, val_set, test_set = generate_datasets(
-            config["data_paths"][DATA], reduce_samples=1
+            config.data_paths[DATA], reduce_samples=1
         )
 
         # Probability map probabilities are defined in custom_transforms -> ProbabilityMapTransform
 
         training_sampler = tio.sampler.WeightedSampler(
-            hp_config_iter["patch_size"], probability_map="probability_map"
+            hp_config_iter.patch_size, probability_map="probability_map"
         )
         train_queue = tio.Queue(
             subjects_dataset=train_set,
-            max_length=config["train_loader_config"]["max_length"],
-            samples_per_volume=config["train_loader_config"]["samples_per_volume"],
+            max_length=config.train_loader_config["max_length"],
+            samples_per_volume=config.train_loader_config["samples_per_volume"],
             sampler=training_sampler,
             num_workers=0,
             verbose=True,
         )
         train_loader = torch.utils.data.DataLoader(
-            train_queue, batch_size=hp_config_iter["batch_size"], num_workers=0
+            train_queue, batch_size=hp_config_iter.batch_size, num_workers=0
         )  # num_workers must be 0. (due to TorchIO queue implementation(?))
 
         print("Train set length:", len(train_set))
@@ -101,22 +100,22 @@ def main():
 
         # Initialize model
         model = UNet3plus_3d(
-            in_channels=hp_config_iter["in_channels"],
-            out_channels=hp_config_iter["out_channels"],
-            filters=hp_config_iter["filters"],
-            conv_layers=hp_config_iter["conv_layers"],
-            kernel_size=hp_config_iter["kernel_size"],
-            skip_filters=hp_config_iter["skip_filters"],
-            pool_size=hp_config_iter["pool_size"],
-            act_func=hp_config_iter["act_func"],
-            patch_size=hp_config_iter["patch_size"],
+            in_channels=hp_config_iter.in_channels,
+            out_channels=hp_config_iter.out_channels,
+            filters=hp_config_iter.filters,
+            conv_layers=hp_config_iter.conv_layers,
+            kernel_size=hp_config_iter.kernel_size,
+            skip_filters=hp_config_iter.skip_filters,
+            pool_size=hp_config_iter.pool_size,
+            act_func=hp_config_iter.act_func,
+            patch_size=hp_config_iter.patch_size,
         ).to(device)
 
         model.apply(init_weights_kaiming)
 
         total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
         mlflow.log_metrics({"total_params": total_params})
-        flattened_dict = flatten_dict(hp_config_iter)
+        flattened_dict = flatten_dict(hp_config_iter.__dict__)
         mlflow.log_params(
             {
                 key: value
@@ -134,14 +133,14 @@ def main():
         )
 
         # Initialize optimizer
-        dynamic_optimizer = getattr(torch.optim, hp_config_iter["optimizer"]["type"])
+        dynamic_optimizer = getattr(torch.optim, hp_config_iter.optimizer["type"])
         optimizer = dynamic_optimizer(
-            model.parameters(), **hp_config_iter["optimizer"]["params"]
+            model.parameters(), **hp_config_iter.optimizer["params"]
         )
 
         # Initialize primary loss and secondary loss (metric) functions
-        primary_loss = getattr(nn, hp_config_iter["primary_loss"])()
-        secondary_loss = getattr(nn, hp_config_iter["secondary_loss"])()
+        primary_loss = getattr(nn, hp_config_iter.primary_loss)()
+        secondary_loss = getattr(nn, hp_config_iter.secondary_loss)()
 
         # Initialize CosineAnnealing with warm restarts and warmup -scheduler
         # warmup_period = int(len(train_loader)*hp_config_iter["warmup_period"]/hp_config_iter["gradient_accumulation"])
@@ -150,11 +149,9 @@ def main():
         # warmup_period = int(len(train_loader)*hp_config_iter["warmup_period"]/hp_config_iter["gradient_accumulation"])
         # restart_period = int(len(train_loader)*hp_config_iter["warm_restart_every"]/hp_config_iter["gradient_accumulation"])
 
-        num_optimizer_steps = (
-            len(train_loader) / hp_config_iter["gradient_accumulation"]
-        )
-        warmup_period = int(num_optimizer_steps * hp_config_iter["warmup_period"])
-        restart_period = int(num_optimizer_steps * hp_config_iter["warm_restart_every"])
+        num_optimizer_steps = len(train_loader) / hp_config_iter.gradient_accumulation
+        warmup_period = int(num_optimizer_steps * hp_config_iter.warmup_period)
+        restart_period = int(num_optimizer_steps * hp_config_iter.warm_restart_every)
         lrs_warmup = torch.optim.lr_scheduler.LinearLR(
             optimizer, start_factor=0.000000001, end_factor=1, total_iters=warmup_period
         )
@@ -178,17 +175,17 @@ def main():
             BASE_DIR / "trained_models" / "gregarious-chimp-691_epoch_16.pth"
         )
 
-        if os.path.exists(checkpoint_path):
+        if checkpoint_path.exists():
             print("Loading checkpoint:", checkpoint_path)
             model.load_state_dict(torch.load(checkpoint_path))
             start_epoch = 17
 
-        for epoch in range(start_epoch, hp_config_iter["EPOCHS"] + 1):
+        for epoch in range(start_epoch, hp_config_iter.EPOCHS + 1):
             # This is for cosine annealing decay over time
             if (
-                epoch > hp_config_iter["warmup_period"]
-                and (epoch - hp_config_iter["warmup_period"] + 1)
-                % hp_config_iter["warm_restart_every"]
+                epoch > hp_config_iter.warmup_period
+                and (epoch - hp_config_iter.warmup_period + 1)
+                % hp_config_iter.warm_restart_every
                 == 0
             ):
                 for group in optimizer.param_groups:
@@ -233,12 +230,11 @@ def main():
                 )
 
                 accumulated_loss = (
-                    batch_losses["deepsup_loss"]
-                    / hp_config_iter["gradient_accumulation"]
+                    batch_losses["deepsup_loss"] / hp_config_iter.gradient_accumulation
                 )
                 accumulated_loss.backward()
 
-                if (i + 1) % hp_config_iter["gradient_accumulation"] == 0:
+                if (i + 1) % hp_config_iter.gradient_accumulation == 0:
                     optimizer.step()
                     optimizer.zero_grad()
                     seq_scheduler.step()
@@ -255,8 +251,8 @@ def main():
                 if i % 10 == 9 or i == epoch_size - 1:
                     print(
                         f"EPOCH {epoch} | "
-                        f"sample {(i + 1) * hp_config_iter['batch_size']}/{
-                            epoch_size * hp_config_iter['batch_size']
+                        f"sample {(i + 1) * hp_config_iter.batch_size}/{
+                            epoch_size * hp_config_iter.batch_size
                         } | "
                         f"batch {i + 1}/{epoch_size} | "
                         f"deepsup_loss: {running_losses['deepsup_loss'] / i:.3f} | "
@@ -303,8 +299,8 @@ def main():
             dose_metrics_val["val"] = evaluate_dose_metrics(
                 model,
                 val_set,
-                hp_config_iter["patch_size"],
-                config["structures"],
+                hp_config_iter.patch_size,
+                config.structures,
                 device,
             )
             mlflow.log_metrics(flatten_dict(dose_metrics_val), step=epoch)
@@ -334,7 +330,7 @@ def main():
         )
 
         dose_metrics_test["test"] = evaluate_dose_metrics(
-            model, test_set, hp_config_iter["patch_size"], config["structures"], device
+            model, test_set, hp_config_iter.patch_size, config.structures, device
         )
         # We'll use dictionary, so that after dict flattening MLflow metrics are in form val.PTV.mean
         mlflow.log_metrics(

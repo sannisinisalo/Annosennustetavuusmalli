@@ -41,4 +41,7 @@ members = ["."]
 annosennustetavuusmalli = { workspace = true }
 
 [dependency-groups]
-dev = ["annosennustetavuusmalli"]
+dev = [
+    "annosennustetavuusmalli",
+    "ipykernel>=7.2.0",
+]

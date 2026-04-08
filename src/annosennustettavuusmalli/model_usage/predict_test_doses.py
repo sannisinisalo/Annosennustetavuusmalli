@@ -15,7 +15,7 @@ import yaml
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
-from annosennustettavuusmalli.config.config import load_default_config
+from annosennustettavuusmalli.config.config import load_config
 from annosennustettavuusmalli.models.unet3plus_3d import UNet3plus_3d
 from annosennustettavuusmalli.utils.generate_datasets import generate_datasets
 
@@ -28,28 +28,13 @@ def main():
     save_dir = BASE_DIR / "predicted_doses"
     save_dir.mkdir(exist_ok=True)
 
-<<<<<<< HEAD
-    config = load_default_config()
-
-    DATA = "VN0_data"
-
-    # Luo datasetit
-    _, _, test_set = generate_datasets(config["data_paths"][DATA], reduce_samples=1)
-=======
-    config_file = BASE_DIR.parent / "config.yaml"
-
-    with open(config_file, "r") as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
+    config = load_config()
 
     DATA = "VN0_data"
 
     # Dataset
-    _, _, test_set = generate_datasets(
-        config["data_paths"][DATA],
-        reduce_samples=1
-    )
+    _, _, test_set = generate_datasets(config["data_paths"][DATA], reduce_samples=1)
 
->>>>>>> main
     print("Test set size:", len(test_set))
 
     # Mallin hyperparametrit
@@ -67,29 +52,19 @@ def main():
         patch_size=hp_config_iter["patch_size"],
     ).to(device)
 
-<<<<<<< HEAD
-    # Lataa koulutettu malli
+    # Lataa malli
     model_path = (
         r"C:\Users\User01\GRADU\trained_models\gregarious-chimp-691_epoch_16.pth"
     )
+
     model.load_state_dict(torch.load(model_path, map_location=device))
-=======
-    # Lataa malli
-    model_path = r"C:\Users\User01\GRADU\trained_models\gregarious-chimp-691_epoch_16.pth"
 
-    model.load_state_dict(
-        torch.load(model_path, map_location=device)
-    )
-
->>>>>>> main
     model.eval()
 
     patch_size = (64, 64, 32)
 
     with torch.no_grad():
-
         for subject in test_set:
-
             patient_name = subject["name"]
 
             print(f"\nProcessing {patient_name}")
@@ -98,94 +73,45 @@ def main():
             patient_dir.mkdir(exist_ok=True)
 
             # Luo patch-sampler
-            sampler = tio.GridSampler(
-                subject,
-                patch_size,
-                patch_overlap=(16, 16, 8)
-            )
+            sampler = tio.GridSampler(subject, patch_size, patch_overlap=(16, 16, 8))
 
-<<<<<<< HEAD
-            print(
-                f"Predicting patches for {patient_name}... Total patches: {len(patch_loader)}"
-            )
-
-            for j, patch in enumerate(patch_loader):
-                # Lataa vain patch float32 ja GPU:lle
-                input_patch = torch.cat(
-                    [
-                        patch["ct"][tio.DATA].float(),
-                        patch["mask"][tio.DATA].float(),
-                        patch["distance_to_PTV"][tio.DATA].float(),
-                    ],
-                    dim=1,
-                ).to(device)
-
-                # Ennusta patch
-                pred_patch = model(input_patch).main_output.squeeze().cpu()
-
-                bb = patch["ct"][tio.LOCATION]
-                torch.save(
-                    {"pred": pred_patch, "location": bb}, patient_dir / f"patch_{j}.pt"
-=======
-            patch_loader = torch.utils.data.DataLoader(
-                sampler,
-                batch_size=1
-            )
+            patch_loader = torch.utils.data.DataLoader(sampler, batch_size=1)
 
             # Tämä tekee reconstructionin automaattisesti
             aggregator = tio.GridAggregator(sampler)
 
             for patches_batch in patch_loader:
+                input_patch = torch.cat(
+                    [
+                        patches_batch["ct"][tio.DATA].float(),
+                        patches_batch["mask"][tio.DATA].float(),
+                        patches_batch["distance_to_PTV"][tio.DATA].float(),
+                    ],
+                    dim=1,
+                ).to(device)
 
-                input_patch = torch.cat([
-                    patches_batch['ct'][tio.DATA].float(),
-                    patches_batch['mask'][tio.DATA].float(),
-                    patches_batch['distance_to_PTV'][tio.DATA].float()
-                ], dim=1).to(device)
-
-                pred_patch = model(
-                    input_patch
-                ).main_output
+                pred_patch = model(input_patch).main_output
 
                 # Lisää reconstructioniin
-                aggregator.add_batch(
-                    pred_patch.cpu(),
-                    patches_batch[tio.LOCATION]
->>>>>>> main
-                )
+                aggregator.add_batch(pred_patch.cpu(), patches_batch[tio.LOCATION])
 
             # Tässä muodostuu koko annos
             pred_full = aggregator.get_output_tensor()
 
-<<<<<<< HEAD
-            # Tallennetaan alkuperäinen annos ja maski tarvittaessa
+            # Tallennus
+            torch.save(pred_full, patient_dir / "pred.pt")
+
             torch.save(
                 subject["dose"][tio.DATA].squeeze().float(), patient_dir / "clin.pt"
             )
+
             torch.save(
                 subject["mask"][tio.DATA].squeeze().int(), patient_dir / "mask.pt"
-=======
-            # Tallennus
-            torch.save(
-                pred_full,
-                patient_dir / "pred.pt"
->>>>>>> main
-            )
-
-            torch.save(
-                subject["dose"][tio.DATA].squeeze().float(),
-                patient_dir / "clin.pt"
-            )
-
-            torch.save(
-                subject["mask"][tio.DATA].squeeze().int(),
-                patient_dir / "mask.pt"
             )
 
             print(f"Saved {patient_name}")
 
     print("\nAll predictions saved.")
-
 
 
 if __name__ == "__main__":
