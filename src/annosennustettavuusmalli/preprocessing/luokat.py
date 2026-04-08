@@ -160,11 +160,20 @@ class Patient:
 class AllPatients:
     original_root: Path
     processed_root: Path
+    base_dir: Path = BASE_DIR
 
     def __post_init__(self):
-        self.original_root = Path(self.original_root).resolve()
-        self.processed_root = Path(self.processed_root).resolve()
+        self.original_root = self.ensure_paths(self.original_root)
+        self.processed_root = self.ensure_paths(self.processed_root)
         self._patients = self._find_patients()
+
+    def ensure_paths(self, path: Path):
+        """Varmistaa, että annettu polku on olemassa, muuten luo sen."""
+        output_path = self.base_dir / path
+
+        if not output_path.exists():
+            output_path.mkdir(parents=True, exist_ok=True)
+        return output_path
 
     def _find_patients(self) -> list[Patient]:
         patient_dirs = self.original_root.glob("Patient*")
