@@ -364,7 +364,7 @@ if __name__ == "__main__":
         patient = all_patients.sorted_by_number()[0]
         print(f"Käsitellään {patient.patient_folder}...")
 
-        ct_path = patient.ds_org_ct_dir
+        ct_path = patient.original_dir
         out_path = patient.ds_maski_dir
 
         rs_file = patient.rs_files[0] if patient.rs_files else None
@@ -381,8 +381,8 @@ if __name__ == "__main__":
             print(f"Käsitellään {patient.patient_folder}...")
 
             # Polut luokkien kautta
-            ct_path = patient.ds_org_ct_dir
-            out_path = patient.ds_maski_dir
+            ct_path = patient.original_dir
+            out_path = patient.maski_dir
 
             # Etsitään RS-tiedosto
             rs_file = patient.rs_files[0] if patient.rs_files else None
