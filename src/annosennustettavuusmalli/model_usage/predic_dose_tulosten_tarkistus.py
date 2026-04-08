@@ -8,11 +8,11 @@ Created on Tue Apr  7 08:16:14 2026
 import torch
 import matplotlib.pyplot as plt
 from pathlib import Path
+import numpy as np
 
 
-# 🔧 MUUTA TARVITTAESSA
 PREDICTED_DIR = Path("predicted_doses")
-SLICE_INDEX = 50   # mikä slice näytetään
+SLICE_INDEX = 80  
 
 
 def check_patient(patient_dir):
@@ -24,23 +24,23 @@ def check_patient(patient_dir):
     clin_file = patient_dir / "clin.pt"
     mask_file = patient_dir / "mask.pt"
 
-    # --- 1️⃣ Tiedostojen tarkistus ---
+    # Tiedostojen tarkistus 
 
     if not pred_file.exists():
-        print("❌ pred.pt puuttuu")
+        print("pred.pt puuttuu")
         return
 
     if not clin_file.exists():
-        print("❌ clin.pt puuttuu")
+        print("clin.pt puuttuu")
         return
 
     if not mask_file.exists():
-        print("❌ mask.pt puuttuu")
+        print("mask.pt puuttuu")
         return
 
-    print("✅ Kaikki tiedostot löytyvät")
+    print("Kaikki tiedostot löytyvät")
 
-    # --- 2️⃣ Lataa tensorit ---
+    # Lataa tensorit 
 
     pred = torch.load(pred_file)
     clin = torch.load(clin_file)
@@ -50,7 +50,7 @@ def check_patient(patient_dir):
     if pred.ndim == 4:
         pred = pred.squeeze(0)
 
-    # --- 3️⃣ Shape tarkistus ---
+    # Shape tarkistus
 
     print("\nShapes:")
 
@@ -59,15 +59,15 @@ def check_patient(patient_dir):
     print("Mask:", mask.shape)
 
     if pred.shape != clin.shape:
-        print("❌ ERROR: Pred ja Clin eri kokoiset!")
+        print("ERROR: Pred ja Clin eri kokoiset!")
 
     if mask.shape != clin.shape:
-        print("❌ ERROR: Mask ja Clin eri kokoiset!")
+        print("ERROR: Mask ja Clin eri kokoiset!")
 
     else:
-        print("✅ Shapes OK")
+        print("Shapes OK")
 
-    # --- 4️⃣ Arvojen tarkistus ---
+    # Arvojen tarkistus
 
     print("\nValue ranges:")
 
@@ -81,40 +81,54 @@ def check_patient(patient_dir):
     print("Mask max:", float(mask.max()))
 
     if float(pred.max()) == 0:
-        print("❌ WARNING: Pred näyttää olevan pelkkää nollaa!")
+        print("WARNING: Pred näyttää olevan pelkkää nollaa!")
 
-    # --- 5️⃣ MAE laskenta ---
+    # MAE laskenta 
 
     mae = torch.mean(torch.abs(pred - clin))
 
     print("\nMAE:", float(mae))
 
     if mae > 30:
-        print("⚠️ WARNING: MAE on suuri")
+        print("WARNING: MAE on suuri")
 
     else:
-        print("✅ MAE näyttää järkevältä")
+        print("MAE näyttää järkevältä")
 
-    # --- 6️⃣ Slice visualisointi ---
+    # Slice visualisointi 
 
     slice_idx = min(SLICE_INDEX, pred.shape[2] - 1)
 
     plt.figure(figsize=(12, 4))
 
     plt.subplot(1, 3, 1)
-    plt.imshow(clin[:, :, slice_idx])
+    plt.imshow(
+        np.fliplr(
+            np.rot90(clin[:, :, slice_idx], k=-1)
+        )
+    )
     plt.title("Clinical dose")
+    plt.axis('off')
 
     plt.subplot(1, 3, 2)
-    plt.imshow(pred[:, :, slice_idx])
+    plt.imshow(
+        np.fliplr(
+            np.rot90(pred[:, :, slice_idx], k=-1)
+        )
+    )
     plt.title("Predicted dose")
+    plt.axis('off')
 
     plt.subplot(1, 3, 3)
-    plt.imshow(mask[:, :, slice_idx])
+    plt.imshow(
+        np.fliplr(
+            np.rot90(mask[:, :, slice_idx], k=-1)
+        )
+    )
     plt.title("Mask")
+    plt.axis('off')
 
     plt.suptitle(patient_dir.name)
-
     plt.show()
 
 
@@ -122,7 +136,7 @@ def check_patient(patient_dir):
 def main():
 
     if not PREDICTED_DIR.exists():
-        print("❌ predicted_doses kansiota ei löydy")
+        print("predicted_doses kansiota ei löydy")
         return
 
     patient_dirs = [
@@ -131,7 +145,7 @@ def main():
     ]
 
     if len(patient_dirs) == 0:
-        print("❌ Ei potilaskansioita löytynyt")
+        print("Ei potilaskansioita löytynyt")
         return
 
     print("Potilaita löytyi:", len(patient_dirs))
@@ -141,7 +155,7 @@ def main():
 
         check_patient(patient_dir)
 
-    print("\n🎉 Tarkistus valmis.")
+    print("\n Tarkistus valmis.")
 
 
 if __name__ == "__main__":
