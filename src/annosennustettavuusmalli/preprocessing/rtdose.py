@@ -63,8 +63,8 @@ if __name__ == "__main__":
     # Potilaan numerojärjestyksessä
     patients = [
         p
-        for p in INPUT_ROOT.iterdir()
-        if p.is_dir() and p.name.lower().startswith("patient")
+        for p in os.listdir(INPUT_ROOT)
+        if os.path.isdir(INPUT_ROOT / p) and p.lower().startswith("patient")
     ]
     patients.sort(key=patient_number)
     total = len(patients)

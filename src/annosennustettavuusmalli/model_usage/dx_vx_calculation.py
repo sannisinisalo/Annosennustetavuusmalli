@@ -17,31 +17,45 @@ from annosennustettavuusmalli.preprocessing.luokat import DoseMetricsConfig
 from annosennustettavuusmalli.utils.calculate_dx import calculate_dx
 from annosennustettavuusmalli.utils.calculate_vx import calculate_vx
 
+
 # Konfiguraatio
+
 config = DoseMetricsConfig()
+
+# Poista PTV jos sitä ei haluta mukaan
+organs = [o for o in config.vx_organs if o != "PTV"]
 
 # Polut
 base_dir = Path("predicted_doses")
 csv_file = base_dir / "dose_metrics.csv"
 
 
+# CSV kirjoitus
 with open(csv_file, mode="w", newline="") as f:
+
     writer = csv.writer(f)
 
-    # Luo otsikot
+    # Otsikot
     header = ["Patient"]
-    for d in config.dx_percentages:
-        header.append(f"PTV_D{int(d*10)/10}")
-    for organ in config.vx_organs:
+
+    # Dx otsikot kaikille elimille
+    for organ in organs:
+        for d in config.dx_percentages:
+            header.append(f"{organ}_D{int(d*10)/10}")
+
+    # Vx otsikot kaikille elimille
+    for organ in organs:
         for v in config.vx_thresholds:
             header.append(f"{organ}_V{v}")
 
     header_pred = [f"{name}_pred" for name in header if name != "Patient"]
-    header_clin = [col.replace("_pred","_clin") for col in header_pred]
+    header_clin = [col.replace("_pred", "_clin") for col in header_pred]
+
     writer.writerow(["Patient"] + header_pred + header_clin)
 
     # Loop potilaille
     for patient_dir in base_dir.iterdir():
+
         if not patient_dir.is_dir():
             continue
 
@@ -64,19 +78,56 @@ with open(csv_file, mode="w", newline="") as f:
         row_pred = []
         row_clin = []
 
-        # Dx PTV
-        for d in config.dx_percentages:
-            row_pred.append(calculate_dx(pred, mask, {"PTV":1}, d).get("PTV", float("nan")))
-            row_clin.append(calculate_dx(clin, mask, {"PTV":1}, d).get("PTV", float("nan")))
+        # Laske Dx ja Vx kaikille elimille
+        for organ in organs:
 
-        # Vx muille organille
-        for organ in config.vx_organs:
             label = config.organ_config[organ]
-            for v in config.vx_thresholds:
-                row_pred.append(calculate_vx(pred, mask, {organ: label}, v).get(organ, float("nan")))
-                row_clin.append(calculate_vx(clin, mask, {organ: label}, v).get(organ, float("nan")))
 
-        # Kirjoita CSV:hen
+            # Dx
+            for d in config.dx_percentages:
+
+                dx_pred = calculate_dx(
+                    pred,
+                    mask,
+                    {organ: label},
+                    d
+                ).get(organ, float("nan"))
+
+                dx_clin = calculate_dx(
+                    clin,
+                    mask,
+                    {organ: label},
+                    d
+                ).get(organ, float("nan"))
+
+                row_pred.append(dx_pred)
+                row_clin.append(dx_clin)
+
+            # Vx
+            for v in config.vx_thresholds:
+
+                vx_pred = calculate_vx(
+                    pred,
+                    mask,
+                    {organ: label},
+                    v
+                ).get(organ, float("nan"))
+
+                vx_clin = calculate_vx(
+                    clin,
+                    mask,
+                    {organ: label},
+                    v
+                ).get(organ, float("nan"))
+
+                row_pred.append(vx_pred)
+                row_clin.append(vx_clin)
+
+
+        # Kirjoita CSV
         writer.writerow([patient_name] + row_pred + row_clin)
 
 print("CSV saved with Dx and Vx metrics.")
+
+
+
