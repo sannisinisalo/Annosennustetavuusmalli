@@ -65,7 +65,7 @@ def main():
 
     model.eval()
 
-    patch_size = (64, 64, 32)
+    patch_size = (256, 256, 1)
 
     with torch.no_grad():
 
@@ -82,7 +82,7 @@ def main():
             sampler = tio.GridSampler(
                 subject,
                 patch_size,
-                patch_overlap=(16, 16, 8)
+                patch_overlap = (64, 64, 0)
             )
 
             patch_loader = torch.utils.data.DataLoader(
@@ -90,8 +90,10 @@ def main():
                 batch_size=1
             )
 
-            # Tämä tekee reconstructionin automaattisesti
-            aggregator = tio.GridAggregator(sampler)
+            aggregator = tio.GridAggregator(
+                sampler,
+                overlap_mode="hann"
+            )
 
             for patches_batch in patch_loader:
 
