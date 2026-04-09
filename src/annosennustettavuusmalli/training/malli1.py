@@ -20,6 +20,8 @@ import mlflow
 import torch
 import torch.nn as nn
 import torchio as tio
+from loguru import logger
+from torchio.constants import DATA
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
@@ -36,20 +38,25 @@ from annosennustettavuusmalli.utils.generate_datasets import generate_datasets
 from annosennustettavuusmalli.utils.init_weights import init_weights_kaiming
 
 
-def main():
+def main(
+    search_type: str = "manual_search",
+    data_folder: str = "VN0_data",
+    log_level: str = "INFO",
+    base_dir: Path = Path(__file__).parent,
+):
+
+    logger.remove()  # Remove default logger
+    logger.add(sys.stdout, level=log_level)  # Add new logger with specified level
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+    logger.info(f"Using device: {device}")
 
     # Luo tallennuskansio malleille, jos sitä ei vielä ole
     # Kansio luodaan
-    trained_models_dir = Path(__file__).parent / "trained_models"
+    trained_models_dir = base_dir / "trained_models"
     trained_models_dir.mkdir(exist_ok=True)
 
-    HYPERPARAMETERS = "manual_search"  # default, manual_search or random_search
-    DATA = "VN0_data"
-
-    BASE_DIR = Path(__file__).parent
+    HYPERPARAMETERS = search_type  # default, manual_search or random_search
 
     config = Configuration(**load_config())
 
@@ -72,7 +79,7 @@ def main():
         # epochs*n. This can be set to 1 so epoch = full epoch. This can be used to increase number of checkpoints. Note also that .yaml
         # configurations are reduced epochs. So if reduce_epochs = 4, training for 10 full epochs is 40 epochs in yaml.
         train_set, val_set, test_set = generate_datasets(
-            config.data_paths[DATA], reduce_samples=1
+            config.data_paths[data_folder], reduce_samples=1
         )
 
         # Probability map probabilities are defined in custom_transforms -> ProbabilityMapTransform
@@ -171,9 +178,7 @@ def main():
 
         start_epoch = 1
 
-        checkpoint_path = (
-            BASE_DIR / "trained_models" / "gregarious-chimp-691_epoch_16.pth"
-        )
+        checkpoint_path = trained_models_dir / "gregarious-chimp-691_epoch_16.pth"
 
         if checkpoint_path.exists():
             print("Loading checkpoint:", checkpoint_path)
@@ -205,11 +210,11 @@ def main():
                 batch_losses = defaultdict(int)
 
                 # TorchIO uses double by default, so these must be cast to float.
-                input_ct = batch["ct"][tio.DATA].float()
-                input_mask = batch["mask"][tio.DATA].float()
-                input_distancetoPTV = batch["distance_to_PTV"][tio.DATA].float()
+                input_ct = batch["ct"][DATA].float()
+                input_mask = batch["mask"][DATA].float()
+                input_distancetoPTV = batch["distance_to_PTV"][DATA].float()
                 input_ = torch.cat((input_ct, input_mask, input_distancetoPTV), dim=1)
-                true_train_dose = batch["dose"][tio.DATA].float()
+                true_train_dose = batch["dose"][DATA].float()
                 input_ = input_.to(device)
                 true_train_dose = true_train_dose.to(device)
                 model.train()
@@ -296,6 +301,7 @@ def main():
             ] / len(train_loader)
 
             mlflow.log_metrics(epoch_losses, step=epoch)
+
             dose_metrics_val["val"] = evaluate_dose_metrics(
                 model,
                 val_set,
@@ -322,7 +328,8 @@ def main():
 
         model.load_state_dict(
             torch.load(
-                f"trained_models/{mlflow.active_run().info.run_name}_epoch_{best_epoch}.pth"
+                trained_models_dir
+                / f"{mlflow.active_run().info.run_name}_epoch_{best_epoch}.pth"
             )
         )
         test_primary_metric, test_secondary_metric = evaluate_dataset(

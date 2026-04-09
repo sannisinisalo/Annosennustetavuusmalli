@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torchio as tio
+from torchio.constants import DATA
 
 """
 Tekijä: Akseli Leino
@@ -37,11 +38,11 @@ def evaluate_dataset(model, dataset, config, device):
             subject_secondary = 0
 
             for batch in dataloader:
-                input_ct = batch["ct"][tio.DATA].float()
-                input_mask = batch["mask"][tio.DATA].float()
-                PTV_dist = batch["distance_to_PTV"][tio.DATA].float()
+                input_ct = batch["ct"][DATA].float()
+                input_mask = batch["mask"][DATA].float()
+                PTV_dist = batch["distance_to_PTV"][DATA].float()
                 input_ = torch.cat((input_ct, input_mask, PTV_dist), dim=1)
-                true_dose = batch["dose"][tio.DATA].float()
+                true_dose = batch["dose"][DATA].float()
 
                 input_ = input_.to(device)
                 true_dose = true_dose.to(device)

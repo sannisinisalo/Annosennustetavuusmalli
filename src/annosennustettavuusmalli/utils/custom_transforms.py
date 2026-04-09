@@ -2,6 +2,7 @@ import torch
 import torchio as tio
 from einops import rearrange
 from scipy.ndimage import distance_transform_edt
+from torchio.constants import DATA
 from torchvision.transforms.functional import InterpolationMode, affine
 
 from annosennustettavuusmalli.utils.integer_mask_to_binary import integer_mask_to_binary
@@ -18,7 +19,7 @@ class ProbabilityMapTransform(tio.transforms.Transform):
     """
 
     def apply_transform(self, subject: tio.Subject) -> tio.Subject:
-        mask = subject["mask"][tio.DATA]
+        mask = subject["mask"][DATA]
         probability_map = torch.empty_like(mask, dtype=torch.float32)
 
         # Images are (c, w, h, d), we want to iterate depth.
@@ -39,7 +40,7 @@ class CreateDistanceToPTV(tio.transforms.Transform):
     """Custom transform for TorchIO that creates distance to PTV map."""
 
     def apply_transform(self, subject: tio.Subject) -> tio.Subject:
-        mask = subject["mask"][tio.DATA]
+        mask = subject["mask"][DATA]
         not_PTV_mask = (
             mask != 1
         )  # distance_transform_edt calcualates distance to 0, not 1. Thus we need mask that is NOT PTV.
@@ -71,7 +72,7 @@ class DoseScalingTransform(tio.transforms.Transform):
     """Custom transform for TorchIO that scales the dose data."""
 
     def apply_transform(self, subject: tio.Subject) -> tio.Subject:
-        dose = subject["dose"][tio.DATA]
+        dose = subject["dose"][DATA]
         dose_multiplier = subject["dose_multiplier"]
         dose_tensor_transformed = dose.data * dose_multiplier
         subject["dose"].set_data(dose_tensor_transformed)
@@ -84,9 +85,9 @@ class FlipRightTransform(tio.transforms.Transform):
     def apply_transform(self, subject: tio.Subject) -> tio.Subject:
         if subject["flip"]:
             # Data has dimensions (c, w, h, d), thus we want to flip the second (1) dimension.
-            transformed_dose = subject["dose"][tio.DATA].flip(1)
-            transformed_mask = subject["mask"][tio.DATA].flip(1)
-            transformed_ct = subject["ct"][tio.DATA].flip(1)
+            transformed_dose = subject["dose"][DATA].flip(1)
+            transformed_mask = subject["mask"][DATA].flip(1)
+            transformed_ct = subject["ct"][DATA].flip(1)
             subject["dose"].set_data(transformed_dose)
             subject["ct"].set_data(transformed_ct)
             subject["mask"].set_data(transformed_mask)
@@ -101,9 +102,9 @@ class PixelSizingTransform(tio.transforms.Transform):
     """
 
     def apply_transform(self, subject: tio.Subject) -> tio.Subject:
-        dose = subject["dose"][tio.DATA]
-        mask = subject["mask"][tio.DATA]
-        ct = subject["ct"][tio.DATA]
+        dose = subject["dose"][DATA]
+        mask = subject["mask"][DATA]
+        ct = subject["ct"][DATA]
 
         scale = subject["pixel_spacing"]
         scale = scale / 2  # Divison by two is due to x2 downsampling made for the data
@@ -156,7 +157,7 @@ class CreateInputMask(tio.transforms.Transform):
     """Input mask is stored as binary data converted to 10-base. This transform creates a mask that has overlaps removed and leaves higher priority masks on top."""
 
     def apply_transform(self, subject: tio.Subject) -> tio.Subject:
-        mask = subject["mask"][tio.DATA]
+        mask = subject["mask"][DATA]
         rounded_mask = torch.round(mask).to(dtype=torch.int)
         binary_mask = integer_mask_to_binary(rounded_mask, num_bits=11)
         final_mask = torch.zeros(mask.shape, dtype=torch.int16)

@@ -6,7 +6,13 @@ Tekijä: Akseli Leino
 """
 
 
-def calculate_dvhs(dose, mask, organ_config, num_bins=601, dose_max=60):
+def calculate_dvhs(
+    dose: torch.Tensor,
+    mask: torch.Tensor,
+    organ_config: dict,
+    num_bins: int = 601,
+    dose_max: int = 60,
+):
     """Calculate cumulative dose-volume histograms (DVHs) for each organ.
 
     This function computes the DVHs for each specified organ based on the input
@@ -46,7 +52,13 @@ def calculate_dvhs(dose, mask, organ_config, num_bins=601, dose_max=60):
     return dvhs
 
 
-def calculate_dvhs_numpy(dose, mask, organ_config, num_bins=601, max_dose=60):
+def calculate_dvhs_numpy(
+    dose: np.ndarray,
+    mask: np.ndarray,
+    organ_config: dict,
+    num_bins: int = 601,
+    max_dose: int = 60,
+):
     """Calculate cumulative dose-volume histograms (DVHs) for each organ.
 
     This function computes the DVHs for each specified organ based on the input
@@ -67,7 +79,8 @@ def calculate_dvhs_numpy(dose, mask, organ_config, num_bins=601, max_dose=60):
     """
 
     dvhs = {}
-    bin_edges = np.arange(0, max_dose + 0.2, 0.1)
+    step = max_dose / (num_bins - 1)
+    bin_edges = np.arange(0, max_dose + step, step)
 
     for organ_name, organ_index in organ_config.items():
         organ_dose = dose[mask[:, :, :, :, organ_index] == 1]
