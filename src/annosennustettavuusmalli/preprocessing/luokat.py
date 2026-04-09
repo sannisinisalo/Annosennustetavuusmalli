@@ -34,6 +34,10 @@ class Patient:
         self.patient_folder = Path(self.patient_folder)
         self.processed_root = Path(self.processed_root)
         self.ensure_modified_subdirs()
+        self._ct_files = self._find_dicom_by_modality("CT")
+        self._rd_file = self._find_dicom_by_modality("RTDOSE")
+        self._rp_file = self._find_dicom_by_modality("RTPLAN")
+        self._rs_file = self._find_dicom_by_modality("RTSTRUCT")
 
     # PERUSPOLUT
     @property
@@ -58,15 +62,25 @@ class Patient:
                         dicom_files.append(f)
                 except Exception:
                     pass
+        if not dicom_files:
+            logger.warning(
+                f"No {modality} DICOM files found for patient {self.patient_folder.name} in {self.original_dir}"
+            )
+
         return sorted(dicom_files)
 
     @property
     def ct_files(self) -> list[Path]:
         """Lista alkuperäisistä CT-viipaleista (täydet polut)"""
-        return self._find_dicom_by_modality("CT")
+        return self._ct_files
 
     def get_ct_slices(self) -> list[FileDataset]:
-        """Lista alkuperäisistä CT-viipaleista DICOM-dataset muodossa"""
+        """Lista alkuperäisistä CT-viipaleista DICOM-dataset muodossa
+
+        Kokeillaan lukea kaikki CT-viipaleet ja suodatetaan ne, jotka kuuluvat samaan sarjaan (SeriesInstanceUID).
+        Järjestetään viipaleet InstanceNumber:n mukaan, käänteisessä järjestyksessä, jotta slice 1 on viimeisenä listassa.
+
+        """
         ct_files = self.ct_files
 
         try:
@@ -94,50 +108,29 @@ class Patient:
     @property
     def rd_file(self) -> Optional[Path]:
         """RTDOSE-tiedoston polku, jos löytyy"""
-        files = self._find_dicom_by_modality("RTDOSE")
-        if not files:
+        if len(self._rd_file) > 1:
             logger.warning(
-                f"No RTDOSE files found for patient {self.patient_folder.name}"
+                f"Multiple RTDOSE files found for patient {self.patient_folder.name}. Using the first one: {self._rd_file[0]}"
             )
-
-        elif len(files) > 1:
-            logger.warning(
-                f"Multiple RTDOSE files found for patient {self.patient_folder.name}: {[f.name for f in files]}. Using the first one: {files[0].name}"
-            )
-
-        return files[0] if files else None
+        return self._rd_file[0] if self._rd_file else None
 
     @property
     def rp_file(self) -> Optional[Path]:
         """RTPLAN-tiedoston polku, jos löytyy"""
-        files = self._find_dicom_by_modality("RTPLAN")
-        if not files:
+        if len(self._rp_file) > 1:
             logger.warning(
-                f"No RTPLAN files found for patient {self.patient_folder.name}"
+                f"Multiple RTPLAN files found for patient {self.patient_folder.name}. Using the first one: {self._rp_file[0]}"
             )
-
-        elif len(files) > 1:
-            logger.warning(
-                f"Multiple RTPLAN files found for patient {self.patient_folder.name}: {[f.name for f in files]}. Using the first one: {files[0].name}"
-            )
-
-        return files[0] if files else None
+        return self._rp_file[0] if self._rp_file else None
 
     @property
     def rs_file(self) -> Optional[Path]:
         """RTSTRUCT-tiedoston polku, jos löytyy"""
-        files = self._find_dicom_by_modality("RTSTRUCT")
-        if not files:
+        if len(self._rs_file) > 1:
             logger.warning(
-                f"No RTSTRUCT files found for patient {self.patient_folder.name}"
+                f"Multiple RTSTRUCT files found for patient {self.patient_folder.name}. Using the first one: {self._rs_file[0]}"
             )
-
-        elif len(files) > 1:
-            logger.warning(
-                f"Multiple RTSTRUCT files found for patient {self.patient_folder.name}: {[f.name for f in files]}. Using the first one: {files[0].name}"
-            )
-
-        return files[0] if files else None
+        return self._rs_file[0] if self._rs_file else None
 
     @property
     def maski_files(self) -> list[Path]:
