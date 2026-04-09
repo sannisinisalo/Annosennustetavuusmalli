@@ -10,7 +10,6 @@ Koodissa myös vaihtoehtona tallentaa kuvat PNG-muodossa haluttuun kansioon.
 import os
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pydicom
 
 kansio = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient8_VN0\maski"

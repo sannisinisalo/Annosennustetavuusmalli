@@ -39,12 +39,12 @@ class Patient:
     @property
     def original_dir(self) -> Path:
         """Alkuperäinen potilaskansio, josta DICOM/RS/RD/RP haetaan."""
-        return self.basedir / self.original_root / self.patient_folder.name
+        return self.basedir / self.original_root.name / self.patient_folder.name
 
     @property
     def modified_dir(self) -> Path:
         """Muokattujen tiedostojen kansio (tulokset)."""
-        return self.basedir / self.processed_root / self.patient_folder.name
+        return self.basedir / self.processed_root.name / self.patient_folder.name
 
     # TIEDOSTOLISTAUS
     def _find_dicom_by_modality(self, modality: str) -> list[Path]:
@@ -65,8 +65,7 @@ class Patient:
         """Lista alkuperäisistä CT-viipaleista (täydet polut)"""
         return self._find_dicom_by_modality("CT")
 
-    @property
-    def ct_slices(self) -> list[FileDataset]:
+    def get_ct_slices(self) -> list[FileDataset]:
         """Lista alkuperäisistä CT-viipaleista DICOM-dataset muodossa"""
         ct_files = self.ct_files
 
@@ -94,7 +93,7 @@ class Patient:
 
     @property
     def rd_file(self) -> Optional[Path]:
-        """Lista alkuperäisistä RTDOSE-tiedostoista (täydet polut)"""
+        """RTDOSE-tiedoston polku, jos löytyy"""
         files = self._find_dicom_by_modality("RTDOSE")
         if not files:
             logger.warning(
@@ -110,7 +109,7 @@ class Patient:
 
     @property
     def rp_file(self) -> Optional[Path]:
-        """Lista alkuperäisistä RTPLAN-tiedostoista (täydet polut)"""
+        """RTPLAN-tiedoston polku, jos löytyy"""
         files = self._find_dicom_by_modality("RTPLAN")
         if not files:
             logger.warning(
@@ -126,7 +125,7 @@ class Patient:
 
     @property
     def rs_file(self) -> Optional[Path]:
-        """Lista alkuperäisistä RTSTRUCT-tiedostoista (täydet polut)"""
+        """RTSTRUCT-tiedoston polku, jos löytyy"""
         files = self._find_dicom_by_modality("RTSTRUCT")
         if not files:
             logger.warning(

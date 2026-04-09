@@ -11,7 +11,6 @@ from pathlib import Path
 
 import torch
 import torchio as tio
-import yaml
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 

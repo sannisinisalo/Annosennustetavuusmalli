@@ -14,14 +14,9 @@ lisätty kaikki ROI:t.
 
 
 import os
-import glob
 import numpy as np
-import cv2
 import pydicom
 from rt_utils import RTStructBuilder
-import re
-import matplotlib.pyplot as plt
-from pathlib import Path
 
 
 

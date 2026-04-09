@@ -194,7 +194,7 @@ def main():
 
             epoch_losses = defaultdict(int)
             running_losses = defaultdict(int)
-            last_loss = 0
+            # last_loss = 0
             epoch_size = len(train_loader)
             optimizer.zero_grad()
 

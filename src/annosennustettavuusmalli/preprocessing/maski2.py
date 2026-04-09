@@ -114,6 +114,12 @@ def normalize_axes(
     # Maskin alkuperäiset akselit
     shape = mask.shape
 
+    if len(shape) != 3:
+        logger.warning(
+            f"Maskin muoto {shape} ei ole 3-ulotteinen, ei onnistuttu normalisoimaan"
+        )
+        return None
+
     # Jos maskin akselit ovat suoraan oikeat eikä korjausta tarvita, tulostetaan teksti txt
     txt = "Maskin akselit: oletetaan (Z,Y,X)"
     if shape == (num_slices, rows, cols):
@@ -129,12 +135,20 @@ def normalize_axes(
         (2, 0, 1),
         (2, 1, 0),
     ]:
-        if len(shape) == 3:
-            trial = np.transpose(mask, axes=perm)
+        trial = np.transpose(mask, axes=perm)
 
-            # Tarkistetaan vielä tuottiko muutos halutun lopputuloksen
-            if trial.shape == (num_slices, rows, cols):
-                return trial, f"Maskin akselit korjattu transpoosilla{perm} -> (Z,Y,X)"
+        # Tarkistetaan vielä tuottiko muutos halutun lopputuloksen
+        if trial.shape == (num_slices, rows, cols):
+            return trial, f"Maskin akselit korjattu transpoosilla{perm} -> (Z,Y,X)"
+        else:
+            logger.debug(
+                f"Maskin akselien permutaatio {perm} tuotti muodon {trial.shape}, ei haluttu (Z,Y,X)"
+            )
+            continue
+    logger.warning(
+        f"Maskin muoto {shape} ei saatu normalisoitua haluttuun (Z,Y,X) muotoon, kaikki permutaatiot testattu"
+    )
+    return None
 
 
 # ROI nimien määritys ja numeroiden määrääminen

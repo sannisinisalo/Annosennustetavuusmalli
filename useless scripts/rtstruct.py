@@ -5,26 +5,31 @@ Tekijä: Sanni Sinisalo
 Automatisoitu RS-skaalaus kaikille potilaille, pääkansiot löydetään automaattisesti
 """
 
-import os
 import glob
-import numpy as np
+import os
+import re
+
 import cv2
+import numpy as np
 import pydicom
 from rt_utils import RTStructBuilder
-import re
 
 # -----------------------------
 # APUTOIMINNOT
 # -----------------------------
 
+
 def sort_patients_numerically(patient_list):
     """
     Järjestää potilaat numeron mukaan PatientX_... muodossa
     """
+
     def extract_number(name):
-        m = re.search(r'Patient(\d+)_', name)
+        m = re.search(r"Patient(\d+)_", name)
         return int(m.group(1)) if m else 0
+
     return sorted(patient_list, key=extract_number)
+
 
 def get_ct_shape_and_slice_count(ct_path):
     files = sorted(glob.glob(os.path.join(ct_path, "*.dcm")))
@@ -45,7 +50,7 @@ def scale_mask_to_ct(mask_bool, new_rows_cols, slice_count_expected):
         raise ValueError(f"ROI-maskin tulee olla 3D. ndim={mask_bool.ndim}")
 
     # 1️⃣ Korjaa slice-määrä
-    slices_in = mask_bool.shape[2] if mask_bool.shape[2] == slice_count_expected else None
+    # slices_in = mask_bool.shape[2] if mask_bool.shape[2] == slice_count_expected else None
 
     if mask_bool.shape[2] > slice_count_expected:
         # Rajaa ylimääräiset slice:t loppuun
@@ -64,12 +69,11 @@ def scale_mask_to_ct(mask_bool, new_rows_cols, slice_count_expected):
         scaled_uint8[:, :, i] = cv2.resize(
             mask_bool[:, :, i].astype(np.uint8),
             (new_cols, new_rows),
-            interpolation=cv2.INTER_NEAREST
+            interpolation=cv2.INTER_NEAREST,
         )
 
     scaled_bool = scaled_uint8.astype(bool)
     return scaled_bool
-
 
 
 def resample_rtstruct(original_rt_path, original_ct_path, new_ct_path, output_rt_path):
@@ -80,8 +84,7 @@ def resample_rtstruct(original_rt_path, original_ct_path, new_ct_path, output_rt
     # Yritä ladata RS
     try:
         rtstruct = RTStructBuilder.create_from(
-            dicom_series_path=original_ct_path,
-            rt_struct_path=original_rt_path
+            dicom_series_path=original_ct_path, rt_struct_path=original_rt_path
         )
     except Exception as e:
         print(f"[WARN] RS ei vastaa CT:tä, ohitetaan: {original_rt_path}. Virhe: {e}")
@@ -110,15 +113,14 @@ def resample_rtstruct(original_rt_path, original_ct_path, new_ct_path, output_rt
     # Lisää uuteen RS:ään
     new_rtstruct.add_roi(mask=scaled_mask, name=roi_name)
 
-
     new_rtstruct.save(output_rt_path)
     print(f"[OK] Tallennettu uusi RS: {output_rt_path}")
-
 
 
 # -----------------------------
 # MONIPOTILAS-PROSESSI AUTOMAATTISESTI
 # -----------------------------
+
 
 def process_all_patients(base_dir):
     """
@@ -128,7 +130,11 @@ def process_all_patients(base_dir):
 
     # Hae kaikki pääkansiot
     all_entries = os.listdir(base_dir)
-    base_folders = [f for f in all_entries if os.path.isdir(os.path.join(base_dir, f)) and not f.endswith('ds')]
+    base_folders = [
+        f
+        for f in all_entries
+        if os.path.isdir(os.path.join(base_dir, f)) and not f.endswith("ds")
+    ]
 
     print(f"[INFO] Löydetty pääkansiot: {base_folders}")
 
@@ -168,7 +174,6 @@ def process_all_patients(base_dir):
             output_rt = os.path.join(patient_rs_folder, "RS_SKAALATTU.dcm")
             # Jos tiedosto on jo olemassa, ohita
             if os.path.exists(output_rt):
-                
                 print(f"[INFO] RS_SKAALATTU.dcm löytyy jo, ohitetaan: {output_rt}")
                 continue
 
@@ -177,7 +182,7 @@ def process_all_patients(base_dir):
                     original_rt_path=original_rt,
                     original_ct_path=patient_orig_ct,
                     new_ct_path=patient_scaled_ct,
-                    output_rt_path=output_rt
+                    output_rt_path=output_rt,
                 )
             except Exception as e:
                 print(f"[ERROR] Potilaan käsittely epäonnistui ({patient_name}): {e}")

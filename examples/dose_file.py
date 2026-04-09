@@ -8,7 +8,6 @@ Koodi RTDose tiedoston visualisoimiseen.
 
 import pydicom
 import matplotlib.pyplot as plt
-import numpy as np
 
 # RT Dose -tiedoston polku
 dose_polku = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient10_VN0\dose\RD.1.2.246.352.221.4814537308602544922.6316583374286193844.dcm"

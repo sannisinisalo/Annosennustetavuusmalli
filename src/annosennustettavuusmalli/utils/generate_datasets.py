@@ -4,12 +4,6 @@ Tekijä: Akseli Leino
 Muokkaaja: Sanni Sinisalo
 """
 
-import re
-import math
-import pickle
-from scipy.ndimage import zoom
-import numpy as np
-import torch
 
 import glob
 import os
