@@ -3,26 +3,26 @@
 Luotu Ma 24.11.2025 klo 10:17:17
 Tekijä: Sanni Sinisalo
 
-Ensimmäinen koodiyritys maskipakan luomiseen. 
+Ensimmäinen koodiyritys maskipakan luomiseen.
 - aloitetaan yhdellä potilaalla
 - tämän jälkeen voidaan siirtyä käsittelemään kaikkia potilaita
 
-Koodissa määritetään jokaiselle ROI:lle (Region Of Intrest) numero, jolla 
-annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on 
+Koodissa määritetään jokaiselle ROI:lle (Region Of Intrest) numero, jolla
+annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on
 lisätty kaikki ROI:t.
 """
 
-
 import os
+
 import numpy as np
 import pydicom
+from pydicom import uid
 from rt_utils import RTStructBuilder
 
 
-
-# CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on 
+# CT-sarjan lataaminen ja järjestäminen InstanceUID metatiedon mukaan. InstanceNumber on
 # DICOM-metatieto, joka kertoo kuvan järjestysnumeron CT-sarjassa
-def Load_CT(path): 
+def Load_CT(path):
     """
     Loading the CT-images and arranging them by the InstanceUID metadata.
 
@@ -33,32 +33,31 @@ def Load_CT(path):
 
     Returns
     -------
-    slices : list 
+    slices : list
         Arranged CT-images.
 
     """
-    # Tuotetaan lista CT-kuvista, f silmukkamuuttuja, johon .dcm tiedostot tallentuvat 
+    # Tuotetaan lista CT-kuvista, f silmukkamuuttuja, johon .dcm tiedostot tallentuvat
     slices = [
-        pydicom.dcmread(os.path.join(path, f)) 
-        for f in os.listdir(path) 
-        if f.endswith(".dcm") 
-    ] 
-    
-    # Otetaan ensimmäisen kuvan UID ja jätetään listaan ne tiedostot, joiden UID matchaa esnimmäisen kanssa 
-    series_uid = slices[0].SeriesInstanceUID 
-    slices = [s for s in slices if s.SeriesInstanceUID == series_uid] 
-    
+        pydicom.dcmread(os.path.join(path, f))
+        for f in os.listdir(path)
+        if f.endswith(".dcm")
+    ]
+
+    # Otetaan ensimmäisen kuvan UID ja jätetään listaan ne tiedostot, joiden UID matchaa esnimmäisen kanssa
+    series_uid = slices[0].SeriesInstanceUID
+    slices = [s for s in slices if s.SeriesInstanceUID == series_uid]
+
     # Järjestetään listan tiedostot InstanceNumberin mukaan ensin nousevaan järjestykseen, jonka jälkeen
     # listan järjestys käännetään päinvastaiseksi
-    slices.sort(key=lambda x: int(x.InstanceNumber)) 
-    slices = slices[::-1] 
-    
-    return slices 
+    slices.sort(key=lambda x: int(x.InstanceNumber))
+    slices = slices[::-1]
 
+    return slices
 
 
 # Normalisoidaan ROI-maskin akselit muotoon (Z, Y, X), jotta ne ovat samassa muodossa CT kuvien kanssa
-def Normalize_axes(mask, ct_slices): 
+def Normalize_axes(mask, ct_slices):
     """
     Normalizes the axes of the ROI mask array tho match the CT-images axes (Z, Y, X).
 
@@ -66,7 +65,7 @@ def Normalize_axes(mask, ct_slices):
     ----------
     mask : numpy.ndarray
         The 3D array representing the mask.
-    ct_slices : list 
+    ct_slices : list
         A list of the loaded CT images in DICOM form
 
     Returns
@@ -79,19 +78,19 @@ def Normalize_axes(mask, ct_slices):
         or how the axes were transposed.
 
     """
-    num_slices = len(ct_slices) # Siivujen lukumäärä Z
-    rows = int(ct_slices[0].Rows) # Rivien määrä eli kuvan korkeus eli Y
-    cols = int(ct_slices[0].Columns) # Sarakkeiden määrä eli kuvan leveys eli X
+    num_slices = len(ct_slices)  # Siivujen lukumäärä Z
+    rows = int(ct_slices[0].Rows)  # Rivien määrä eli kuvan korkeus eli Y
+    cols = int(ct_slices[0].Columns)  # Sarakkeiden määrä eli kuvan leveys eli X
 
     # Maskin alkuperäiset akselit
-    shape = mask.shape     
- 
+    shape = mask.shape
+
     # Jos maskin akselit ovat suoraan oikeat eikä korjausta tarvita, tulostetaan teksti txt
     txt = "Maskin akselit: oletetaan (Z,Y,X)"
     if shape == (num_slices, rows, cols):
         return mask, txt
 
-    # Jos akselit vaativat korjausta, etsitään permutaatio, joka tuottaa (num_slices, rows, cols) ja 
+    # Jos akselit vaativat korjausta, etsitään permutaatio, joka tuottaa (num_slices, rows, cols) ja
     # käännetään akselit sen mukaan haluttuun järjestykseen.
     for perm in [
         (0, 1, 2),
@@ -102,12 +101,11 @@ def Normalize_axes(mask, ct_slices):
         (2, 1, 0),
     ]:
         if len(shape) == 3:
-            trial = np.transpose(mask, axes=perm) 
-            
-            # Tarkistetaan vielä tuottiko muutos halutun lopputuloksen
-            if trial.shape == (num_slices, rows, cols): 
-                return trial, f"Maskin akselit korjattu transpoosilla{perm} -> (Z,Y,X)"
+            trial = np.transpose(mask, axes=perm)
 
+            # Tarkistetaan vielä tuottiko muutos halutun lopputuloksen
+            if trial.shape == (num_slices, rows, cols):
+                return trial, f"Maskin akselit korjattu transpoosilla{perm} -> (Z,Y,X)"
 
 
 # ROI nimien määritys ja numeroiden määrääminen
@@ -128,72 +126,57 @@ def ROI_names(roi_name):
         If the ROI is not recognized or should be excluded.
 
     """
-    # Muuttaa ROI:n nimen pieniksi kirjaimiksi sekä poistaa turhat välilyönnit nimen edestä ja lopusta 
+    # Muuttaa ROI:n nimen pieniksi kirjaimiksi sekä poistaa turhat välilyönnit nimen edestä ja lopusta
     roi = roi_name.lower().strip()
-    
-    # Määritellään jokainen mallin haluama ROI ja sen nimet sekä sitä vastaavan lukuarvon 
-    if("sydän vasen" in roi or
-       "sydan vasen" in roi):
+
+    # Määritellään jokainen mallin haluama ROI ja sen nimet sekä sitä vastaavan lukuarvon
+    if "sydän vasen" in roi or "sydan vasen" in roi:
         return None
-    
-    if("#ptv" in roi):
+
+    if "#ptv" in roi:
         return None
-    
-    if ("keuhko sin-ptv 40gy" in roi):
+
+    if "keuhko sin-ptv 40gy" in roi:
         return None
-    
-    if ("body" in roi):
+
+    if "body" in roi:
         return 0
 
-    if ("ptv iho" in roi or
-        "ptv-iho" in roi):
+    if "ptv iho" in roi or "ptv-iho" in roi:
         return 1
-    
-    if ("heart" in roi or
-        "sydän" in roi or
-        "sydan" in roi):
+
+    if "heart" in roi or "sydän" in roi or "sydan" in roi:
         return 2
-    
-    if ("keuhko dex" in roi or 
-        "lung_l" in roi):
-        return 4 
-    
-    if ("keuhko sin" in roi or 
-        "lung_r" in roi):
-        return 8  
-    
-    if ("rinta dex" in roi or
-        "breast_r" in roi):
+
+    if "keuhko dex" in roi or "lung_l" in roi:
+        return 4
+
+    if "keuhko sin" in roi or "lung_r" in roi:
+        return 8
+
+    if "rinta dex" in roi or "breast_r" in roi:
         return 16
-    
-    if ("lad" in roi or 
-        "a_lad" in roi):
+
+    if "lad" in roi or "a_lad" in roi:
         return 32
-    
-    if ("humerus head_l" in roi or
-        "olkanivel sin" in roi):
+
+    if "humerus head_l" in roi or "olkanivel sin" in roi:
         return 64
-    
-    if ("plexus" in roi or
-        "brachial plexus" in roi or
-        "brachial_plexus" in roi):
+
+    if "plexus" in roi or "brachial plexus" in roi or "brachial_plexus" in roi:
         return 128
-    
-    if("esophagus" in roi or
-       "ruokatorvi" in roi):
+
+    if "esophagus" in roi or "ruokatorvi" in roi:
         return 256
-    
-    if ("trachea" in roi or
-        "tracea" in roi):
+
+    if "trachea" in roi or "tracea" in roi:
         return 512
-    
-    if ("thyroid" in roi or
-        "kilpirauhanen" in roi):
+
+    if "thyroid" in roi or "kilpirauhanen" in roi:
         return 1024
-    
+
     # Jos ROI ei vastaa mitään mainittua, ROI:lle ei anneta numeroa, vaan arvo None
     return None
-
 
 
 # Asetetaan ROI:t CT-kuvien päälle
@@ -218,71 +201,67 @@ def Overlay_ROI(rt_path, ct_path):
         A list of the loaded CT images in DICOM form
 
     """
-    # Ladataan CT-kuvat käyttäen aikaisemmin määriteltyä Load_CT funktiota 
-    ct_slices = Load_CT(ct_path) 
-    num_slices = len(ct_slices) 
-    rows = int(ct_slices[0].Rows) 
-    cols = int(ct_slices[0].Columns) 
-    
-    # Muodostetaan numpy CT-kuvista pakka 
-    # ct_vol = np.stack([s.pixel_array for s in ct_slices], axis=0) 
+    # Ladataan CT-kuvat käyttäen aikaisemmin määriteltyä Load_CT funktiota
+    ct_slices = Load_CT(ct_path)
+    num_slices = len(ct_slices)
+    rows = int(ct_slices[0].Rows)
+    cols = int(ct_slices[0].Columns)
+
+    # Muodostetaan numpy CT-kuvista pakka
+    # ct_vol = np.stack([s.pixel_array for s in ct_slices], axis=0)
 
     # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resampolata ROI:t CT:n koordinaatistoon
     rtstruct = RTStructBuilder.create_from(
-        dicom_series_path=ct_path,
-        rt_struct_path=rt_path
+        dicom_series_path=ct_path, rt_struct_path=rt_path
     )
-    
-    # Luodaan ensin tyhjä summamaski 
+
+    # Luodaan ensin tyhjä summamaski
     # Alustetaan tausta arvoksi ensin 0, tämä muutetaan myöhemmin arvoon -1
     sum_mask = np.zeros((num_slices, rows, cols), dtype=np.int32)
-    
+
     # Luodaan bool-taulukko, joka tosi, kun pikselissä vähintään yksi ROI
     any_mask = np.zeros((num_slices, rows, cols), dtype=bool)
-    
+
     # Listataan kaikki saatavilla olevat ROI:t
     roi_list = rtstruct.get_roi_names()
-    
-    
+
     # Määritetään ROI listan halutuille ROI:lle ROI_names funktiossa määritetyt luvut (2:n potenssi)
     for roi_name in roi_list:
         roi_value = ROI_names(roi_name)
         if roi_value is None:
             continue
-        
+
         mask = rtstruct.get_roi_mask_by_name(roi_name)
-        
+
         mask, txt = Normalize_axes(mask, ct_slices)
         # print(f"{roi_name}: {txt}")
-        
+
         any_mask |= mask.astype(bool)
-        
-        sum_mask |= (mask.astype(np.int32) * roi_value)
-        
-    #Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
+
+        sum_mask |= mask.astype(np.int32) * roi_value
+
+    # Muutetaan pikselit, joita mikään ROI ei peittänyt, arvolle -1
     sum_mask[~any_mask] = -1
 
     # Palautetaan summamaski (, CT-volyymi, ja CT-lista)
     return sum_mask, ct_slices
 
 
-
 # Luodaan haluttuja ROI:ta vastaavalle arvolle intensiteetti, jolla väritys määräytyy
 ROI_INTENSITY_MAP = {
-    0: 0,      
-    1: 1,    
-    2: 2,    
-    4: 4,    
-    8: 8,    
-    16: 16,   
-    32: 32,   
-    64: 64,  
-    128: 128, 
-    256: 256, 
-    512: 512, 
-    1024: 1024  
+    0: 0,
+    1: 1,
+    2: 2,
+    4: 4,
+    8: 8,
+    16: 16,
+    32: 32,
+    64: 64,
+    128: 128,
+    256: 256,
+    512: 512,
+    1024: 1024,
 }
-
 
 
 # Funktio, jolla annetaan ROI:lle intensiteettien painokertoimet
@@ -303,18 +282,18 @@ def apply_intensity_weights(bitmask, roi_map, background_value=0):
     Returns
     -------
     output : numpy.ndarray
-        A 3D NumPy array where each voxel contains the summed intensity value 
+        A 3D NumPy array where each voxel contains the summed intensity value
         based on all matching ROI bits.
 
     """
     # Kopioidaan maski sellaisenaan NumPy-taulukoksi
     mask = np.array(bitmask, copy=True)
 
-    # Määritellään taustan arvoksi -1 
-    background_mask = (mask == -1)
+    # Määritellään taustan arvoksi -1
+    background_mask = mask == -1
 
     # Määritellään body:n arvoksi 0, mikä toteutuu silloin, kun background_mask=false
-    body_mask = (mask == 0) & (~background_mask)  
+    body_mask = (mask == 0) & (~background_mask)
 
     # Alustetaan output luomalla tyhjä taulukko samassa muodossa kuin maksi
     output = np.zeros(mask.shape, dtype=np.int16)
@@ -323,7 +302,7 @@ def apply_intensity_weights(bitmask, roi_map, background_value=0):
     if 0 in roi_map:
         output[body_mask] = roi_map[0]
 
-    # Käsitellään loput ROI:t ns. bittilogiikalla ohittaen arvon 0, joka käsiteltiin jo yllä 
+    # Käsitellään loput ROI:t ns. bittilogiikalla ohittaen arvon 0, joka käsiteltiin jo yllä
     for roi_bit, intensity in roi_map.items():
         if roi_bit == 0:
             continue
@@ -335,7 +314,6 @@ def apply_intensity_weights(bitmask, roi_map, background_value=0):
 
     # Palauttaa uuden tualukon, jossa kullekin pikselille on laskettu kokonaisintensiteetti
     return output
-
 
 
 # Tallennetaan maski DICOM-pakkana
@@ -359,7 +337,7 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
     """
     # Luodaan output-kansio, jos sitä ei vielä ole
     os.makedirs(output_folder, exist_ok=True)
-    
+
     # Käydään läpi jokainen maskin ja CT-kuvien leike ja yhdistetään ne
     for idx, (slice_img, ct) in enumerate(zip(mask, ct_slices)):
         new_ds = ct.copy()
@@ -370,8 +348,8 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
 
         # Päivitä metadata
         new_ds.SeriesDescription = "ROI MASK"
-        new_ds.SeriesInstanceUID = pydicom.uid.generate_uid()
-        new_ds.SOPInstanceUID = pydicom.uid.generate_uid()
+        new_ds.SeriesInstanceUID = uid.generate_uid()
+        new_ds.SOPInstanceUID = uid.generate_uid()
 
         # Päivitetään skaalausasetukset
         new_ds.RescaleIntercept = 0
@@ -381,14 +359,13 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder):
         new_ds.save_as(out_path)
 
 
-
 # PÄÄOHJELMA
 
 if __name__ == "__main__":
     # Kansio, jossa downsamplatut CT-kuvat
     file = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\ct"
 
-    #Kansio, jossa muokattu RS tiedosto
+    # Kansio, jossa muokattu RS tiedosto
     file2 = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\struct\RS_SKAALATTU.dcm"
 
     # Luodaan maski
@@ -396,14 +373,13 @@ if __name__ == "__main__":
 
     # Tulostetaan maskin tyyppi ja muoto
     print(type(mask))
-    print(mask.shape)   
+    print(mask.shape)
 
     # Muunnetaan maski intensiteettikuvaksi
     gray = apply_intensity_weights(mask, ROI_INTENSITY_MAP)
 
-    # Kansio, johon maskin kuvat tallennetaan 
+    # Kansio, johon maskin kuvat tallennetaan
     out = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\maski"
 
     # Tallentaa intensiteettikuvat uuteen DICOM-sarjaan
     save_mask_as_dicom_series(gray, ct_slices, out)
-
