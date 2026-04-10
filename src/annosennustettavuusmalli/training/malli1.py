@@ -10,16 +10,7 @@ Koodiin tehdyt muokkaukset:
     - Lisätty if __name__ == "__main__" rakenne
     - Lopun visualisointi kommentoiti pois käytöstä toistaiseksi
 """
-import math
-import glob
-import fnmatch
-from pydicom import dcmread
-import re
-import pickle
-from tqdm import tqdm
-import numpy as np
-import time
-from matplotlib import pyplot as plt
+
 import sys
 import os
 import torch
@@ -202,7 +193,6 @@ def main():
             
             epoch_losses = defaultdict(int)
             running_losses = defaultdict(int)
-            last_loss = 0
             epoch_size = len(train_loader)
             optimizer.zero_grad()
     

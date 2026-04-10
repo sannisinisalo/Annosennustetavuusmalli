@@ -1,8 +1,6 @@
-import numpy as np
 import torchio as tio
 from torchvision.transforms.functional import affine
 from torchvision.transforms.functional import InterpolationMode
-import matplotlib.pyplot as plt
 from einops import rearrange
 from annosennustettavuusmalli.utils.integer_mask_to_binary import integer_mask_to_binary
 import torch
