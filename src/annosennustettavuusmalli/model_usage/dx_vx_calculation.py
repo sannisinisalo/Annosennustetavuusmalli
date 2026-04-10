@@ -29,7 +29,10 @@ organs = [o for o in config.vx_organs if o != "PTV"]
 base_dir = Path("predicted_doses")
 csv_file = base_dir / "dose_metrics.csv"
 
+<<<<<<< arto/rearrange
 
+=======
+>>>>>>> main
 # CSV kirjoitus
 with open(csv_file, mode="w", newline="") as f:
 
@@ -123,7 +126,10 @@ with open(csv_file, mode="w", newline="") as f:
                 row_pred.append(vx_pred)
                 row_clin.append(vx_clin)
 
+<<<<<<< arto/rearrange
 
+=======
+>>>>>>> main
         # Kirjoita CSV
         writer.writerow([patient_name] + row_pred + row_clin)
 

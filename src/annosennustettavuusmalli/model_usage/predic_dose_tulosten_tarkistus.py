@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Apr  7 08:16:14 2026
+Luotu Ti 07.04.2026
+Tekijä: Sanni Sinisalo
 
-@author: User01
+Koodi, jolla voi tarkastaa onko annos onnistuttu ennustamaan oikein.
 """
 
 import torch
