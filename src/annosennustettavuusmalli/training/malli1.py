@@ -11,7 +11,6 @@ Koodiin tehdyt muokkaukset:
     - Lopun visualisointi kommentoiti pois käytöstä toistaiseksi
 """
 
-import random
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -199,7 +198,6 @@ def main(
 
             epoch_losses = defaultdict(int)
             running_losses = defaultdict(int)
-            # last_loss = 0
             epoch_size = len(train_loader)
             optimizer.zero_grad()
 

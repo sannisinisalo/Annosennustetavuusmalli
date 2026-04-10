@@ -1,5 +1,6 @@
-import torch
 import torchio as tio
+from torchvision.transforms.functional import affine
+from torchvision.transforms.functional import InterpolationMode
 from einops import rearrange
 from scipy.ndimage import distance_transform_edt
 from torchio.constants import DATA
