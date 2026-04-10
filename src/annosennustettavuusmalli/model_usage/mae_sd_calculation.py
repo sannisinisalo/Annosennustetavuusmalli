@@ -28,7 +28,7 @@ for col in df.columns:
             df[pred_col] - df[clin_col]
         )
 
-        # MAE
+        # Mean absolute error
         mae = abs_error.mean()
 
         # Standard deviation
@@ -46,9 +46,9 @@ result_df = pd.DataFrame(results)
 
 # Tallenna
 result_df.to_csv(
-    "table4_like_results.csv",
+    "mae_sd_results.csv",
     index=False
 )
 
-print("Table 4 style results saved.")
+print("Results saved.")
 print(base, len(abs_error))
