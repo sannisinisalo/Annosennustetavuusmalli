@@ -101,7 +101,14 @@ class CT3DImage:
         self.iop = self.ref_meta.ImageOrientationPatient
         self.ipp = self.ref_meta.ImagePositionPatient
         self.ps = self.ref_meta.PixelSpacing
-        self.th = float(getattr(self.ref_meta, "SliceThickness", self.spacing[2]))
+
+        thickness = getattr(self.ref_meta, "SliceThickness", None)
+        logger.debug(f"SliceThickness raw value: {thickness}")
+
+        if thickness is None:
+            thickness = self.spacing[2]
+
+        self.th = float(thickness)
         self.for_ = getattr(self.ref_meta, "FrameOfReferenceUID", None)
 
     def get_positions(self):
@@ -148,9 +155,13 @@ class Dose3DImage:
         self.origin = self.image.GetOrigin()
         self.direction = self.image.GetDirection()
 
-        self.slice_thickness = float(
-            getattr(self.ds_meta, "SliceThickness", self.spacing[2])
-        )
+        thickness = getattr(self.ds_meta, "SliceThickness", None)
+
+        if thickness is None:
+            thickness = self.spacing[2]
+
+        self.slice_thickness = float(thickness)
+
         self.gfov = (
             list(self.ds_meta.GridFrameOffsetVector)
             if "GridFrameOffsetVector" in self.ds_meta
@@ -199,7 +210,7 @@ def unify_dose_with_ct(patient: Patient) -> Optional[FileDataset]:
         resampler.SetInterpolator(sitk.sitkLinear)
         resampler.SetDefaultPixelValue(0.0)
 
-        dose_resampled = resampler.Execute(dose_img)
+        dose_resampled = resampler.Execute(dose_img.image)
         logger.debug("dose_resampled origin:", dose_resampled.GetOrigin())
         logger.debug("dose_resampled spacing:", dose_resampled.GetSpacing())
         logger.debug("dose_resampled size:", dose_resampled.GetSize())
