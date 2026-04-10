@@ -1,12 +1,16 @@
-import torch
 import math
 import warnings
+
+import torch
 
 """
 Tekijä: Akseli Leino
 """
 
-def calculate_dx(dose: torch.Tensor, mask: torch.Tensor, organ_config: dict, volume_percentage: float) -> dict:
+
+def calculate_dx(
+    dose: torch.Tensor, mask: torch.Tensor, organ_config: dict, volume_percentage: float
+) -> dict:
     """
     Calculate the Dx metric (dose received by x% of the specified volume) for each organ specified in the config.
 
@@ -22,13 +26,16 @@ def calculate_dx(dose: torch.Tensor, mask: torch.Tensor, organ_config: dict, vol
     dx_doses = {}
     for organ, label in organ_config.items():
         organ_mask = mask == label
-        
+
         if not organ_mask.any():
             continue
 
         if organ_mask.sum() <= 100:
-            warnings.warn("Found organ with less than 100 voxels. Significant rounding errors may be present.", UserWarning)
-        
+            warnings.warn(
+                "Found organ with less than 100 voxels. Significant rounding errors may be present.",
+                UserWarning,
+            )
+
         organ_doses = dose[organ_mask].flatten()
         sorted_doses = torch.sort(organ_doses, descending=True).values
         volume_index = int(math.ceil(volume_percentage / 100 * organ_doses.numel())) - 1

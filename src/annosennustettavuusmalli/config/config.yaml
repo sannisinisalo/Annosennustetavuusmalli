@@ -52,7 +52,7 @@ default: &DEFAULT
   experiment_name: "Results 3/2026"
 
 manual_search:
-  - <<: *DEFAULT
+  <<: *DEFAULT
 
 grid_search:
   <<: *DEFAULT

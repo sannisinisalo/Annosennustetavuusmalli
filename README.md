@@ -9,7 +9,7 @@ Mallin koodia muokataan tarvittaessa, jotta se saadaan toimimaan. Malli koulutet
 ## Asennusohjeet
 
 ### Vaatimukset
-- Python 3.10+
+- Python 3.13+
 - Projekti käyttää `pyproject.toml` -tiedostoa riippuvuuksien hallintaan
 - Suositellaan [uv](https://docs.astral.sh/uv/) paketinhallintaatyökalun käyttöä
 - Virtuaaliympäristöjen käyttö on vahvasti suositeltava (esim. `uv venv .venv`)

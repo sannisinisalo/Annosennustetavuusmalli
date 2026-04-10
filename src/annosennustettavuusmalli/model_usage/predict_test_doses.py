@@ -6,14 +6,15 @@ Tekijä: Sanni Sinisalo
 Koodi, jossa käytetään mallia ennustamaan annosjakauma testipotilaille
 """
 
-import torch
-import yaml
-from pathlib import Path
-import torchio as tio
 import sys
+from pathlib import Path
+
+import torch
+import torchio as tio
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
+from annosennustettavuusmalli.config.config import load_config
 from annosennustettavuusmalli.models.unet3plus_3d import UNet3plus_3d
 from annosennustettavuusmalli.utils.generate_datasets import generate_datasets
 
@@ -26,18 +27,12 @@ def main():
     save_dir = BASE_DIR / "predicted_doses"
     save_dir.mkdir(exist_ok=True)
 
-    config_file = BASE_DIR.parent / "config.yaml"
-
-    with open(config_file, "r") as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
+    config = load_config()
 
     DATA = "VN0_data"
 
     # Dataset
-    _, _, test_set = generate_datasets(
-        config["data_paths"][DATA],
-        reduce_samples=1
-    )
+    _, _, test_set = generate_datasets(config["data_paths"][DATA], reduce_samples=1)
 
     print("Test set size:", len(test_set))
 
@@ -57,20 +52,18 @@ def main():
     ).to(device)
 
     # Lataa malli
-    model_path = r"C:\Users\User01\GRADU\trained_models\gregarious-chimp-691_epoch_16.pth"
-
-    model.load_state_dict(
-        torch.load(model_path, map_location=device)
+    model_path = (
+        r"C:\Users\User01\GRADU\trained_models\gregarious-chimp-691_epoch_16.pth"
     )
+
+    model.load_state_dict(torch.load(model_path, map_location=device))
 
     model.eval()
 
     patch_size = (256, 256, 1)
 
     with torch.no_grad():
-
         for subject in test_set:
-
             patient_name = subject["name"]
 
             print(f"\nProcessing {patient_name}")
@@ -79,57 +72,39 @@ def main():
             patient_dir.mkdir(exist_ok=True)
 
             # Luo patch-sampler
-            sampler = tio.GridSampler(
-                subject,
-                patch_size,
-                patch_overlap = (64, 64, 0)
-            )
+            sampler = tio.GridSampler(subject, patch_size, patch_overlap=(64, 64, 0))
 
-            patch_loader = torch.utils.data.DataLoader(
-                sampler,
-                batch_size=1
-            )
+            patch_loader = torch.utils.data.DataLoader(sampler, batch_size=1)
 
-            aggregator = tio.GridAggregator(
-                sampler,
-                overlap_mode="hann"
-            )
+            aggregator = tio.GridAggregator(sampler, overlap_mode="hann")
 
             for patches_batch in patch_loader:
+                input_patch = torch.cat(
+                    [
+                        patches_batch["ct"][tio.DATA].float(),
+                        patches_batch["mask"][tio.DATA].float(),
+                        patches_batch["distance_to_PTV"][tio.DATA].float(),
+                    ],
+                    dim=1,
+                ).to(device)
 
-                input_patch = torch.cat([
-                    patches_batch['ct'][tio.DATA].float(),
-                    patches_batch['mask'][tio.DATA].float(),
-                    patches_batch['distance_to_PTV'][tio.DATA].float()
-                ], dim=1).to(device)
-
-                pred_patch = model(
-                    input_patch
-                ).main_output
+                pred_patch = model(input_patch).main_output
 
                 # Lisää reconstructioniin
-                aggregator.add_batch(
-                    pred_patch.cpu(),
-                    patches_batch[tio.LOCATION]
-                )
+                aggregator.add_batch(pred_patch.cpu(), patches_batch[tio.LOCATION])
 
             # Tässä muodostuu koko annos
             pred_full = aggregator.get_output_tensor()
 
             # Tallennus
+            torch.save(pred_full, patient_dir / "pred.pt")
+
             torch.save(
-                pred_full,
-                patient_dir / "pred.pt"
+                subject["dose"][tio.DATA].squeeze().float(), patient_dir / "clin.pt"
             )
 
             torch.save(
-                subject["dose"][tio.DATA].squeeze().float(),
-                patient_dir / "clin.pt"
-            )
-
-            torch.save(
-                subject["mask"][tio.DATA].squeeze().int(),
-                patient_dir / "mask.pt"
+                subject["mask"][tio.DATA].squeeze().int(), patient_dir / "mask.pt"
             )
 
             print(f"Saved {patient_name}")

@@ -4,7 +4,10 @@ import torch
 Tekijä: Akseli Leino
 """
 
-def calculate_vx(dose, mask, organ_config, threshold):
+
+def calculate_vx(
+    dose: torch.Tensor, mask: torch.Tensor, organ_config: dict, threshold: float
+):
     """Calculates the percentage of volume receiving at least dose X for each organ.
 
     This function computes the volume receiving a dose at least as high as X Gray (Gy) for
@@ -25,10 +28,14 @@ def calculate_vx(dose, mask, organ_config, threshold):
     vx_dict = {}
 
     for organ, mask_value in organ_config.items():
-        organ_mask = (mask == mask_value)
+        organ_mask = mask == mask_value
         organ_dose_mask = organ_mask & (dose >= threshold)
         organ_volume_over_threshold = torch.sum(organ_dose_mask).item()
         total_organ_volume = torch.sum(organ_mask).item()
-        percentage = (organ_volume_over_threshold  / total_organ_volume) * 100 if total_organ_volume > 0 else 0
+        percentage = (
+            (organ_volume_over_threshold / total_organ_volume) * 100
+            if total_organ_volume > 0
+            else 0
+        )
         vx_dict[organ] = percentage
     return vx_dict
