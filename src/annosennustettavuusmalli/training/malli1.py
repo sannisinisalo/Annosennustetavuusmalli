@@ -27,7 +27,6 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 from annosennustettavuusmalli.config.config import (
     Configuration,
     get_hyperparameters,
-    load_config,
 )
 from annosennustettavuusmalli.models.unet3plus_3d import UNet3plus_3d
 from annosennustettavuusmalli.utils.evaluate_dataset import evaluate_dataset
