@@ -25,7 +25,7 @@ def calculate_dx(
     """
     dx_doses = {}
     for organ, label in organ_config.items():
-        organ_mask = mask == label
+        organ_mask = (mask == label) & (mask != -1)
 
         if not organ_mask.any():
             continue

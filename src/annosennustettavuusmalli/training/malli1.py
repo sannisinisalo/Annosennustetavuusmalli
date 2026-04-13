@@ -14,7 +14,7 @@ Koodiin tehdyt muokkaukset:
 import sys
 from collections import defaultdict
 from pathlib import Path
-
+import random
 import mlflow
 import torch
 import torch.nn as nn
@@ -57,7 +57,7 @@ def main(
 
     HYPERPARAMETERS = search_type  # default, manual_search or random_search
 
-    config = Configuration(**load_config())
+    config = Configuration()
 
     hp_config = get_hyperparameters(HYPERPARAMETERS)
 
