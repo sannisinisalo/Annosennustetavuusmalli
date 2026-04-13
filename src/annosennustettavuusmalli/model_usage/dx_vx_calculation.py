@@ -41,7 +41,7 @@ with open(csv_file, mode="w", newline="") as f:
     # Dx otsikot kaikille elimille
     for organ in organs:
         for d in config.dx_percentages:
-            header.append(f"{organ}_D{int(d*10)/10}")
+            header.append(f"{organ}_D{int(d)}")
 
     # Vx otsikot kaikille elimille
     for organ in organs:
@@ -68,6 +68,10 @@ with open(csv_file, mode="w", newline="") as f:
             continue
 
         patient_name = patient_dir.name
+        if patient_name == "Patient47_VN0":
+            print(f"Skipping {patient_name} (right breast patient)")
+            continue
+
         print("Processing:", patient_name)
 
         # Lataa data
@@ -124,6 +128,8 @@ with open(csv_file, mode="w", newline="") as f:
                 row_clin.append(vx_clin)
         # Kirjoita CSV
         writer.writerow([patient_name] + row_pred + row_clin)
+        for organ, label in config.organ_config.items():
+            print(organ, label, (mask == label).sum().item())
 
 print("CSV saved with Dx and Vx metrics.")
 

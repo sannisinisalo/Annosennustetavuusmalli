@@ -8,13 +8,12 @@ Koodi, jossa käytetään mallia ennustamaan annosjakauma testipotilaille
 
 import sys
 from pathlib import Path
-
+import yaml
 import torch
 import torchio as tio
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
-from annosennustettavuusmalli.config.config import load_config
 from annosennustettavuusmalli.models.unet3plus_3d import UNet3plus_3d
 from annosennustettavuusmalli.utils.generate_datasets import generate_datasets
 
@@ -27,17 +26,20 @@ def main():
     save_dir = BASE_DIR / "predicted_doses"
     save_dir.mkdir(exist_ok=True)
 
-    config = load_config()
+    config_file = BASE_DIR.parent / "config" /"config.yaml"
+
+    with open(config_file, "r") as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
 
     DATA = "VN0_data"
-
+    
     # Dataset
     _, _, test_set = generate_datasets(config["data_paths"][DATA], reduce_samples=1)
 
     print("Test set size:", len(test_set))
 
     # Mallin hyperparametrit
-    hp_config_iter = config["manual_search"][0]
+    hp_config_iter = config["manual_search"]
 
     model = UNet3plus_3d(
         in_channels=hp_config_iter["in_channels"],
@@ -65,6 +67,10 @@ def main():
     with torch.no_grad():
         for subject in test_set:
             patient_name = subject["name"]
+            
+            if patient_name == "Patient47_VN0":
+                print(f"Skipping {patient_name} (right breast patient)")
+                continue
 
             print(f"\nProcessing {patient_name}")
 
@@ -95,7 +101,7 @@ def main():
 
             # Tässä muodostuu koko annos
             pred_full = aggregator.get_output_tensor()
-
+            
             # Tallennus
             torch.save(pred_full, patient_dir / "pred.pt")
 

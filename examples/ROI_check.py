@@ -11,7 +11,7 @@ from pathlib import Path
 import pydicom
 
 polku = Path(
-    r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient2_VN0\struct\RS.1.2.246.352.221.5081513604484729159.13153969492833577387.dcm"
+    r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient47_VN0\struct\RS.1.2.246.352.221.5454258401965172541.996177027274946221.dcm"
 )
 ds = pydicom.dcmread(polku)
 print("Onko ROIContourSequence:", hasattr(ds, "ROIContourSequence"))
