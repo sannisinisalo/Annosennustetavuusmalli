@@ -106,7 +106,7 @@ def main():
             torch.save(
                 subject["mask"][tio.DATA].squeeze().int(), patient_dir / "mask.pt"
             )
-
+            
             print(f"Saved {patient_name}")
 
     print("\nAll predictions saved.")

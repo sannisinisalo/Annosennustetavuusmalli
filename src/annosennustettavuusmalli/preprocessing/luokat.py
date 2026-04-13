@@ -282,7 +282,7 @@ class DoseMetricsConfig:
         object.__setattr__(
             self,
             "dx_percentages",
-            self.dx_percentages or [98.5, 95, 90, 75, 50, 25, 10, 2],
+            self.dx_percentages or [98, 95, 90, 75, 50, 25, 10, 2],
         )
         object.__setattr__(self, "vx_thresholds", self.vx_thresholds or [35, 16, 8, 4])
         object.__setattr__(
@@ -291,8 +291,8 @@ class DoseMetricsConfig:
             self.vx_organs
             or [
                 "Heart",
-                "Ipsilateral lung",
                 "Contralateral lung",
+                "Ipsilateral lung",
                 "Contralateral breast",
             ],
         )
