@@ -9,13 +9,15 @@ Koodi Dx ja Vx tietojen laskemiseen testipotilaille.
 import torch
 import csv
 from pathlib import Path
+
 import sys
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
-from annosennustettavuusmalli.preprocessing.luokat import DoseMetricsConfig
+from luokat2 import DoseMetricsConfig
 from annosennustettavuusmalli.utils.calculate_dx import calculate_dx
 from annosennustettavuusmalli.utils.calculate_vx import calculate_vx
+
 
 
 # Konfiguraatio
@@ -28,6 +30,7 @@ organs = [o for o in config.vx_organs if o != "PTV"]
 # Polut
 base_dir = Path("predicted_doses")
 csv_file = base_dir / "dose_metrics.csv"
+
   
 # CSV kirjoitus
 with open(csv_file, mode="w", newline="") as f:
@@ -78,7 +81,7 @@ with open(csv_file, mode="w", newline="") as f:
         pred = torch.load(pred_file).squeeze()
         clin = torch.load(clin_file).squeeze()
         mask = torch.load(mask_file).squeeze()
-
+        
         row_pred = []
         row_clin = []
 
@@ -86,7 +89,7 @@ with open(csv_file, mode="w", newline="") as f:
         for organ in organs:
 
             label = config.organ_config[organ]
-        
+            print((mask == label).sum())
             # Dx
             for d in config.dx_percentages:
 
@@ -128,8 +131,10 @@ with open(csv_file, mode="w", newline="") as f:
                 row_clin.append(vx_clin)
         # Kirjoita CSV
         writer.writerow([patient_name] + row_pred + row_clin)
-        for organ, label in config.organ_config.items():
-            print(organ, label, (mask == label).sum().item())
+
+        unique, counts = torch.unique(mask, return_counts=True)
+        print(list(zip(unique.tolist(), counts.tolist())))
+
 
 print("CSV saved with Dx and Vx metrics.")
 

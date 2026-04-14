@@ -13,7 +13,7 @@ import sys
 
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
-from annosennustettavuusmalli.preprocessing.luokat import DoseMetricsConfig
+from luokat2 import DoseMetricsConfig
 from annosennustettavuusmalli.utils.calculate_dvhs import calculate_dvhs
 from annosennustettavuusmalli.utils.plot_dvh_dict import plot_dvhs
 
@@ -37,6 +37,11 @@ for patient_dir in base_dir.iterdir():
     if not (pred_file.exists() and clin_file.exists() and mask_file.exists()):
         print(f"Skipping {patient_dir.name}: required files not found.")
         continue
+    
+    patient_name = patient_dir.name
+    if patient_name == "Patient47_VN0":
+        print(f"Skipping {patient_name} (right breast patient)")
+        continue
 
     patient_name = patient_dir.name
     print("Processing:", patient_name)
@@ -46,14 +51,14 @@ for patient_dir in base_dir.iterdir():
     clin = torch.load(clin_file).squeeze()
     mask = torch.load(mask_file).squeeze()
 
-    dvh_pred = calculate_dvhs(pred, mask, config.organ_config)
-    dvh_clin = calculate_dvhs(clin, mask, config.organ_config)
+    dvh_pred, dose_axis = calculate_dvhs(pred, mask, config.organ_config)
+    dvh_clin, _ = calculate_dvhs(clin, mask, config.organ_config)
 
     fig, ax = plt.subplots(figsize=(8,6))
     plot_dvhs(ax, dvh_clin, linestyle='-')
     plot_dvhs(ax, dvh_pred, linestyle='--')
     ax.legend()
-    plt.title("Kliininen vs. ennustettu DVH")
+    plt.title(f"{patient_name}, Kliininen vs. ennustettu DVH")
     plt.savefig(plot_dir / f"{patient_name}_DVH.png")
     plt.close()
 
