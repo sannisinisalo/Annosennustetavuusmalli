@@ -199,7 +199,7 @@ def downsample_mask_file(
         return None
 
 
-if __name__ == "__main__":
+def main() -> None:
     from argparse import ArgumentParser
 
     argparser = ArgumentParser(
@@ -213,13 +213,12 @@ if __name__ == "__main__":
         choices=["L", "R", "LAX", "RAX"],
         help="Valitse datasetti: 'L', 'R', 'LAX', 'RAX'",
     )
-    args = argparser.parse_args(["-d", "L"])
-
-    print("PROCESSING...")
+    args = argparser.parse_args()
 
     # Valitse datasetti: "L", "R", "LAX", "RAX"
     dataset = args.dataset.upper()
 
+    print(f"PROCESSING DATASET: {dataset}")
     SOURCE_PATH, DESTINATION_PATH = get_data_paths(dataset)
 
     patients = AllPatients(
@@ -228,7 +227,6 @@ if __name__ == "__main__":
 
     for p in patients:
         patient_name = p.patient_folder.name
-        folder = p.patient_folder
         print(f"Processing {patient_name}...")
 
         # Downsamplataan CT-kuvat
@@ -282,3 +280,7 @@ if __name__ == "__main__":
             warnings.warn(f"{patient_name}: RS-tiedoston kopiointi epäonnistui: {e}")
 
     print("DONE")
+
+
+if __name__ == "__main__":
+    main()

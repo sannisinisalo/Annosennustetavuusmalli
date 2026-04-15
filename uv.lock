@@ -38,7 +38,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "annosennustetavuusmalli" },
     { name = "ipykernel" },
 ]
 
@@ -60,10 +59,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [
-    { name = "annosennustetavuusmalli", editable = "." },
-    { name = "ipykernel", specifier = ">=7.2.0" },
-]
+dev = [{ name = "ipykernel", specifier = ">=7.2.0" }]
 
 [[package]]
 name = "annotated-doc"
