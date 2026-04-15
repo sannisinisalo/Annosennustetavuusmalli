@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
+import typer
+from loguru import logger
 from pydicom import FileDataset, dcmread
 from pydicom.multival import MultiValue
 from scipy.ndimage import zoom  # type: ignore
@@ -20,6 +22,7 @@ from scipy.ndimage import zoom  # type: ignore
 from annosennustettavuusmalli.preprocessing.luokat import (
     BASE_DIR,
     AllPatients,
+    Patient,
 )
 
 
@@ -199,31 +202,51 @@ def downsample_mask_file(
         return None
 
 
-def main() -> None:
-    from argparse import ArgumentParser
+app = typer.Typer()
 
-    argparser = ArgumentParser(
-        description="Downsample DICOM files for ANNOSENNUSTETTAVUUSMALLI"
-    )
-    argparser.add_argument(
-        "-d",
-        "--dataset",
-        type=str,
-        required=True,
-        choices=["L", "R", "LAX", "RAX"],
-        help="Valitse datasetti: 'L', 'R', 'LAX', 'RAX'",
-    )
-    args = argparser.parse_args()
 
-    # Valitse datasetti: "L", "R", "LAX", "RAX"
-    dataset = args.dataset.upper()
+@app.command()
+def main(
+    dataset: str = typer.Option(
+        "L", "-d", "--dataset", help="Valitse datasetti: 'L', 'R', 'LAX', 'RAX'"
+    ),
+    patient: Optional[str] = typer.Option(
+        None,
+        "-p",
+        "--patient",
+        help="Valitse yksittäinen potilas (esim. 'Patient1_VN0') tai jätä tyhjäksi käsitelläksesi kaikki",
+    ),
+    base_dir: Path = typer.Option(
+        BASE_DIR, "-b", "--base-dir", help="Peruskansio, jossa datasetit sijaitsevat"
+    ),
+) -> None:
 
     print(f"PROCESSING DATASET: {dataset}")
-    SOURCE_PATH, DESTINATION_PATH = get_data_paths(dataset)
+    print(f"BASE DIRECTORY: {base_dir}")
 
-    patients = AllPatients(
-        original_root=SOURCE_PATH, processed_root=DESTINATION_PATH
-    ).patients
+    if not base_dir.exists():
+        logger.error(f"Base directory {base_dir} does not exist. Exiting.")
+        return
+
+    SOURCE_PATH, DESTINATION_PATH = get_data_paths(dataset, base_dir)
+
+    if patient:
+        patient_folder = SOURCE_PATH / patient
+        if not patient_folder.exists():
+            logger.error(f"Patient folder {patient_folder} does not exist. Exiting.")
+            return
+        patients = [
+            Patient(
+                original_root=Path(SOURCE_PATH.name),
+                processed_root=Path(DESTINATION_PATH.name),
+                patient_folder=Path(patient_folder.name),
+                basedir=base_dir,
+            )
+        ]
+    else:
+        patients = AllPatients(
+            original_root=SOURCE_PATH, processed_root=DESTINATION_PATH
+        ).patients
 
     for p in patients:
         patient_name = p.patient_folder.name
@@ -283,4 +306,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    app()
