@@ -5,7 +5,7 @@ from scipy.ndimage import distance_transform_edt
 from torchio.constants import DATA
 from torchvision.transforms.functional import InterpolationMode, affine
 
-from annosennustettavuusmalli.utils.integer_mask_to_binary import integer_mask_to_binary
+from .integer_mask_to_binary import integer_mask_to_binary
 
 """
 Tekijä: Akseli Leino

@@ -3,11 +3,8 @@ from typing import List
 
 import torch
 import torch.nn as nn
-from typing import List
-from annosennustettavuusmalli.models.basic_blocks import ConvBlock
-from collections import namedtuple
+from .basic_blocks import ConvBlock
 
-from annosennustettavuusmalli.models.basic_blocks import ConvBlock
 
 """ 
 Tekijä: Akseli Leino

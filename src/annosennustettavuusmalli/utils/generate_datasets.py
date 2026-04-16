@@ -14,7 +14,7 @@ from pydicom import dcmread
 from torchio.constants import DATA
 from torchio.transforms import Compose, RandomAffine, RescaleIntensity
 
-from annosennustettavuusmalli.utils.custom_transforms import (
+from .custom_transforms import (
     CreateDistanceToPTV,
     CreateInputMask,
     DoseScalingTransform,

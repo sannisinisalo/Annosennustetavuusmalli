@@ -12,10 +12,10 @@ import yaml
 import torch
 import torchio as tio
 
-sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from annosennustettavuusmalli.models.unet3plus_3d import UNet3plus_3d
-from annosennustettavuusmalli.utils.generate_datasets import generate_datasets
+from src.annosennustettavuusmalli.models.unet3plus_3d import UNet3plus_3d
+from src.annosennustettavuusmalli.utils.generate_datasets import generate_datasets
 from luokat2 import BASE_DIR
 
 
@@ -26,8 +26,9 @@ def main():
     base_dir = BASE_DIR
     save_dir = base_dir / "predicted_doses"
     save_dir.mkdir(exist_ok=True)
-
-    config_file = BASE_DIR.parent / "config" /"config.yaml"
+    
+    config_path = Path(__file__).resolve().parent.parent / "src" / "annosennustettavuusmalli"
+    config_file = config_path / "config" / "config.yaml"
 
     with open(config_file, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
@@ -56,7 +57,7 @@ def main():
 
     # Lataa malli
     model_path = (
-        r"C:\Users\User01\GRADU\trained_models\gregarious-chimp-691_epoch_16.pth"
+        r"C:\Users\User01\GRADU\Aineisto\trained_models\gregarious-chimp-691_epoch_16.pth"
     )
 
     model.load_state_dict(torch.load(model_path, map_location=device))
@@ -113,6 +114,8 @@ def main():
             torch.save(
                 subject["mask"][tio.DATA].squeeze().int(), patient_dir / "mask.pt"
             )
+            print(torch.load("pred.pt").max())
+            print(torch.load("clin.pt").max())
             
             print(f"Saved {patient_name}")
 

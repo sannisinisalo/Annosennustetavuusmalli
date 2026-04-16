@@ -10,7 +10,7 @@ def calculate_dvhs(
     dose: torch.Tensor,
     mask: torch.Tensor,
     organ_config: dict,
-    num_bins: int = 6001,
+    num_bins: int = 601,
     dose_max: int = 60,
 ):
     """Calculate cumulative dose-volume histograms (DVHs) for each organ.
@@ -58,7 +58,7 @@ def calculate_dvhs_numpy(
     dose: np.ndarray,
     mask: np.ndarray,
     organ_config: dict,
-    num_bins: int = 6001,
+    num_bins: int = 601,
     max_dose: int = 60,
 ):
     """Calculate cumulative dose-volume histograms (DVHs) for each organ.
