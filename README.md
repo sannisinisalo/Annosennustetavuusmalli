@@ -94,8 +94,10 @@ Kaikki esikäsittelyn koodit lukevat DICOM eli .dcm muotoista dataa.
 - Input: kaikkien potilaiden downsamplatut CT-kuvat, skaalattu RTDose ja rakennemaski
 - Output: yksi malli per epokki .pth-muodossa, joka tallentuu samaan kansioon, jossa koodi on, 'trained_models' nimen alle.
 
+## Lisätietoa
 
-
+Tarkempi dokumentointi ja selostus mallin jatkokäytöstä löytyvät projektista kirjoitetusta [Pro Gradu tutkielmasta](https://jyx.jyu.fi/jyx/Record/jyx_123456789_94998?sid=273647110).
+Lisätietoa saa myös Akseli Leinon [artikkelista](https://aapm.onlinelibrary.wiley.com/doi/full/10.1002/mp.17410), joka toimi pohjana tälle projektille ja gradulle.
 
 
 
