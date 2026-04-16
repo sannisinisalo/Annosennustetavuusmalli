@@ -16,14 +16,15 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
 
 from annosennustettavuusmalli.models.unet3plus_3d import UNet3plus_3d
 from annosennustettavuusmalli.utils.generate_datasets import generate_datasets
+from luokat2 import BASE_DIR
 
 
 def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    BASE_DIR = Path(__file__).parent
-    save_dir = BASE_DIR / "predicted_doses"
+    base_dir = BASE_DIR
+    save_dir = base_dir / "predicted_doses"
     save_dir.mkdir(exist_ok=True)
 
     config_file = BASE_DIR.parent / "config" /"config.yaml"

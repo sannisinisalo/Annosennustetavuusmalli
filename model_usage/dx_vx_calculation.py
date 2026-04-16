@@ -12,11 +12,11 @@ from pathlib import Path
 
 import sys
 
-sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from luokat2 import DoseMetricsConfig
-from annosennustettavuusmalli.utils.calculate_dx import calculate_dx
-from annosennustettavuusmalli.utils.calculate_vx import calculate_vx
+from luokat2 import DoseMetricsConfig, BASE_DIR
+from src.annosennustettavuusmalli.utils.calculate_dx import calculate_dx
+from src.annosennustettavuusmalli.utils.calculate_vx import calculate_vx
 
 
 
@@ -28,7 +28,7 @@ config = DoseMetricsConfig()
 organs = [o for o in config.vx_organs if o != "PTV"]
 
 # Polut
-base_dir = Path("predicted_doses")
+base_dir = BASE_DIR / "predicted_doses"
 csv_file = base_dir / "dose_metrics.csv"
 
   
@@ -131,10 +131,6 @@ with open(csv_file, mode="w", newline="") as f:
                 row_clin.append(vx_clin)
         # Kirjoita CSV
         writer.writerow([patient_name] + row_pred + row_clin)
-
-        unique, counts = torch.unique(mask, return_counts=True)
-        print(list(zip(unique.tolist(), counts.tolist())))
-
 
 print("CSV saved with Dx and Vx metrics.")
 

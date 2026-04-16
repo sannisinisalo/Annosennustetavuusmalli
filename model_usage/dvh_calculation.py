@@ -11,17 +11,17 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import sys
 
-sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from luokat2 import DoseMetricsConfig
-from annosennustettavuusmalli.utils.calculate_dvhs import calculate_dvhs
-from annosennustettavuusmalli.utils.plot_dvh_dict import plot_dvhs
+from luokat2 import DoseMetricsConfig, BASE_DIR
+from src.annosennustettavuusmalli.utils.calculate_dvhs import calculate_dvhs
+from src.annosennustettavuusmalli.utils.plot_dvh_dict import plot_dvhs
 
 # Konfiguraatio
 config = DoseMetricsConfig()
 
 # Polut
-base_dir = Path("predicted_doses")
+base_dir = BASE_DIR  / "predicted_doses" 
 plot_dir = base_dir / "dvh_plots"
 plot_dir.mkdir(exist_ok=True)
 
@@ -58,7 +58,7 @@ for patient_dir in base_dir.iterdir():
     plot_dvhs(ax, dvh_clin, linestyle='-')
     plot_dvhs(ax, dvh_pred, linestyle='--')
     ax.legend()
-    plt.title(f"{patient_name}, Kliininen vs. ennustettu DVH")
+    plt.title(f"{patient_name}, kliininen vs. ennustettu DVH")
     plt.savefig(plot_dir / f"{patient_name}_DVH.png")
     plt.close()
 
