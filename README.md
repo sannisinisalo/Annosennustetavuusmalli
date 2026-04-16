@@ -1,8 +1,8 @@
 # Annosennustettavuusmalli
 
-Tämä python paketti sisältää tekoälypohjaisen annosennustettavuusmallin kaarimoduloidun rintasyövän hoitoa varten. Malli on kehitetty Keski-Suomen sairaalan Novan tarpeisiin. Projekti on osa Sanni Sinisalon gradua. Gradun pohjana toimii Kuopion yliopistollisessa sairaalassa (KYS) kirjoitettu koodi, jonka on kirjoittanut Akseli Leino.
+Tämä Python-paketti sisältää tekoälypohjaisen annosennustettavuusmallin kaarimoduloidun rintasyövän hoitoa varten. Malli on kehitetty Keski-Suomen sairaalan Novan tarpeisiin. Projekti on osa Sanni Sinisalon gradua. Gradun pohjana toimii Kuopion yliopistollisessa sairaalassa (KYS) kirjoitettu koodi, jonka on kirjoittanut Akseli Leino.
 
-Mallin koodia muokataan tarvittaessa, jotta se saadaan toimimaan. Malli koulutetaan Novan potilasdatalla. Rakennemaskin muodostamisen koodi on kehitetty Gradun aikana, koska Novalla ei ollut käytössä ohjelmistoa, jolla KYS:issä rakennemaski luotiin.
+Mallin koodia muokataan tarvittaessa, jotta se saadaan toimimaan. Malli koulutetaan Novan potilasdatalla. Rakennemaskin muodostamisen koodi on kehitetty gradun aikana, koska Novalla ei ollut käytössä ohjelmistoa, jolla KYS:issä rakennemaski luotiin.
 
 
 
@@ -11,7 +11,7 @@ Mallin koodia muokataan tarvittaessa, jotta se saadaan toimimaan. Malli koulutet
 ### Vaatimukset
 - Python 3.13+
 - Projekti käyttää `pyproject.toml` -tiedostoa riippuvuuksien hallintaan
-- Suositellaan [uv](https://docs.astral.sh/uv/) paketinhallintaatyökalun käyttöä
+- Suositellaan [uv](https://docs.astral.sh/uv/) paketinhallintatyökalun käyttöä
 - Virtuaaliympäristöjen käyttö on vahvasti suositeltava (esim. `uv venv .venv`)
 
 ### Asennus
@@ -56,7 +56,7 @@ pip install -e ".[dev]"
 
 ### Aineiston esikäsittely
 
-Aineiston esikäsittelyssä luodaan rakennemaskit, skaalataan RTDose tiedosto samaan resoluutioon kuin CT ja puolitetetaan tiedostojen resoluutiot. 
+Aineiston esikäsittelyssä luodaan rakennemaskit, skaalataan RTDose tiedosto samaan resoluutioon kuin CT ja puolitetaan tiedostojen resoluutiot. 
 Rakennemaskien luonti ja RTDose tiedostojen koiden muuttaminen eivät ole riippuvaisia toisistaan eli niiden ajamisen järjestyksellä ei ole väliä. Tiedostojen resoluutioiden pienentämisen eli downsamplaamisen tulee olla esikäsittelyn viimeinen vaihe.
 Kaikki esikäsittelyn koodit lukevat DICOM eli .dcm muotoista dataa.
 
@@ -106,7 +106,7 @@ Tämä projekti on sisältää koodia, joka on kirjoitettu alla listattujen henk
 - Sanni Sinisalo
 - Akseli Leino 
 
-Akseli Leino on tehnyt osan repositorion koodeista, ja hänen tekemä koodi on ollut osalle pohjana, joita on muokattu tutkielmaa varten. 
+Akseli Leino on tehnyt osan repositorion koodeista, ja hänen tekemä koodi on ollut osalle pohjana, joita on muokattu tutkielmaa varten. Osa koodeista on myös tehty täysin Sanni Sinisalon toimesta. 
 Erillisten koodien alussa on tieto, kuka koodin on alun perin tehnyt ja mahdollisesti kenen toimesta sitä on muokattu.
 
 Katso lisätietoja `LICENSE`-tiedostosta.
