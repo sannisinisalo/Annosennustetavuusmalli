@@ -24,7 +24,6 @@ from src.annosennustettavuusmalli.utils.calculate_vx import calculate_vx
 
 config = DoseMetricsConfig()
 
-# Poista PTV jos sitä ei haluta mukaan
 organs = [o for o in config.vx_organs if o != "PTV"]
 
 # Polut
@@ -63,8 +62,8 @@ with open(csv_file, mode="w", newline="") as f:
             continue
 
         pred_file = patient_dir / "pred.pt"
-        clin_file = patient_dir / "clin.pt"
-        mask_file = patient_dir / "mask.pt"
+        clin_file = patient_dir / "clin_original.pt"
+        mask_file = patient_dir / "mask_original.pt"
 
         if not (pred_file.exists() and clin_file.exists() and mask_file.exists()):
             print(f"Skipping {patient_dir.name}: required files not found.")
@@ -87,9 +86,8 @@ with open(csv_file, mode="w", newline="") as f:
 
         # Laske Dx ja Vx kaikille elimille
         for organ in organs:
-
             label = config.organ_config[organ]
-            print((mask == label).sum())
+            
             # Dx
             for d in config.dx_percentages:
 

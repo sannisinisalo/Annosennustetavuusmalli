@@ -11,6 +11,9 @@ from pathlib import Path
 import yaml
 import torch
 import torchio as tio
+import pydicom
+import numpy as np
+import os
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -103,19 +106,33 @@ def main():
 
             # Tässä muodostuu koko annos
             pred_full = aggregator.get_output_tensor()
+            pred_full = pred_full.permute(2, 0, 1)
+            print(pred_full.shape)
             
             # Tallennus
+            dose_path = subject["dose"].path  # TorchIO tallentaa polun tähän
+            dose_file = os.listdir(dose_path)[0]
+            ds = pydicom.dcmread(os.path.join(dose_path, dose_file))
+            
+            # DICOMissa annos on tallennettu pixel_array * DoseGridScaling
+            orig_dose = ds.pixel_array.astype(np.float32) * float(ds.DoseGridScaling)
+            
+            # Tallenna alkuperäinen annos
+            torch.save(torch.from_numpy(orig_dose), patient_dir / "clin_original.pt")
+            
+            # Tallenna myös maski alkuperäisenä
+            mask_path = subject["mask"].path
+            mask_files = sorted(os.listdir(mask_path))
+            
+            mask_slices = []
+            for f in mask_files:
+                ds = pydicom.dcmread(os.path.join(mask_path, f))
+                mask_slices.append(ds.pixel_array.astype(np.int16))
+            orig_mask = np.stack(mask_slices, axis=0)   
+            torch.save(torch.from_numpy(orig_mask), patient_dir / "mask_original.pt")
+            
+            # Tallenna mallin ennuste
             torch.save(pred_full, patient_dir / "pred.pt")
-
-            torch.save(
-                subject["dose"][tio.DATA].squeeze().float(), patient_dir / "clin.pt"
-            )
-
-            torch.save(
-                subject["mask"][tio.DATA].squeeze().int(), patient_dir / "mask.pt"
-            )
-            print(torch.load("pred.pt").max())
-            print(torch.load("clin.pt").max())
             
             print(f"Saved {patient_name}")
 

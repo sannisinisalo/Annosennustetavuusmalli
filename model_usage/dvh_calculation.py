@@ -31,8 +31,8 @@ for patient_dir in base_dir.iterdir():
         continue
 
     pred_file = patient_dir / "pred.pt"
-    clin_file = patient_dir / "clin.pt"
-    mask_file = patient_dir / "mask.pt"
+    clin_file = patient_dir / "clin_original.pt"
+    mask_file = patient_dir / "mask_original.pt"
 
     if not (pred_file.exists() and clin_file.exists() and mask_file.exists()):
         print(f"Skipping {patient_dir.name}: required files not found.")
@@ -50,6 +50,10 @@ for patient_dir in base_dir.iterdir():
     pred = torch.load(pred_file).squeeze()
     clin = torch.load(clin_file).squeeze()
     mask = torch.load(mask_file).squeeze()
+    print("clin:", clin.shape)
+    print("mask:", mask.shape)
+    print("pred:", pred.shape)
+
 
     dvh_pred, dose_axis = calculate_dvhs(pred, mask, config.organ_config)
     dvh_clin, _ = calculate_dvhs(clin, mask, config.organ_config)

@@ -22,8 +22,8 @@ def check_patient(patient_dir):
     print("Patient:", patient_dir.name)
 
     pred_file = patient_dir / "pred.pt"
-    clin_file = patient_dir / "clin.pt"
-    mask_file = patient_dir / "mask.pt"
+    clin_file = patient_dir / "clin_original.pt"
+    mask_file = patient_dir / "mask_original.pt"
 
     # Tiedostojen tarkistus 
 
@@ -78,9 +78,6 @@ def check_patient(patient_dir):
     print("Clin min:", float(clin.min()))
     print("Clin max:", float(clin.max()))
 
-    print("Mask min:", float(mask.min()))
-    print("Mask max:", float(mask.max()))
-
     if float(pred.max()) == 0:
         print("WARNING: Pred näyttää olevan pelkkää nollaa!")
 
@@ -105,7 +102,7 @@ def check_patient(patient_dir):
     plt.subplot(1, 3, 1)
     plt.imshow(
         np.fliplr(
-            np.rot90(clin[:, :, slice_idx], k=-1)
+            np.rot90(clin[slice_idx, :, :], k=-1)
         )
     )
     plt.title("Clinical dose")
@@ -114,7 +111,7 @@ def check_patient(patient_dir):
     plt.subplot(1, 3, 2)
     plt.imshow(
         np.fliplr(
-            np.rot90(pred[:, :, slice_idx], k=-1)
+            np.rot90(pred[slice_idx, :, :], k=-1)
         )
     )
     plt.title("Predicted dose")
@@ -123,7 +120,7 @@ def check_patient(patient_dir):
     plt.subplot(1, 3, 3)
     plt.imshow(
         np.fliplr(
-            np.rot90(mask[:, :, slice_idx], k=-1)
+            np.rot90(mask[slice_idx, :, :], k=-1)
         )
     )
     plt.title("Mask")
