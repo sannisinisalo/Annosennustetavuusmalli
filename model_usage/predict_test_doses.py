@@ -29,7 +29,7 @@ def main():
     base_dir = BASE_DIR
     save_dir = base_dir / "predicted_doses"
     save_dir.mkdir(exist_ok=True)
-    
+
     config_path = Path(__file__).resolve().parent.parent / "src" / "annosennustettavuusmalli"
     config_file = config_path / "config" / "config.yaml"
 
@@ -37,7 +37,7 @@ def main():
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     DATA = "VN0_data"
-    
+
     # Dataset
     _, _, test_set = generate_datasets(config["data_paths"][DATA], reduce_samples=1)
 
@@ -72,7 +72,7 @@ def main():
     with torch.no_grad():
         for subject in test_set:
             patient_name = subject["name"]
-            
+
             if patient_name == "Patient47_VN0":
                 print(f"Skipping {patient_name} (right breast patient)")
                 continue
@@ -106,34 +106,18 @@ def main():
 
             # Tässä muodostuu koko annos
             pred_full = aggregator.get_output_tensor()
-            pred_full = pred_full.permute(2, 0, 1)
-            print(pred_full.shape)
-            
+
             # Tallennus
-            dose_path = subject["dose"].path  # TorchIO tallentaa polun tähän
-            dose_file = os.listdir(dose_path)[0]
-            ds = pydicom.dcmread(os.path.join(dose_path, dose_file))
-            
-            # DICOMissa annos on tallennettu pixel_array * DoseGridScaling
-            orig_dose = ds.pixel_array.astype(np.float32) * float(ds.DoseGridScaling)
-            
-            # Tallenna alkuperäinen annos
-            torch.save(torch.from_numpy(orig_dose), patient_dir / "clin_original.pt")
-            
-            # Tallenna myös maski alkuperäisenä
-            mask_path = subject["mask"].path
-            mask_files = sorted(os.listdir(mask_path))
-            
-            mask_slices = []
-            for f in mask_files:
-                ds = pydicom.dcmread(os.path.join(mask_path, f))
-                mask_slices.append(ds.pixel_array.astype(np.int16))
-            orig_mask = np.stack(mask_slices, axis=0)   
-            torch.save(torch.from_numpy(orig_mask), patient_dir / "mask_original.pt")
-            
-            # Tallenna mallin ennuste
             torch.save(pred_full, patient_dir / "pred.pt")
-            
+
+            torch.save(
+                subject["dose"][tio.DATA].squeeze().float(), patient_dir / "clin.pt"
+            )
+
+            torch.save(
+                subject["mask"][tio.DATA].squeeze().int(), patient_dir / "mask.pt"
+            )
+
             print(f"Saved {patient_name}")
 
     print("\nAll predictions saved.")

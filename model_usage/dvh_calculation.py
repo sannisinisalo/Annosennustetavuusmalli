@@ -31,8 +31,8 @@ for patient_dir in base_dir.iterdir():
         continue
 
     pred_file = patient_dir / "pred.pt"
-    clin_file = patient_dir / "clin_original.pt"
-    mask_file = patient_dir / "mask_original.pt"
+    clin_file = patient_dir / "clin.pt"
+    mask_file = patient_dir / "mask.pt"
 
     if not (pred_file.exists() and clin_file.exists() and mask_file.exists()):
         print(f"Skipping {patient_dir.name}: required files not found.")

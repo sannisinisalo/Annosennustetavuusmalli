@@ -22,8 +22,8 @@ def check_patient(patient_dir):
     print("Patient:", patient_dir.name)
 
     pred_file = patient_dir / "pred.pt"
-    clin_file = patient_dir / "clin_original.pt"
-    mask_file = patient_dir / "mask_original.pt"
+    clin_file = patient_dir / "clin.pt"
+    mask_file = patient_dir / "mask.pt"
 
     # Tiedostojen tarkistus 
 
@@ -100,29 +100,17 @@ def check_patient(patient_dir):
     plt.figure(figsize=(12, 4))
 
     plt.subplot(1, 3, 1)
-    plt.imshow(
-        np.fliplr(
-            np.rot90(clin[slice_idx, :, :], k=-1)
-        )
-    )
+    plt.imshow(clin[slice_idx, :, :])
     plt.title("Clinical dose")
     plt.axis('off')
 
     plt.subplot(1, 3, 2)
-    plt.imshow(
-        np.fliplr(
-            np.rot90(pred[slice_idx, :, :], k=-1)
-        )
-    )
+    plt.imshow(pred[slice_idx, :, :])
     plt.title("Predicted dose")
     plt.axis('off')
 
     plt.subplot(1, 3, 3)
-    plt.imshow(
-        np.fliplr(
-            np.rot90(mask[slice_idx, :, :], k=-1)
-        )
-    )
+    plt.imshow(mask[slice_idx, :, :])
     plt.title("Mask")
     plt.axis('off')
 
