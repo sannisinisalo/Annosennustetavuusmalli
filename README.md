@@ -106,7 +106,7 @@ Tämä projekti on sisältää koodia, joka on kirjoitettu alla listattujen henk
 - Sanni Sinisalo
 - Akseli Leino 
 
-Akseli Leino on tehnyt osan repositorion koodeista, ja hänen tekemä koodi on ollut osalle pohjana, joita on muokattu tutkielmaa varten. Osa koodeista on myös tehty täysin Sanni Sinisalon toimesta. 
+Akseli Leino on tehnyt osan repositorion koodeista, ja hänen tekemä koodi on ollut osalle pohjana, joita on muokattu tutkielmaa varten. Loput koodeista on tehty täysin Sanni Sinisalon toimesta. 
 Erillisten koodien alussa on tieto, kuka koodin on alun perin tehnyt ja mahdollisesti kenen toimesta sitä on muokattu.
 
 Katso lisätietoja `LICENSE`-tiedostosta.

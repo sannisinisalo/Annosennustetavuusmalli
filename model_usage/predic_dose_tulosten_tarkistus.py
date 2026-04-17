@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
 
-
-PREDICTED_DIR = Path("predicted_doses")
+polku = r"C:\Users\User01\GRADU\Aineisto\predicted_doses"
+PREDICTED_DIR = Path(polku)
 SLICE_INDEX = 80  
 
 
