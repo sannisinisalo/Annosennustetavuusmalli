@@ -100,17 +100,29 @@ def check_patient(patient_dir):
     plt.figure(figsize=(12, 4))
 
     plt.subplot(1, 3, 1)
-    plt.imshow(clin[slice_idx, :, :])
+    plt.imshow(
+        np.fliplr(
+            np.rot90(clin[:, :, slice_idx], k=-1)
+        )
+    )
     plt.title("Clinical dose")
     plt.axis('off')
 
     plt.subplot(1, 3, 2)
-    plt.imshow(pred[slice_idx, :, :])
+    plt.imshow(
+        np.fliplr(
+            np.rot90(pred[:, :, slice_idx], k=-1)
+        )
+    )
     plt.title("Predicted dose")
     plt.axis('off')
 
     plt.subplot(1, 3, 3)
-    plt.imshow(mask[slice_idx, :, :])
+    plt.imshow(
+        np.fliplr(
+            np.rot90(mask[:, :, slice_idx], k=-1)
+        )
+    )
     plt.title("Mask")
     plt.axis('off')
 
