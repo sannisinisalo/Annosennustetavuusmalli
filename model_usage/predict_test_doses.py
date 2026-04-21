@@ -59,9 +59,7 @@ def main():
     ).to(device)
 
     # Lataa malli
-    model_path = (
-        r"C:\Users\User01\GRADU\Aineisto\trained_models\gregarious-chimp-691_epoch_16.pth"
-    )
+    model_path = base_dir / "trained_models" / "gregarious-chimp-691_epoch_16.pth"
 
     model.load_state_dict(torch.load(model_path, map_location=device))
 
@@ -106,6 +104,8 @@ def main():
 
             # Tässä muodostuu koko annos
             pred_full = aggregator.get_output_tensor()
+            
+            
 
             # Tallennus
             torch.save(pred_full, patient_dir / "pred.pt")

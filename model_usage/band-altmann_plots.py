@@ -6,6 +6,8 @@ Tekijä: Sanni Sinisalo
 Koodi Band-Altmann-plottien tekemiseen
 """
 
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 from luokat2 import DoseMetricsConfig, BASE_DIR
 
@@ -20,9 +22,6 @@ def compute_patient_means(pred, clin, mask, organ_config):
 
 
 def bland_altman_single_plot(clin_list, pred_list, organ_name, save_path):
-    import matplotlib.pyplot as plt
-    import numpy as np
-
     clin = np.array(clin_list)
     pred = np.array(pred_list)
 
@@ -30,12 +29,20 @@ def bland_altman_single_plot(clin_list, pred_list, organ_name, save_path):
     diff = pred - clin
     md = diff.mean()
     sd = diff.std()
+    upper = md + 1.96 * sd
+    lower = md - 1.96 * sd
 
     plt.figure(figsize=(6,4))
     plt.scatter(mean_vals, diff, alpha=0.6)
     plt.axhline(md, color='orange')
-    plt.axhline(md + 1.96*sd, color='orange', linestyle='--')
-    plt.axhline(md - 1.96*sd, color='orange', linestyle='--')
+    plt.axhline(upper, color='orange', linestyle='--')
+    plt.axhline(lower, color='orange', linestyle='--')
+
+    margin = 0.4 * (upper - lower)   
+    plt.ylim(lower - margin, upper + margin)
+    
+    xmax = np.max(mean_vals)
+    plt.xlim(0, xmax * 1.40) 
 
     plt.title(f"{organ_name} Bland–Altman")
     plt.xlabel("Mean dose (Gy)")
@@ -54,7 +61,7 @@ if __name__ == "__main__":
     predicted_means_all = { organ: [] for organ in organ_config.keys() }
     
     base_dir = BASE_DIR / "predicted_doses"
-    out_dir = BASE_DIR / "bland_altman_plots"
+    out_dir = base_dir / "bland_altman_plots"
     out_dir.mkdir(exist_ok=True)   
      
     for patient_dir in base_dir.iterdir():
