@@ -3,6 +3,8 @@
 Luotu Ti 21.4.2026
 Tekijä: Sanni Sinisalo
 
+Koodi, joka tulostaa kuvan, jossa vertaillaan kliinistä ja ennustettua keski-
+arvoannosta.
 """
 
 import torch
