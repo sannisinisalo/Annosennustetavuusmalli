@@ -11,9 +11,7 @@ from pathlib import Path
 import yaml
 import torch
 import torchio as tio
-import pydicom
-import numpy as np
-import os
+
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
