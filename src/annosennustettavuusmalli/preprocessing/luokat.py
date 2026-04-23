@@ -11,10 +11,11 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-
+import shutil
+import tempfile
 import pydicom
-from loguru import logger  # type: ignore
-from pydicom.dataset import FileDataset  # type: ignore
+from loguru import logger  
+from pydicom.dataset import FileDataset  
 
 # Keskitetty juuripolku:
 BASE_DIR = Path(r"C:\Users\User01\GRADU\Aineisto")
@@ -38,6 +39,25 @@ class Patient:
         self._rd_file = self._find_dicom_by_modality("RTDOSE")
         self._rp_file = self._find_dicom_by_modality("RTPLAN")
         self._rs_file = self._find_dicom_by_modality("RTSTRUCT")
+
+    
+    def prepare_ct_dir_for_rtutils(self) -> Path:
+        """
+        Luo väliaikaisen hakemiston, jossa on vain CT DICOMit.
+        Tätä käytetään RTStructBuilderille.
+        """
+        tmp_dir = Path(tempfile.mkdtemp(prefix=f"ct_only_{self.patient_folder.name}_"))
+    
+        for ct_file in self.ct_files:
+            shutil.copy2(ct_file, tmp_dir / ct_file.name)
+    
+        logger.debug(
+            f"Created temporary CT-only directory for RTUtils: {tmp_dir} "
+            f"({len(list(tmp_dir.glob('*.dcm')))} files)"
+        )
+    
+        return tmp_dir
+
 
     # PERUSPOLUT
     @property
@@ -246,7 +266,7 @@ class AllPatients:
             for p in patient_dirs
         ]
 
-        return patients
+        return sorted(patients, key=lambda p: p.number)
 
     @property
     def patients(self) -> list[Patient]:
@@ -259,40 +279,3 @@ class AllPatients:
         return len(self._patients)
 
 
-@dataclass(frozen=True)
-class DoseMetricsConfig:
-    organ_config: Optional[dict] = None
-    dx_percentages: Optional[list] = None
-    vx_thresholds: Optional[list] = None
-    vx_organs: Optional[list] = None
-
-    def __post_init__(self):
-        object.__setattr__(
-            self,
-            "organ_config",
-            self.organ_config
-            or {
-                "PTV": 1,
-                "Heart": 2,
-                "Contralateral lung": 3,
-                "Ipsilateral lung": 4,
-                "Contralateral breast": 5,
-            },
-        )
-        object.__setattr__(
-            self,
-            "dx_percentages",
-            self.dx_percentages or [98, 95, 90, 75, 50, 25, 10, 2],
-        )
-        object.__setattr__(self, "vx_thresholds", self.vx_thresholds or [35, 16, 8, 4])
-        object.__setattr__(
-            self,
-            "vx_organs",
-            self.vx_organs
-            or [
-                "Heart",
-                "Contralateral lung",
-                "Ipsilateral lung",
-                "Contralateral breast",
-            ],
-        )

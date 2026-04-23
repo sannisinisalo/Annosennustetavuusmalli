@@ -10,7 +10,7 @@ import pydicom
 import matplotlib.pyplot as plt
 
 # RT Dose -tiedoston polku
-dose_polku = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient1_VN0\dose\RD.1.2.246.352.221.4972727230104878982.15806810084685865633.dcm"
+dose_polku = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient60_VN0\dose\RD.1.2.246.352.221.5448679770797535778.17401886329480751763.dcm"
 
 ds = pydicom.dcmread(dose_polku)
 

@@ -88,7 +88,7 @@ def generate_datasets(
             elif j == 2:
                 test_subjects_list.append(new_subject)
 
-    logger.info("Mask dtype:", new_subject["mask"][DATA].dtype)  # DEBUGLISÄYS
+    logger.info("Mask dtype:", new_subject["mask"][DATA].dtype)  
     logger.info("CT dtype:", new_subject["ct"][DATA].dtype)
     logger.info("Dose dtype:", new_subject["dose"][DATA].dtype)
 

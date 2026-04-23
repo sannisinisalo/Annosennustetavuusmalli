@@ -18,7 +18,6 @@ SLICE_INDEX = 80
 
 def check_patient(patient_dir):
 
-    print("\n==============================")
     print("Patient:", patient_dir.name)
 
     pred_file = patient_dir / "pred.pt"
@@ -77,6 +76,9 @@ def check_patient(patient_dir):
 
     print("Clin min:", float(clin.min()))
     print("Clin max:", float(clin.max()))
+
+    print("Mask min:", float(mask.min()))
+    print("Mask max:", float(mask.max()))
 
     if float(pred.max()) == 0:
         print("WARNING: Pred näyttää olevan pelkkää nollaa!")

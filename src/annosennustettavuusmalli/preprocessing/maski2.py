@@ -110,7 +110,7 @@ def normalize_axes(
     num_slices = len(ct_slices)  # Siivujen lukumäärä Z
     rows = int(ct_slices[0].Rows)  # Rivien määrä eli kuvan korkeus eli Y
     cols = int(ct_slices[0].Columns)  # Sarakkeiden määrä eli kuvan leveys eli X
-
+    
     # Maskin alkuperäiset akselit
     shape = mask.shape
 
@@ -136,14 +136,11 @@ def normalize_axes(
         (2, 1, 0),
     ]:
         trial = np.transpose(mask, axes=perm)
-
+        
         # Tarkistetaan vielä tuottiko muutos halutun lopputuloksen
         if trial.shape == (num_slices, rows, cols):
-            return trial, f"Maskin akselit korjattu transpoosilla{perm} -> (Z,Y,X)"
+            return trial
         else:
-            logger.debug(
-                f"Maskin akselien permutaatio {perm} tuotti muodon {trial.shape}, ei haluttu (Z,Y,X)"
-            )
             continue
     logger.warning(
         f"Maskin muoto {shape} ei saatu normalisoitua haluttuun (Z,Y,X) muotoon, kaikki permutaatiot testattu"
@@ -250,12 +247,25 @@ def overlay_ROI(rt_path: str | Path, ct_path: str | Path):
     num_slices = len(ct_slices)
     rows = int(ct_slices[0].Rows)
     cols = int(ct_slices[0].Columns)
+    
+    
+    from collections import Counter
+    
+    modalities = Counter()
+    
+    for f in Path(ct_path).glob("*.dcm"):
+        ds = dcmread(f, stop_before_pixels=True)
+        modalities[ds.Modality] += 1
 
     # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resamplata ROI:t CT:n koordinaatistoon
+    ct_rtutils_dir = patient.prepare_ct_dir_for_rtutils()
+    
     rtstruct = RTStructBuilder.create_from(
-        dicom_series_path=str(ct_path), rt_struct_path=str(rt_path)
+        dicom_series_path=str(ct_rtutils_dir),
+        rt_struct_path=str(patient.rs_file)
     )
 
+    
     # Luodaan ensin tyhjä summamaski
     # Alustetaan tausta arvoksi ensin 0, tämä muutetaan myöhemmin arvoon -1
     sum_mask = np.zeros((num_slices, rows, cols), dtype=np.int32)
@@ -266,6 +276,7 @@ def overlay_ROI(rt_path: str | Path, ct_path: str | Path):
     # Listataan kaikki saatavilla olevat ROI:t
     roi_list = rtstruct.get_roi_names()
 
+    
     # Määritetään ROI listan halutuille ROI:lle map_roi_name_to_label funktiossa määritetyt luvut (2:n potenssi)
     for roi_name in roi_list:
         roi_value = map_roi_name_to_label(roi_name)
@@ -368,6 +379,7 @@ def save_mask_as_dicom_series(
 # PÄÄOHJELMA
 
 if __name__ == "__main__":
+    
     # Luodaan AllPatients-objekti
     all_patients = AllPatients(processed_root=Path("VN0ds"), original_root=Path("VN0"))
 
@@ -386,6 +398,7 @@ if __name__ == "__main__":
             print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
         else:
             mask, ct_slices = overlay_ROI(rs_file, ct_path)
+
             save_mask_as_dicom_series(mask, ct_slices, out_path)
             print("Maski tallennettu")
 
