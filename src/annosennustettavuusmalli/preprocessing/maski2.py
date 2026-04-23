@@ -110,15 +110,9 @@ def normalize_axes(
     num_slices = len(ct_slices)  # Siivujen lukumäärä Z
     rows = int(ct_slices[0].Rows)  # Rivien määrä eli kuvan korkeus eli Y
     cols = int(ct_slices[0].Columns)  # Sarakkeiden määrä eli kuvan leveys eli X
-    
+
     # Maskin alkuperäiset akselit
     shape = mask.shape
-
-    if len(shape) != 3:
-        logger.warning(
-            f"Maskin muoto {shape} ei ole 3-ulotteinen, ei onnistuttu normalisoimaan"
-        )
-        return None
 
     # Jos maskin akselit ovat suoraan oikeat eikä korjausta tarvita, tulostetaan teksti txt
     txt = "Maskin akselit: oletetaan (Z,Y,X)"
@@ -135,17 +129,12 @@ def normalize_axes(
         (2, 0, 1),
         (2, 1, 0),
     ]:
-        trial = np.transpose(mask, axes=perm)
-        
-        # Tarkistetaan vielä tuottiko muutos halutun lopputuloksen
-        if trial.shape == (num_slices, rows, cols):
-            return trial
-        else:
-            continue
-    logger.warning(
-        f"Maskin muoto {shape} ei saatu normalisoitua haluttuun (Z,Y,X) muotoon, kaikki permutaatiot testattu"
-    )
-    return None
+        if len(shape) == 3:
+            trial = np.transpose(mask, axes=perm)
+
+            # Tarkistetaan vielä tuottiko muutos halutun lopputuloksen
+            if trial.shape == (num_slices, rows, cols):
+                return trial, f"Maskin akselit korjattu transpoosilla{perm} -> (Z,Y,X)"
 
 
 # ROI nimien määritys ja numeroiden määrääminen
@@ -247,15 +236,6 @@ def overlay_ROI(rt_path: str | Path, ct_path: str | Path):
     num_slices = len(ct_slices)
     rows = int(ct_slices[0].Rows)
     cols = int(ct_slices[0].Columns)
-    
-    
-    from collections import Counter
-    
-    modalities = Counter()
-    
-    for f in Path(ct_path).glob("*.dcm"):
-        ds = dcmread(f, stop_before_pixels=True)
-        modalities[ds.Modality] += 1
 
     # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resamplata ROI:t CT:n koordinaatistoon
     ct_rtutils_dir = patient.prepare_ct_dir_for_rtutils()
