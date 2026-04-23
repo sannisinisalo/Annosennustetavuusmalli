@@ -42,17 +42,15 @@ pip install -e ".[dev]"
 ## Käyttöohjeet
 
 ### Kansiorakenne
-- Esikäsittelyn koodit hakevat tiedostot luokat.py luokkarakenteen kautta
-- Mallin käyttää confgi.yaml tiedostoa
 - Potilaat on jaettu hoitokohteen perusteella omiin kansioihin:
-    - 'VN0ds' eli potilaalta on hoidettu vain vasen rinta
-    - 'VN+ds' eli potilaalta on hoidettu vasen rinta sekä kainalon tai kaulan alueen imusolmukkeita
-    - 'ON0ds' eli potilaalta on hoidettu vain oikea rinta
-    - 'ON+ds' eli potilaalta on hoidettu oikea rinta sekä kainalon tai kaulan alueen imusolmukkeita
+    - 'VN0', 'VN0ds' eli potilaalta on hoidettu vain vasen rinta
+    - 'VN+', 'VN+ds' eli potilaalta on hoidettu vasen rinta sekä kainalon tai kaulan alueen imusolmukkeita
+    - 'ON0', 'ON0ds' eli potilaalta on hoidettu vain oikea rinta
+    - 'ON0+', 'ON+ds' eli potilaalta on hoidettu oikea rinta sekä kainalon tai kaulan alueen imusolmukkeita
 - Pääte ds viittaa downsamplaukseen
 - Kansion alla oli potilaiden kansiot, jotka oli nimetty esim. Patient1_VN0, Patient2_VN0, jne. 
-- Potilaskansioiden alla oli potilaan tiedostot omissa kansioissa.
-- Tiedostopolut on kovakoodattu luokat.py ja config.ymal tiedostoihin.
+- Potilaskansioiden alla oli potilaan tiedostot omissa kansioissa, mm. 'ct', 'maski' ja 'doseds'
+- Tiedostopolut on kovakoodattu luokat.py, luokat2.py ja config.yaml tiedostoihin.
 
 ### Aineiston esikäsittely
 
@@ -96,7 +94,7 @@ Kaikki esikäsittelyn koodit lukevat DICOM eli .dcm muotoista dataa.
 
 ## Lisätietoa
 
-Tarkempi dokumentointi ja selostus mallin jatkokäytöstä löytyvät projektista kirjoitetusta [Pro Gradu tutkielmasta](https://jyx.jyu.fi/jyx/Record/jyx_123456789_94998?sid=273647110).
+Tarkempi koodien dokumentointi ja selostus mallin jatkokäytöstä löytyvät projektista kirjoitetusta [Pro Gradu tutkielmasta](https://jyx.jyu.fi/jyx/Record/jyx_123456789_94998?sid=273647110).
 Lisätietoa saa myös Akseli Leinon [artikkelista](https://aapm.onlinelibrary.wiley.com/doi/full/10.1002/mp.17410), joka toimi pohjana tälle projektille ja gradulle.
 
 
