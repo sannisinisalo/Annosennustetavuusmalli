@@ -96,6 +96,7 @@ class CT3DImage:
             new_spacing[2] = self.forced_spacing
             self.image.SetSpacing(tuple(new_spacing))
             logger.debug(f"CT spacing pakotettu: {self.image.GetSpacing()}")
+            self.spacing = self.image.GetSpacing()
 
         self.ref_meta = pydicom.dcmread(self.ct_files[0], stop_before_pixels=True)
         self.iop = self.ref_meta.ImageOrientationPatient
@@ -185,15 +186,10 @@ def unify_dose_with_ct(patient: Patient) -> Optional[FileDataset]:
         # Luetaan CT imageksi ja pakotetaan spacing 2.0
         ct_img = CT3DImage(patient=patient, forced_spacing=2.0)
 
-        logger.debug("forced_ct_img origin:", ct_img.origin)
-
         # Luetaan dose
 
         dose_img = Dose3DImage(patient=patient)
         ds = dose_img.ds
-
-        logger.debug("CT origin:", ct_img.origin)
-        logger.debug("Dose origin:", dose_img.origin)
 
         new_size = [ct_img.size[0], ct_img.size[1], ct_img.size[2]]
         new_spacing = [ct_img.spacing[0], ct_img.spacing[1], ct_img.forced_spacing]
@@ -211,9 +207,6 @@ def unify_dose_with_ct(patient: Patient) -> Optional[FileDataset]:
         resampler.SetDefaultPixelValue(0.0)
 
         dose_resampled = resampler.Execute(dose_img.image)
-        logger.debug("dose_resampled origin:", dose_resampled.GetOrigin())
-        logger.debug("dose_resampled spacing:", dose_resampled.GetSpacing())
-        logger.debug("dose_resampled size:", dose_resampled.GetSize())
 
         # Tallennetaan tiedostot
         dose_array = sitk.GetArrayFromImage(dose_resampled)
@@ -244,8 +237,8 @@ def unify_dose_with_ct(patient: Patient) -> Optional[FileDataset]:
             float(dose_img.origin[2]),
         ]
 
-        # if ct_img.for_ is not None:
-        ds.FrameOfReferenceUID = ct_img.for_
+        if ct_img.for_ is not None:
+            ds.FrameOfReferenceUID = ct_img.for_
 
         if not hasattr(ds, "file_meta") or ds.file_meta is None:
             ds.file_meta = FileMetaDataset()
@@ -286,6 +279,6 @@ if __name__ == "__main__":
             ds2 = pydicom.dcmread(out_path)
             dose_check = ds2.pixel_array * float(ds2.DoseGridScaling)
 
-            logger.success("Tallennettu onnistuneesti")
+            logger.success(f"Potilaan {patient} RTDose tallennettu onnistuneesti")
         else:
             logger.error(f"Potilaalla {patient} RTDOSE-käsittely epäonnistui")
