@@ -83,20 +83,24 @@ class CT3DImage:
 
     def __post_init__(self):
         self.ct_files = self.patient.ct_files
-        self.original_image = load_ct_series_from_files(self.ct_files)
-        self.image = self.original_image
-        self.size = self.image.GetSize()
-        self.positions = self.get_positions()
+        self.ct_files = sorted(
+            self.ct_files,
+            key=lambda f: float(pydicom.dcmread(f, stop_before_pixels=True).ImagePositionPatient[2])
+        )
+        
+        reader = sitk.ImageSeriesReader()
+        reader.SetFileNames([str(f) for f in self.ct_files])
+        self.image = reader.Execute()
+        
+        # spacing
+        spacing = list(self.image.GetSpacing())
+        spacing[2] = self.forced_spacing
+        self.image.SetSpacing(tuple(spacing))
+
         self.spacing = self.image.GetSpacing()
         self.origin = self.image.GetOrigin()
         self.direction = self.image.GetDirection()
-
-        if self.spacing[2] != self.forced_spacing:
-            new_spacing = list(self.spacing)
-            new_spacing[2] = self.forced_spacing
-            self.image.SetSpacing(tuple(new_spacing))
-            logger.debug(f"CT spacing pakotettu: {self.image.GetSpacing()}")
-            self.spacing = self.image.GetSpacing()
+        self.size = self.image.GetSize()
 
         self.ref_meta = pydicom.dcmread(self.ct_files[0], stop_before_pixels=True)
         self.iop = self.ref_meta.ImageOrientationPatient
@@ -185,19 +189,26 @@ def unify_dose_with_ct(patient: Patient) -> Optional[FileDataset]:
     try:
         # Luetaan CT imageksi ja pakotetaan spacing 2.0
         ct_img = CT3DImage(patient=patient, forced_spacing=2.0)
-
+        
         # Luetaan dose
-
         dose_img = Dose3DImage(patient=patient)
         ds = dose_img.ds
 
-        new_size = [ct_img.size[0], ct_img.size[1], ct_img.size[2]]
-        new_spacing = [ct_img.spacing[0], ct_img.spacing[1], ct_img.forced_spacing]
-        new_origin = [ct_img.origin[0], ct_img.origin[1], dose_img.origin[2]]
+        logger.debug("CT origin:", ct_img.origin)
+        logger.debug("Dose origin:", dose_img.origin)
 
+        ct_size = ct_img.image.GetSize()
+        ct_spacing = ct_img.image.GetSpacing()
+        ct_origin = ct_img.image.GetOrigin()
+        
+        new_size = ct_size
+        new_spacing = [ct_spacing[0], ct_spacing[1], 2.0]
+        
         reference = sitk.Image(new_size, sitk.sitkFloat32)
         reference.SetSpacing(new_spacing)
-        reference.SetOrigin(new_origin)
+        reference.SetOrigin([ct_origin[0], ct_origin[1], dose_img.origin[2]])
+        
+        # 🔴 TÄRKEÄ: pidä tämä kuten alkuperäisessä
         reference.SetDirection(dose_img.direction)
 
         # Resamplataan dose

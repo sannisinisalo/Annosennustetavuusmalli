@@ -11,7 +11,7 @@ import re
 import warnings
 from pathlib import Path
 from typing import List, Optional
-
+from argparse import ArgumentParser
 import numpy as np
 from pydicom import FileDataset, dcmread
 from pydicom.multival import MultiValue
@@ -129,14 +129,11 @@ def downsample_dose_file(
             zoom(ds_dose.pixel_array, zoom=(1, zoom_factor, zoom_factor), order=1)
         )
 
-        # Flipataan Z-akselilla, jotta slice-indeksi vastaa CT:n kanssa (slice 0 on alhaalla, ei päällä)
-        arr_dose_down_flipped = arr_dose_down[::-1, :, :]
-
-        ds_dose.PixelData = arr_dose_down_flipped.tobytes()
+        ds_dose.PixelData = arr_dose_down.tobytes()
 
         ds_dose.Rows, ds_dose.Columns = (
-            arr_dose_down_flipped.shape[1],
-            arr_dose_down_flipped.shape[2],
+            arr_dose_down.shape[1],
+            arr_dose_down.shape[2],
         )
 
         # Tarvitaanko näitä?
@@ -200,7 +197,7 @@ def downsample_mask_file(
 
 
 if __name__ == "__main__":
-    from argparse import ArgumentParser
+    
 
     argparser = ArgumentParser(
         description="Downsample DICOM files for ANNOSENNUSTETTAVUUSMALLI"
@@ -238,34 +235,50 @@ if __name__ == "__main__":
                 ds_ct.save_as(p.ds_ct_dir / f.name)
 
         # Downsamplataan RTDOSE
-        # 1. Ladataan alkuperäinen dose
+        # Ladataan alkuperäinen dose
+        dose_files = sorted(p.ds_dose_dir.glob("*.dcm"))
+        dose_file = dose_files[0] if dose_files else None
+        
         ds_dose = (
-            downsample_dose_file(p.rd_file, zoom_factor=0.5) if p.rd_file else None
+            downsample_dose_file(dose_file, zoom_factor=0.5)
+            if dose_file is not None
+            else None
         )
-        if ds_dose is not None and p.rd_file is not None:
-            ds_dose.save_as(p.ds_dose_dir / p.rd_file.name)
-
-        # 3. Ladataan maskit ja downsamplataan samaan kokoon
+        
+        if ds_dose is not None and dose_file is not None:
+            ds_dose.save_as(
+                p.ds_doseds_dir / dose_file.name
+            )
+            
+        # Ladataan maskit ja downsamplataan samaan kokoon
         if ds_dose is None:
             warnings.warn(
                 f"{patient_name}: Dose-tiedosto puuttuu, maskien downsamplaus ohitetaan."
             )
             continue
 
-        y_shape = ds_dose.pixel_array.shape[1]
-        x_shape = ds_dose.pixel_array.shape[2]
+        dose_arr = ds_dose.pixel_array  # jo flipped + downsampled
 
+        # Z-reversointi kuten alkuperäisessä
+        dose_arr_flipped = dose_arr[::-1, :, :]
+        
+        y_shape = dose_arr_flipped.shape[1]
+        x_shape = dose_arr_flipped.shape[2]
+        
         for i, f in enumerate(p.maski_files):
             ds_mask = downsample_mask_file(f, target_shape=(y_shape, x_shape))
-            if ds_mask is not None:
-                ds_mask.save_as(p.ds_maski_dir / f.name)
-
-            # # TARVITAANKO TÄTÄ? --- IGNORE ---
-            # # Slice-reversointi: käännä index Z-akselilla
-            # idx = len(p.maski_files) - 1 - i
-            # # Sovitetaan dose tähän sliceen
-            # # HUOM! Ei tehdä maskin mukaan multiplicaatiota, vaan indeksi vain järjestää
-            # dose_slice = ds_dose.pixel_array[idx, :, :]
+        
+            if ds_mask is None:
+                continue
+        
+            # sama slice-mapping kuin alkuperäisessä
+            idx = len(p.maski_files) - 1 - i
+        
+            dose_slice = dose_arr_flipped[idx, :, :]
+        
+            _ = dose_slice
+        
+            ds_mask.save_as(p.ds_maski_dir / f.name)
 
         # Kopioidaan RS ja RP muuttumattomina
         try:
