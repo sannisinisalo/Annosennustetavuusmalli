@@ -174,7 +174,11 @@ def downsample_mask_file(
 
         if hasattr(ds_mask, "PixelSpacing"):
             ds_mask.PixelSpacing = MultiValue(
-                float, [float(x) * 2 for x in ds_mask.PixelSpacing]
+                float,
+                [
+                    float(ds_mask.PixelSpacing[0]) / zoom_y,
+                    float(ds_mask.PixelSpacing[1]) / zoom_x,
+                ],
             )
         return ds_mask
 
@@ -243,6 +247,7 @@ if __name__ == "__main__":
 
         dose_arr = ds_dose.pixel_array
 
+        # Z-reversointi kuten alkuperäisessä
         dose_arr_flipped = dose_arr[::-1, :, :]
         
         y_shape = dose_arr_flipped.shape[1]
