@@ -73,8 +73,7 @@ def load_CT(path: Path | str) -> list[FileDataset]:
     slices = [s for s in slices if s.SeriesInstanceUID == series_uid]
     logger.debug(f"Number of CT slices with matching SeriesInstanceUID: {len(slices)}")
 
-    # Järjestetään listan tiedostot InstanceNumberin mukaan ensin nousevaan järjestykseen, jonka jälkeen
-    # listan järjestys käännetään päinvastaiseksi
+    # Järjestetään listan tiedostot InstanceNumberin mukaan ensin nousevaan järjestykseen, jonka jälkeen listan järjestys käännetään päinvastaiseksi
     slices.sort(key=lambda x: int(x.InstanceNumber))
     logger.debug("CT slices sorted by InstanceNumber.")
     slices = slices[::-1]
@@ -119,8 +118,7 @@ def normalize_axes(
     if shape == (num_slices, rows, cols):
         return mask, txt
 
-    # Jos akselit vaativat korjausta, etsitään permutaatio, joka tuottaa (num_slices, rows, cols) ja
-    # käännetään akselit sen mukaan haluttuun järjestykseen.
+    # Jos akselit vaativat korjausta, käännetään akselit haluttuun järjestykseen.
     for perm in [
         (0, 1, 2),
         (0, 2, 1),
@@ -276,7 +274,6 @@ def overlay_ROI(rt_path: str | Path, ct_path: str | Path):
             continue
         else:
             mask, _ = normalised_axes
-        # print(f"{roi_name}: {txt}")
 
         any_mask |= mask.astype(bool)
 
@@ -387,21 +384,15 @@ if __name__ == "__main__":
         for patient in all_patients.sort_by_number():
             print(f"Käsitellään {patient.patient_folder}...")
 
-            # Polut luokkien kautta
             ct_path = patient.original_dir
             out_path = patient.maski_dir
 
-            # Etsitään RS-tiedosto
             rs_file = patient.rs_file if patient.rs_file else None
             if rs_file is None:
                 print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
                 continue
 
-            # Luodaan maski
             mask, ct_slices = overlay_ROI(rs_file, ct_path)
-
-            # Tulostetaan maskin tyyppi ja muoto
-            print(type(mask), mask.shape)
 
             # Tallennetaan maski DICOM-sarjana
             save_mask_as_dicom_series(mask, ct_slices, out_path)

@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
-
+from tqdm import tqdm 
 import numpy as np
 import pydicom
 import SimpleITK as sitk
@@ -184,7 +184,7 @@ def unify_dose_with_ct(patient: Patient) -> Optional[FileDataset]:
         logger.warning(f"Potilaalla {patient} ei RTDOSE-tiedostoa, ohitetaan.")
         return None
 
-    ds = None  # Alustetaan ds, jotta voidaan palauttaa myös virhetilanteessa
+    ds = None
 
     try:
         # Luetaan CT imageksi ja pakotetaan spacing 2.0
@@ -208,7 +208,6 @@ def unify_dose_with_ct(patient: Patient) -> Optional[FileDataset]:
         reference.SetSpacing(new_spacing)
         reference.SetOrigin([ct_origin[0], ct_origin[1], dose_img.origin[2]])
         
-        # 🔴 TÄRKEÄ: pidä tämä kuten alkuperäisessä
         reference.SetDirection(dose_img.direction)
 
         # Resamplataan dose
@@ -266,8 +265,7 @@ def unify_dose_with_ct(patient: Patient) -> Optional[FileDataset]:
 
 
 if __name__ == "__main__":
-    from tqdm import tqdm  # type: ignore
-
+    
     patients = AllPatients(original_root=Path("VN0"), processed_root=Path("VN0ds"))
 
     total = len(patients)

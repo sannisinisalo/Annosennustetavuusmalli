@@ -15,7 +15,7 @@ from argparse import ArgumentParser
 import numpy as np
 from pydicom import FileDataset, dcmread
 from pydicom.multival import MultiValue
-from scipy.ndimage import zoom  # type: ignore
+from scipy.ndimage import zoom
 
 from annosennustettavuusmalli.preprocessing.luokat import (
     BASE_DIR,
@@ -35,9 +35,7 @@ def find_patient_folders(source_root: str | Path) -> List[Path]:
     """
     Etsitään kaikki potilaskansiot, jotka alkaa 'Patient', ja järjestetään ne numerojärjestykseen
     """
-
     source_root = Path(source_root)
-
     patients = [p for p in source_root.glob("Patient*") if p.is_dir()]
 
     def patient_sort_key(path: Path):
@@ -92,7 +90,6 @@ def downsample_ct_file(ct_file: Path) -> Optional[FileDataset]:
     Downsamplaa CT-tiedoston puoleen alkuperäisestä resoluutiosta X/Y-suunnassa.
     Palauttaa downsamplatun DICOM datasetin, tai None jos käsittely epäonnistuu.
     """
-
     try:
         ds = dcmread(ct_file)
 
@@ -116,7 +113,6 @@ def downsample_dose_file(
 ) -> Optional[FileDataset]:
     """
     Downsamplaa RTDOSE-tiedoston puoleen alkuperäisestä resoluutiosta X/Y-suunnassa (Z pysyy samana).
-
     Palauttaa downsamplatun DICOM datasetin, tai None jos käsittely epäonnistuu.
     """
     arr_dose_down = None
@@ -136,10 +132,6 @@ def downsample_dose_file(
             arr_dose_down.shape[2],
         )
 
-        # Tarvitaanko näitä?
-        # dose_origin_z = ds_dose.ImagePositionPatient[2]
-        # dose_z_positions = dose_origin_z + np.array(ds_dose.GridFrameOffsetVector)
-
         if hasattr(ds_dose, "PixelSpacing"):
             # Tuplataan PixelSpacing-arvot, koska resoluutio puolitetaan
             ds_dose.PixelSpacing = MultiValue(
@@ -157,16 +149,13 @@ def downsample_mask_file(
 ) -> Optional[FileDataset]:
     """
     Downsamplaa maskitiedoston puoleen alkuperäisestä resoluutiosta X/Y-suunnassa, ja slice-reversoi Z-akselilla.
-
     Palauttaa downsamplatun DICOM datasetin, tai None jos käsittely epäonnistuu.
     """
     try:
         ds_mask = dcmread(mask_file)
 
-        # Tämä on 2D slice (Y, X)
         mask_orig = ds_mask.pixel_array
 
-        # Downsample X/Y
         zoom_y = target_shape[0] / mask_orig.shape[0]
         zoom_x = target_shape[1] / mask_orig.shape[1]
 
@@ -174,7 +163,7 @@ def downsample_mask_file(
             zoom(
                 mask_orig,
                 zoom=(zoom_y, zoom_x),
-                order=0,  # tärkeä maskille
+                order=0,
             )
         )
 
@@ -183,12 +172,10 @@ def downsample_mask_file(
         ds_mask.Rows = mask_down.shape[0]
         ds_mask.Columns = mask_down.shape[1]
 
-        # TÄRKEÄ: sama kuin alkuperäinen
         if hasattr(ds_mask, "PixelSpacing"):
             ds_mask.PixelSpacing = MultiValue(
                 float, [float(x) * 2 for x in ds_mask.PixelSpacing]
             )
-
         return ds_mask
 
     except Exception as e:
@@ -198,7 +185,6 @@ def downsample_mask_file(
 
 if __name__ == "__main__":
     
-
     argparser = ArgumentParser(
         description="Downsample DICOM files for ANNOSENNUSTETTAVUUSMALLI"
     )
@@ -210,11 +196,10 @@ if __name__ == "__main__":
         choices=["L", "R", "LAX", "RAX"],
         help="Valitse datasetti: 'L', 'R', 'LAX', 'RAX'",
     )
-    args = argparser.parse_args(["-d", "L"])
+    args = argparser.parse_args(["-d", "L"]) 
 
     print("PROCESSING...")
 
-    # Valitse datasetti: "L", "R", "LAX", "RAX"
     dataset = args.dataset.upper()
 
     SOURCE_PATH, DESTINATION_PATH = get_data_paths(dataset)
@@ -235,7 +220,6 @@ if __name__ == "__main__":
                 ds_ct.save_as(p.ds_ct_dir / f.name)
 
         # Downsamplataan RTDOSE
-        # Ladataan alkuperäinen dose
         dose_files = sorted(p.ds_dose_dir.glob("*.dcm"))
         dose_file = dose_files[0] if dose_files else None
         
@@ -257,9 +241,8 @@ if __name__ == "__main__":
             )
             continue
 
-        dose_arr = ds_dose.pixel_array  # jo flipped + downsampled
+        dose_arr = ds_dose.pixel_array
 
-        # Z-reversointi kuten alkuperäisessä
         dose_arr_flipped = dose_arr[::-1, :, :]
         
         y_shape = dose_arr_flipped.shape[1]
@@ -271,7 +254,6 @@ if __name__ == "__main__":
             if ds_mask is None:
                 continue
         
-            # sama slice-mapping kuin alkuperäisessä
             idx = len(p.maski_files) - 1 - i
         
             dose_slice = dose_arr_flipped[idx, :, :]
