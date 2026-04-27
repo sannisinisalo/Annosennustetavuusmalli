@@ -111,30 +111,25 @@ def generate_datasets(
     # The order of the transforms is important! Padding of the size transformations are made with the assumption that data is already scaled. Thus, rescale transforms must be befor rescale pixels.
     # Also, create_final_mask must be AFTER resizing pixels, as it creates 'original_mask', which is not at the moment handled by PixelSizingTransform.
 
-    train_transforms = Compose(
-        (
-            rescale_dose,
-            rescale_ct,
-            rescale_pixels,
-            create_final_mask,
-            create_probability_map,
-            create_distance_to_PTV,
-            rand_affine,
-        )
-    )
-    transforms = Compose(
-        (
-            rescale_dose,
-            rescale_ct,
-            rescale_pixels,
-            create_final_mask,
-            create_probability_map,
-            create_distance_to_PTV,
-        )
-    )
-
-    train_set = tio.SubjectsDataset(train_subjects_list, transform=train_transforms)
-    val_set = tio.SubjectsDataset(val_subjects_list, transform=transforms)
-    test_set = tio.SubjectsDataset(test_subjects_list, transform=transforms)
-
+    train_transforms = tio.Compose((
+        rescale_dose, 
+        rescale_ct, 
+        rescale_pixels, 
+        create_final_mask, 
+        create_probability_map, 
+        create_distance_to_PTV, 
+        rand_affine
+        ))
+    transforms = tio.Compose((
+        rescale_dose, 
+        rescale_ct, 
+        rescale_pixels, 
+        create_final_mask, 
+        create_probability_map, 
+        create_distance_to_PTV))
+    
+    train_set = tio.SubjectsDataset(train_subjects_list, transform = train_transforms)
+    val_set = tio.SubjectsDataset(val_subjects_list, transform = transforms)    
+    test_set = tio.SubjectsDataset(test_subjects_list, transform = transforms)
+    
     return train_set, val_set, test_set

@@ -367,7 +367,7 @@ if __name__ == "__main__":
         patient = all_patients.sort_by_number()[0]
         print(f"Käsitellään {patient.patient_folder}...")
 
-        ct_path = patient.original_dir
+        ct_path = patient.ds_org_ct_dir
         out_path = patient.maski_dir
 
         rs_file = patient.rs_file if patient.rs_file else None
@@ -384,7 +384,7 @@ if __name__ == "__main__":
         for patient in all_patients.sort_by_number():
             print(f"Käsitellään {patient.patient_folder}...")
 
-            ct_path = patient.original_dir
+            ct_path = patient.ds_org_ct_dir
             out_path = patient.maski_dir
 
             rs_file = patient.rs_file if patient.rs_file else None

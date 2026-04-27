@@ -43,14 +43,13 @@ def main(
     base_dir: Path = Path(__file__).parent,
 ):
 
-    logger.remove()  # Remove default logger
-    logger.add(sys.stdout, level=log_level)  # Add new logger with specified level
+    logger.remove()  
+    logger.add(sys.stdout, level=log_level)  
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
 
     # Luo tallennuskansio malleille, jos sitä ei vielä ole
-    # Kansio luodaan
     trained_models_dir = base_dir / "trained_models"
     trained_models_dir.mkdir(exist_ok=True)
 
@@ -79,19 +78,30 @@ def main(
         train_set, val_set, test_set = generate_datasets(
             config.data_paths[data_folder], reduce_samples=1
         )
+        for i in range(5):
+            subject = train_set[i]
+        
+            print("SUBJECT:", subject["name"])
+        
+            for key in subject.keys():
+                img = subject[key]
+                if hasattr(img, "spacing"):
+                    print(key, img.spacing)
+        
+            print("-----")
+
 
         # Probability map probabilities are defined in custom_transforms -> ProbabilityMapTransform
-
         training_sampler = tio.sampler.WeightedSampler(
             hp_config_iter.patch_size, probability_map="probability_map"
         )
         train_queue = tio.Queue(
-            subjects_dataset=train_set,
-            max_length=config.train_loader_config["max_length"],
-            samples_per_volume=config.train_loader_config["samples_per_volume"],
-            sampler=training_sampler,
-            num_workers=0,
-            verbose=True,
+            subjects_dataset = train_set,
+            max_length = config.train_loader_config["max_length"],
+            samples_per_volume = config.train_loader_config["samples_per_volume"],
+            sampler = training_sampler,
+            num_workers = 0,
+            verbose = True,
         )
         train_loader = torch.utils.data.DataLoader(
             train_queue, batch_size=hp_config_iter.batch_size, num_workers=0
@@ -170,18 +180,12 @@ def main(
         best_val_primary = 100000000000  # Arbitrarily large number that loss is (hopefully) never going to be exceed
         last_improved = 0
 
+
         """
         Training loop
         """
-
+        
         start_epoch = 1
-
-        checkpoint_path = trained_models_dir / "gregarious-chimp-691_epoch_16.pth"
-
-        if checkpoint_path.exists():
-            print("Loading checkpoint:", checkpoint_path)
-            model.load_state_dict(torch.load(checkpoint_path))
-            start_epoch = 17
 
         for epoch in range(start_epoch, hp_config_iter.EPOCHS + 1):
             # This is for cosine annealing decay over time
@@ -348,28 +352,7 @@ def main(
         mlflow.log_metric(key="best_val_secondary", value=best_val_secondary)
         mlflow.log_metric(key="best_val_primary", value=best_val_primary)
         mlflow.end_run()
-
-    """
-    This is for training set checking. Visualizes 3x8 figure that includes ct, mask and dose for one 8-sized batch. Figure updates every 2 seconds.
-    """
-
-    # plt.rcParams["figure.figsize"] = (10, 15)
-    # plt.figure()
-
-    # for image in train_loader:
-
-    #    fig, axs = plt.subplots(8, 3)
-
-    #    for j, (ax1, ax2, ax3) in enumerate(axs):
-    #        ax1.imshow(image['mask'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
-    #        ax2.imshow(image['ct'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
-    #        ax2.set_title(image['name'][j])
-    #        ax3.imshow(image['dose'][tio.DATA].detach().numpy()[j, 0, :, :, 0])
-
-    #    plt.show()
-    #    time.sleep(2)
-    #    plt.close()
-
+        
 
 if __name__ == "__main__":
     main()

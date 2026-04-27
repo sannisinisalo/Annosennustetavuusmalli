@@ -175,10 +175,7 @@ def downsample_mask_file(
         if hasattr(ds_mask, "PixelSpacing"):
             ds_mask.PixelSpacing = MultiValue(
                 float,
-                [
-                    float(ds_mask.PixelSpacing[0]) / zoom_y,
-                    float(ds_mask.PixelSpacing[1]) / zoom_x,
-                ],
+                [float(x) * 2 for x in ds_mask.PixelSpacing],
             )
         return ds_mask
 
