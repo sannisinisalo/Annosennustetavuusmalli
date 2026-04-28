@@ -78,18 +78,6 @@ def main(
         train_set, val_set, test_set = generate_datasets(
             config.data_paths[data_folder], reduce_samples=1
         )
-        for i in range(5):
-            subject = train_set[i]
-        
-            print("SUBJECT:", subject["name"])
-        
-            for key in subject.keys():
-                img = subject[key]
-                if hasattr(img, "spacing"):
-                    print(key, img.spacing)
-        
-            print("-----")
-
 
         # Probability map probabilities are defined in custom_transforms -> ProbabilityMapTransform
         training_sampler = tio.sampler.WeightedSampler(
