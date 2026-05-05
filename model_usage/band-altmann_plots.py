@@ -32,8 +32,8 @@ def bland_altman_single_plot(clin_list, pred_list, organ_name, save_path):
     upper = md + 1.96 * sd
     lower = md - 1.96 * sd
 
-    plt.figure(figsize=(6,4))
-    plt.scatter(mean_vals, diff, alpha=0.6)
+    plt.figure(figsize=(8,6))
+    plt.scatter(mean_vals, diff, s=60, alpha=0.6, color='navy')
     plt.axhline(md, color='orange')
     plt.axhline(upper, color='orange', linestyle='--')
     plt.axhline(lower, color='orange', linestyle='--')
@@ -43,10 +43,24 @@ def bland_altman_single_plot(clin_list, pred_list, organ_name, save_path):
     
     xmax = np.max(mean_vals)
     plt.xlim(0, xmax * 1.40) 
+    xmin, xmax = plt.xlim()
+    
+    offset = 0.02 * (upper - lower)
 
-    plt.title(f"{organ_name} Bland–Altman")
-    plt.xlabel("Mean dose (Gy)")
-    plt.ylabel("Difference (Gy)")
+    plt.text(xmax, upper + offset, "+1.96*SD", 
+             ha='right', color='black', fontsize=14)
+
+    plt.text(xmax, md + offset, "Mean", 
+             ha='right', color='black', fontsize=14)
+
+    plt.text(xmax, lower + offset, "-1.96*SD", 
+             ha='right', color='black', fontsize=14)
+
+    plt.title(f"{organ_name}", fontsize=16)
+    plt.xlabel("Average dose (Gy)", fontsize=15)
+    plt.ylabel("Dose difference (Gy)", fontsize=15)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
     plt.grid(alpha=0.3)
 
     plt.savefig(save_path)

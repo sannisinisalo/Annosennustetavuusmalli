@@ -54,7 +54,6 @@ def main():
 
     for patient_dir in patients:
         patient_name = patient_dir.name
-        print(f"\nPotilas: {patient_name}")
 
         pred = torch.load(patient_dir / "pred.pt").squeeze().numpy()
         clin = torch.load(patient_dir / "clin.pt").squeeze().numpy()
@@ -65,7 +64,7 @@ def main():
 
         
         
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(7, 6))
         
         # Käyttäjän määrittelemät värit
         colors = {
@@ -76,6 +75,9 @@ def main():
             "Contralateral breast": "purple",
         }
         
+        legend_handles = []
+        legend_labels = []
+        
         for organ_name, organ_idx in organ_map.items():
         
             dose_bins_pred, vol_pred = compute_dvh(pred, mask, organ_idx)
@@ -85,41 +87,94 @@ def main():
                 print(f"  - Ei pikseleitä rakenteelle {organ_name}, ohitetaan.")
                 continue
             
-            pred_vals = pred[mask == organ_idx]
-            print(organ_name, pred_vals.min(), pred_vals.max(), pred_vals.mean())
+            #pred_vals = pred[mask == organ_idx]
+            #print(organ_name, pred_vals.min(), pred_vals.max(), pred_vals.mean())
             
             color = colors.get(organ_name, "black")  # fallback mustalle
         
             # Kliininen DVH: yhtenäinen viiva
-            plt.plot(
+            line1, = plt.plot(
                 dose_bins_clin,
                 vol_clin,
-                label=f"{organ_name} – Clin",
                 color=color,
                 linewidth=2,
             )
-        
-            # Ennustettu DVH: katkoviiva
-            plt.plot(
+            
+            # Ennustettu DVH
+            line2, = plt.plot(
                 dose_bins_pred,
                 vol_pred,
-                label=f"{organ_name} – Pred",
                 color=color,
                 linestyle="--",
                 linewidth=2,
             )
+            
+            # Lisää legendaan (vain kerran per organ)
+            legend_handles.extend([line1, line2])
+            legend_labels.extend([f"{organ_name} – Clinical", f"{organ_name} – Predicted"])
         
         
         # Tallenna kuva
-        plt.title(f"DVH – {patient_name}")
-        plt.xlabel("Dose (Gy)")
-        plt.ylabel("Volume fraction")
+        plt.xlabel("Dose (Gy)", fontsize=16)
+        plt.ylabel("Volume fraction", fontsize=16)
+        plt.title(f"DVH – {patient_name}", fontsize=18)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
         plt.grid(True)
-        plt.legend(fontsize=8, ncol=2)
+        #plt.legend(fontsize=8, ncol=2)
         plt.tight_layout()
         plt.savefig(patient_out / f"{patient_name}_DVH.png")
         plt.close()
-
+    
+    # Luo erillinen legendakuva
+    fig_legend = plt.figure(figsize=(8, 4))
+    
+    # Jaa kolmeen sarakkeeseen
+    handles_col1 = legend_handles[0:4]
+    labels_col1  = legend_labels[0:4]
+    
+    handles_col2 = legend_handles[4:8]
+    labels_col2  = legend_labels[4:8]
+    
+    handles_col3 = legend_handles[8:10]
+    labels_col3  = legend_labels[8:10]
+    
+    # Sarake 1
+    fig_legend.legend(
+        handles_col1,
+        labels_col1,
+        loc="center left",
+        bbox_to_anchor=(0.0, 0.5),
+        fontsize=10,
+        frameon=False,
+    )
+    
+    # Sarake 2
+    fig_legend.legend(
+        handles_col2,
+        labels_col2,
+        loc="center",
+        bbox_to_anchor=(0.4, 0.5),
+        fontsize=10,
+        frameon=False,
+    )
+    
+    # Sarake 3
+    fig_legend.legend(
+        handles_col3,
+        labels_col3,
+        loc="center right",
+        bbox_to_anchor=(0.935, 0.55),
+        fontsize=10,
+        frameon=False,
+    )
+    
+    # Poista akselit
+    plt.axis("off")
+    
+    # Tallenna
+    fig_legend.savefig(dvh_out / "DVH_legend2.png", bbox_inches="tight")
+    plt.close(fig_legend)
 
 
     print("\nDVH-laskenta valmis.")
