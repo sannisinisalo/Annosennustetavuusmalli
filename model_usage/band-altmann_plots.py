@@ -55,6 +55,15 @@ def bland_altman_single_plot(clin_list, pred_list, organ_name, save_path):
 
     plt.text(xmax, lower + offset, "-1.96*SD", 
              ha='right', color='black', fontsize=14)
+    
+    plt.text(xmax, upper - 4*offset, f"{upper:.2f}", 
+             ha='right', color='black', fontsize=14)
+
+    plt.text(xmax, md - 4*offset, f"{md:.2f}", 
+             ha='right', color='black', fontsize=14)
+
+    plt.text(xmax, lower - 4*offset, f"{lower:.2f}", 
+             ha='right', color='black', fontsize=14)
 
     plt.title(f"{organ_name}", fontsize=16)
     plt.xlabel("Average dose (Gy)", fontsize=15)
