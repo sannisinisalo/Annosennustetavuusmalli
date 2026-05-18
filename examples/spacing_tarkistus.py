@@ -26,9 +26,9 @@ patients = sorted(patients, key=extract_patient_number)
 for patient in patients:
     patient_path = os.path.join(base_path, patient)
     
-    ct_path = os.path.join(patient_path, "vanha ct")
-    mask_path = os.path.join(patient_path, "maski")
-    dose_path = os.path.join(patient_path, "dose")
+    ct_path = os.path.join(patient_path, "ct")
+    mask_path = os.path.join(patient_path, "maskids")
+    dose_path = os.path.join(patient_path, "doseds")
     
     # Lue dose (yksi 3D-kuva)
     dose_files = [f for f in os.listdir(dose_path) if os.path.isfile(os.path.join(dose_path, f))]
@@ -44,7 +44,7 @@ for patient in patients:
         print(f"{patient}: CT-kansio tyhjä!")
         continue
     first_ct = sitk.ReadImage(os.path.join(ct_path, ct_files[0]))
-    ct_spacing = (first_ct.GetSpacing()[0], first_ct.GetSpacing()[1], dose_spacing[2])
+    ct_spacing = first_ct.GetSpacing()
     
     # Lue maski
     mask_files = sorted([f for f in os.listdir(mask_path) if os.path.isfile(os.path.join(mask_path, f))])
@@ -52,7 +52,7 @@ for patient in patients:
         print(f"{patient}: Maski-kansio tyhjä!")
         continue
     first_mask = sitk.ReadImage(os.path.join(mask_path, mask_files[0]))
-    mask_spacing = (first_mask.GetSpacing()[0], first_mask.GetSpacing()[1], dose_spacing[2])
+    mask_spacing = first_mask.GetSpacing()
     
     # Tarkista, ovatko spacingit samoja
     spacing_match = (ct_spacing == mask_spacing == dose_spacing)

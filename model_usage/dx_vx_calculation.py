@@ -9,25 +9,28 @@ Koodi Dx ja Vx tietojen laskemiseen testipotilaille.
 import torch
 import csv
 from pathlib import Path
+
 import sys
 
-sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from annosennustettavuusmalli.preprocessing.luokat import DoseMetricsConfig
-from annosennustettavuusmalli.utils.calculate_dx import calculate_dx
-from annosennustettavuusmalli.utils.calculate_vx import calculate_vx
+from luokat2 import DoseMetricsConfig, BASE_DIR
+from src.annosennustettavuusmalli.utils.calculate_dx import calculate_dx
+from src.annosennustettavuusmalli.utils.calculate_vx import calculate_vx
+
 
 
 # Konfiguraatio
+
 config = DoseMetricsConfig()
 
-# Poista PTV jos sitä ei haluta mukaan
 organs = [o for o in config.vx_organs if o != "PTV"]
 
 # Polut
-base_dir = Path("predicted_doses")
+base_dir = BASE_DIR / "predicted_doses"
 csv_file = base_dir / "dose_metrics.csv"
 
+  
 # CSV kirjoitus
 with open(csv_file, mode="w", newline="") as f:
 
@@ -35,11 +38,12 @@ with open(csv_file, mode="w", newline="") as f:
 
     # Otsikot
     header = ["Patient"]
+    
 
     # Dx otsikot kaikille elimille
     for organ in organs:
         for d in config.dx_percentages:
-            header.append(f"{organ}_D{int(d*10)/10}")
+            header.append(f"{organ}_D{int(d)}")
 
     # Vx otsikot kaikille elimille
     for organ in organs:
@@ -66,21 +70,24 @@ with open(csv_file, mode="w", newline="") as f:
             continue
 
         patient_name = patient_dir.name
+        if patient_name == "Patient47_VN0":
+            print(f"Skipping {patient_name} (right breast patient)")
+            continue
+
         print("Processing:", patient_name)
 
         # Lataa data
         pred = torch.load(pred_file).squeeze()
         clin = torch.load(clin_file).squeeze()
         mask = torch.load(mask_file).squeeze()
-
+        
         row_pred = []
         row_clin = []
 
         # Laske Dx ja Vx kaikille elimille
         for organ in organs:
-
             label = config.organ_config[organ]
-
+            
             # Dx
             for d in config.dx_percentages:
 
@@ -120,8 +127,10 @@ with open(csv_file, mode="w", newline="") as f:
 
                 row_pred.append(vx_pred)
                 row_clin.append(vx_clin)
-
         # Kirjoita CSV
         writer.writerow([patient_name] + row_pred + row_clin)
 
 print("CSV saved with Dx and Vx metrics.")
+
+
+

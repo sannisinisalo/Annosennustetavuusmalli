@@ -1,11 +1,18 @@
-import torch
 import numpy as np
+import torch
 
 """
 Tekijä: Akseli Leino
 """
 
-def calculate_dvhs(dose, mask, organ_config, num_bins = 601, dose_max = 60):
+
+def calculate_dvhs(
+    dose: torch.Tensor,
+    mask: torch.Tensor,
+    organ_config: dict,
+    num_bins: int = 601,
+    dose_max: int = 60,
+):
     """Calculate cumulative dose-volume histograms (DVHs) for each organ.
 
     This function computes the DVHs for each specified organ based on the input
@@ -19,7 +26,7 @@ def calculate_dvhs(dose, mask, organ_config, num_bins = 601, dose_max = 60):
         organ_config (dict): A dictionary mapping organ names (str) to their corresponding int values.
         num_bins (int, optional): The number of bins between 0 and dose_max.
         dose_max (int, optional): The maximum dose and limit for x-axis.
-    
+
     Returns:
         dict: A dictionary where each key is an organ name (str) and the value is
             a  PyTorch tensor representing the cumulative DVH for that organ.
@@ -27,20 +34,33 @@ def calculate_dvhs(dose, mask, organ_config, num_bins = 601, dose_max = 60):
 
     dvhs = {}
     dose_min = 0
-    bin_edges = torch.linspace(dose_min, dose_max, steps = num_bins)
+    # bin_edges = torch.linspace(dose_min, dose_max, steps = num_bins)
 
     for organ_name, organ_value in organ_config.items():
         organ_doses = dose[mask == organ_value]
 
         hist = torch.histc(organ_doses, bins=num_bins, min=dose_min, max=dose_max)
 
-        cumulative_dvh = torch.flip(torch.cumsum(torch.flip(hist, dims=[0]), dim=0), dims=[0]) / organ_doses.numel()*100
+        cumulative_dvh = (
+            torch.flip(torch.cumsum(torch.flip(hist, dims=[0]), dim=0), dims=[0])
+            / organ_doses.numel()
+            * 100
+        )
 
         dvhs[organ_name] = cumulative_dvh
-        
-    return dvhs
+    
+    dose_axis = torch.linspace(dose_min, dose_max, steps=num_bins)
 
-def calculate_dvhs_numpy(dose, mask, organ_config, num_bins = 601, max_dose = 60):
+    return dvhs, dose_axis
+
+
+def calculate_dvhs_numpy(
+    dose: np.ndarray,
+    mask: np.ndarray,
+    organ_config: dict,
+    num_bins: int = 601,
+    max_dose: int = 60,
+):
     """Calculate cumulative dose-volume histograms (DVHs) for each organ.
 
     This function computes the DVHs for each specified organ based on the input
@@ -54,25 +74,26 @@ def calculate_dvhs_numpy(dose, mask, organ_config, num_bins = 601, max_dose = 60
         organ_config (dict): A dictionary mapping organ names (str) to their corresponding int values.
         num_bins (int, optional): The number of bins between 0 and dose_max.
         dose_max (int, optional): The maximum dose and limit for x-axis.
-    
+
     Returns:
         dict: A dictionary where each key is an organ name (str) and the value is
             a  PyTorch tensor representing the cumulative DVH for that organ.
     """
 
     dvhs = {}
-    bin_edges = np.arange(0, max_dose + 0.2, 0.1)
+    step = max_dose / (num_bins - 1)
+    bin_edges = np.arange(0, max_dose + step, step)
 
     for organ_name, organ_index in organ_config.items():
-        organ_dose = dose[mask[:,:, :, :, organ_index] == 1]
+        organ_dose = dose[mask[:, :, :, :, organ_index] == 1]
 
         diff_dvh_voxels, _ = np.histogram(organ_dose, bins=bin_edges)
         if np.any(diff_dvh_voxels):
-            diff_dvh = diff_dvh_voxels/np.sum(diff_dvh_voxels)*100
+            diff_dvh = diff_dvh_voxels / np.sum(diff_dvh_voxels) * 100
         else:
             diff_dvh = diff_dvh_voxels
-            print(f'- Missing {organ_name}')
-        dvh = (100 - np.cumsum(diff_dvh))
+            print(f"- Missing {organ_name}")
+        dvh = 100 - np.cumsum(diff_dvh)
         dvhs[organ_name] = dvh
-        
+
     return dvhs

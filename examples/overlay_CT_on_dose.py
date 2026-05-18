@@ -7,7 +7,6 @@ Koodi jolla voidaan sijoittaa visualisointitarkoituksessa RTDose CT-kuvien tai m
 """
 
 import pydicom
-import numpy as np
 import matplotlib.pyplot as plt
 import SimpleITK as sitk
 import os

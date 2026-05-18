@@ -8,9 +8,11 @@ Koodi MAE:n ja SD:n laskemiseen metriikoista
 
 import pandas as pd
 import numpy as np
+from luokat2 import BASE_DIR
 
 # Lue data
-df = pd.read_csv("predicted_doses/dose_metrics.csv")
+path = BASE_DIR / "predicted_doses" / "dose_metrics.csv"
+df = pd.read_csv(path)
 
 results = []
 
@@ -45,10 +47,11 @@ for col in df.columns:
 result_df = pd.DataFrame(results)
 
 # Tallenna
+out_path = BASE_DIR / "predicted_doses" / "mae_sd_results.csv"
+
 result_df.to_csv(
-    "mae_sd_results.csv",
+    out_path,
     index=False
 )
 
 print("Results saved.")
-print(base, len(abs_error))

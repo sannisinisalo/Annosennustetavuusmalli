@@ -8,11 +8,11 @@ Koodissa myös vaihtoehtona tallentaa kuvat PNG-muodossa haluttuun kansioon.
 """
 
 import os
-import pydicom
-import matplotlib.pyplot as plt
-import numpy as np
 
-kansio = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient8_VN0\maski"
+import matplotlib.pyplot as plt
+import pydicom
+
+kansio = r"C:\Users\User01\GRADU\Aineisto\VN0ds\Patient42_VN0\vanha ct"
 # tallennusk = r"C:\Users\User01\GRADU\tiedostot\MASKI1_tuloksia"
 
 dicom_lista = []
@@ -38,15 +38,19 @@ for tiedosto in os.listdir(kansio):
 # Sortataan Z-koordinaatin perusteella
 dicom_lista.sort(key=lambda x: x[0])
 
+rows = getattr(ds, "Rows", None)
+cols = getattr(ds, "Columns", None)
+print(f"Resoluutio: {cols} x {rows} pikseliä")
+
 # Näytetään kuvat oikeassa järjestyksessä
 for z, tiedosto, ds in dicom_lista:
     plt.figure(figsize=(6, 6))
     plt.imshow(ds.pixel_array, cmap="gray")
     plt.title(f"{tiedosto} (z={z})")
     plt.axis("off")
-    
+
     # Tallenna kuva PNG-muodossa
     # tallennus_polku = os.path.join(tallennusk, f"{tiedosto}.png")
     # plt.savefig(tallennus_polku, bbox_inches='tight', pad_inches=0)
-    
+
     plt.show()

@@ -13,8 +13,8 @@ annosennustettavuusmalli tunnistaa ne sekä koostetaan CT pakka, johon on
 lisätty kaikki ROI:t.
 """
 
-import os
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from loguru import logger  # type: ignore
@@ -22,7 +22,9 @@ from pydicom import FileDataset, dcmread
 from pydicom.uid import generate_uid
 from rt_utils import RTStructBuilder  # type: ignore
 
-from annosennustettavuusmalli.preprocessing.luokat import AllPatients  # type: ignore
+from annosennustettavuusmalli.preprocessing.luokat import (
+    AllPatients,
+)
 
 
 def load_CT(path: Path | str) -> list[FileDataset]:
@@ -51,6 +53,7 @@ def load_CT(path: Path | str) -> list[FileDataset]:
     """
 
     path = Path(path)
+
     logger.debug(f"Loading CT images from: {path}")
 
     # Tuotetaan lista CT-kuvista. Varmistetaan, että kyseessä on CT modality ja että kaikki kuvat kuuluvat samaan sarjaan SeriesInstanceUID:n avulla.
@@ -70,8 +73,7 @@ def load_CT(path: Path | str) -> list[FileDataset]:
     slices = [s for s in slices if s.SeriesInstanceUID == series_uid]
     logger.debug(f"Number of CT slices with matching SeriesInstanceUID: {len(slices)}")
 
-    # Järjestetään listan tiedostot InstanceNumberin mukaan ensin nousevaan järjestykseen, jonka jälkeen
-    # listan järjestys käännetään päinvastaiseksi
+    # Järjestetään listan tiedostot InstanceNumberin mukaan ensin nousevaan järjestykseen, jonka jälkeen listan järjestys käännetään päinvastaiseksi
     slices.sort(key=lambda x: int(x.InstanceNumber))
     logger.debug("CT slices sorted by InstanceNumber.")
     slices = slices[::-1]
@@ -81,7 +83,9 @@ def load_CT(path: Path | str) -> list[FileDataset]:
 
 
 # Normalisoidaan ROI-maskin akselit muotoon (Z, Y, X), jotta ne ovat samassa muodossa CT kuvien kanssa
-def normalize_axes(mask, ct_slices):
+def normalize_axes(
+    mask: np.ndarray, ct_slices: list[FileDataset]
+) -> Optional[tuple[np.ndarray, str]]:
     """
     Normalizes the axes of the ROI mask array tho match the CT-images axes (Z, Y, X).
 
@@ -114,8 +118,7 @@ def normalize_axes(mask, ct_slices):
     if shape == (num_slices, rows, cols):
         return mask, txt
 
-    # Jos akselit vaativat korjausta, etsitään permutaatio, joka tuottaa (num_slices, rows, cols) ja
-    # käännetään akselit sen mukaan haluttuun järjestykseen.
+    # Jos akselit vaativat korjausta, käännetään akselit haluttuun järjestykseen.
     for perm in [
         (0, 1, 2),
         (0, 2, 1),
@@ -133,7 +136,7 @@ def normalize_axes(mask, ct_slices):
 
 
 # ROI nimien määritys ja numeroiden määrääminen
-def map_roi_name_to_label(roi_name) -> int | None:
+def map_roi_name_to_label(roi_name: str) -> Optional[int]:
     """
     Maps a ROI name to a predefined number that are powers of 2.
 
@@ -204,7 +207,7 @@ def map_roi_name_to_label(roi_name) -> int | None:
 
 
 # Asetetaan ROI:t CT-kuvien päälle
-def overlay_ROI(rt_path, ct_path):
+def overlay_ROI(rt_path: str | Path, ct_path: str | Path):
     """
     overlays the ROIs on top of the CT-images.
 
@@ -233,10 +236,14 @@ def overlay_ROI(rt_path, ct_path):
     cols = int(ct_slices[0].Columns)
 
     # Luodaan RTStructBuilder-objekti, joka osaa lukea RS:n ja resamplata ROI:t CT:n koordinaatistoon
+    ct_rtutils_dir = patient.prepare_ct_dir_for_rtutils()
+    
     rtstruct = RTStructBuilder.create_from(
-        dicom_series_path=ct_path, rt_struct_path=rt_path
+        dicom_series_path=str(ct_rtutils_dir),
+        rt_struct_path=str(patient.rs_file)
     )
 
+    
     # Luodaan ensin tyhjä summamaski
     # Alustetaan tausta arvoksi ensin 0, tämä muutetaan myöhemmin arvoon -1
     sum_mask = np.zeros((num_slices, rows, cols), dtype=np.int32)
@@ -247,9 +254,11 @@ def overlay_ROI(rt_path, ct_path):
     # Listataan kaikki saatavilla olevat ROI:t
     roi_list = rtstruct.get_roi_names()
 
+    
     # Määritetään ROI listan halutuille ROI:lle map_roi_name_to_label funktiossa määritetyt luvut (2:n potenssi)
     for roi_name in roi_list:
         roi_value = map_roi_name_to_label(roi_name)
+
         if roi_value is None:
             continue
 
@@ -259,8 +268,12 @@ def overlay_ROI(rt_path, ct_path):
             print(f"ROI '{roi_name}' ohitettu (ei ContourSequenceä)")
             continue
 
-        mask, txt = normalize_axes(mask, ct_slices)
-        # print(f"{roi_name}: {txt}")
+        normalised_axes = normalize_axes(mask, ct_slices)
+        if normalised_axes is None:
+            print(f"ROI '{roi_name}' ohitettu (ei onnistuttu normalisoimaan)")
+            continue
+        else:
+            mask, _ = normalised_axes
 
         any_mask |= mask.astype(bool)
 
@@ -274,7 +287,9 @@ def overlay_ROI(rt_path, ct_path):
 
 
 # Tallennetaan maski DICOM-pakkana
-def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
+def save_mask_as_dicom_series(
+    mask: np.ndarray, ct_slices: list[FileDataset], output_folder: str | Path
+) -> None:
     """
     Saves the mask as a DICOM series using CT slice metadata.
 
@@ -282,9 +297,9 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
     ----------
     mask : numpy.ndarray
         A 3D array (Z, Y, X) containing the mask data to be saved.
-    ct_slices : list
+    ct_slices : list[FileDataset]
         A list of the loaded CT images in DICOM form.
-    output_folder : str
+    output_folder : str | Path
         Path to the folder where the DICOM mask series will be saved.
 
     Returns
@@ -292,8 +307,10 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
     None.
 
     """
+    output_folder = Path(output_folder)
+
     # Luodaan output-kansio, jos sitä ei vielä ole
-    os.makedirs(output_folder, exist_ok=True)
+    output_folder.mkdir(parents=True, exist_ok=True)
 
     # Generoidaan uusi SeriesInstanceUID maskisarjalle
     series_uid = generate_uid()
@@ -308,16 +325,16 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
 
         # Metadata maskille
         new_ds.SeriesDescription = "ROI MASK"
-        new_ds.SeriesInstanceUID = series_uid 
+        new_ds.SeriesInstanceUID = series_uid
         new_ds.SOPInstanceUID = generate_uid()
-        new_ds.InstanceNumber = idx + 1  
+        new_ds.InstanceNumber = idx + 1
 
         # Päivitetään ImagePositionPatient Z-koordinaatti
         new_ds.ImagePositionPatient = list(ct.ImagePositionPatient)
         new_ds.ImagePositionPatient[2] = (
             ct.ImagePositionPatient[2] + idx * ct.SliceThickness
         )
-        
+
         new_ds.PixelSpacing = list(ct.PixelSpacing)
         new_ds.SliceThickness = ct.SliceThickness
 
@@ -332,45 +349,52 @@ def save_mask_as_dicom_series(mask, ct_slices, output_folder) -> None:
         new_ds.HighBit = 31
 
         # Tallennus
-        out_path = os.path.join(output_folder, f"mask_{idx:04d}.dcm")
+        out_path = output_folder / f"mask_{idx:04d}.dcm"
         new_ds.save_as(out_path)
+
 
 # PÄÄOHJELMA
 
 if __name__ == "__main__":
+    
     # Luodaan AllPatients-objekti
-    all_patients = AllPatients(
-        processed_dataset="VN0ds",
-        original_dataset="VN0"
-    )
+    all_patients = AllPatients(processed_root=Path("VN0ds"), original_root=Path("VN0"))
 
-    # Käydään kaikki potilaat läpi numerojärjestyksessä
-    for patient in all_patients.sorted_by_number():
+    run = "all"  # "all" tai "single" (testiä varten)
+
+    if run == "single":
+        # Käsitellään vain yksi potilas testimielessä
+        patient = all_patients.sort_by_number()[0]
         print(f"Käsitellään {patient.patient_folder}...")
 
-        # Polut luokkien kautta
-        ct_path = patient.org_ct_dir 
-        out_path = patient.mask_dir 
-        struct_dir = patient.struct_dir 
+        ct_path = patient.ds_org_ct_dir
+        out_path = patient.maski_dir
 
-        # Etsitään RS-tiedosto
-        try:
-            struct_files = [
-                f for f in os.listdir(patient.struct_dir) if f.endswith(".dcm")
-            ]            
-            rs_path = os.path.join(patient.struct_dir, struct_files[0])
-        except FileNotFoundError:
+        rs_file = patient.rs_file if patient.rs_file else None
+        if rs_file is None:
             print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
-            continue 
+        else:
+            mask, ct_slices = overlay_ROI(rs_file, ct_path)
 
-        # Luodaan maski
-        mask, ct_slices = overlay_ROI(rs_path, ct_path)
+            save_mask_as_dicom_series(mask, ct_slices, out_path)
+            print("Maski tallennettu")
 
-        # Tulostetaan maskin tyyppi ja muoto
-        print(type(mask), mask.shape)
+    elif run == "all":
+        # Käydään kaikki potilaat läpi numerojärjestyksessä
+        for patient in all_patients.sort_by_number():
+            print(f"Käsitellään {patient.patient_folder}...")
 
-        # Tallennetaan maski DICOM-sarjana
-        save_mask_as_dicom_series(mask, ct_slices, out_path)
+            ct_path = patient.ds_org_ct_dir
+            out_path = patient.maski_dir
 
-        print("Maski tallennettu")
-        
+            rs_file = patient.rs_file if patient.rs_file else None
+            if rs_file is None:
+                print(f"RS-tiedostoa ei löytynyt potilaalta {patient.patient_folder}")
+                continue
+
+            mask, ct_slices = overlay_ROI(rs_file, ct_path)
+
+            # Tallennetaan maski DICOM-sarjana
+            save_mask_as_dicom_series(mask, ct_slices, out_path)
+
+            print("Maski tallennettu")
